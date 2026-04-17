@@ -1,0 +1,6 @@
+@SnoopyAirlines_HostAddress = http://localhost:5178
+
+GET {{SnoopyAirlines_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
