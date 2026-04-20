@@ -1,0 +1,7 @@
+CREATE TABLE airplane (
+    id INT IDENTITY(1,1) PRIMARY KEY
+);
+
+CREATE TABLE airport (
+    id INT IDENTITY(1,1) PRIMARY KEY
+);
