@@ -3,11 +3,11 @@ using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Services
 {
-    public class FlightService : IFlightService
+    public class FlightService
     {
-        private readonly IFlightRepository _flightRepository;
+        private readonly FlightRepository _flightRepository;
 
-        public FlightService(IFlightRepository flightRepository)
+        public FlightService(FlightRepository flightRepository)
         {
             _flightRepository = flightRepository;
         }
@@ -15,6 +15,11 @@ namespace SnoopyAirlines.Services
         public Task<IReadOnlyCollection<Flight>> GetFlightsAsync(CancellationToken cancellationToken)
         {
             return _flightRepository.GetAllAsync(cancellationToken);
+        }
+
+        public Task<Flight> CreateFlightAsync(Flight flight, CancellationToken cancellationToken)
+        {
+            return _flightRepository.CreateAsync(flight, cancellationToken);
         }
     }
 }

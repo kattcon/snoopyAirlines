@@ -8,9 +8,9 @@ namespace SnoopyAirlines.Controllers
     [Route("[controller]")]
     public class FlightController : ControllerBase
     {
-        private readonly IFlightService _flightService;
+        private readonly FlightService _flightService;
 
-        public FlightController(IFlightService flightService)
+        public FlightController(FlightService flightService)
         {
             _flightService = flightService;
         }
@@ -21,6 +21,16 @@ namespace SnoopyAirlines.Controllers
             var flights = await _flightService.GetFlightsAsync(cancellationToken);
 
             return Ok(flights);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Flight>> Post(
+            Flight flight,
+            CancellationToken cancellationToken)
+        {
+            var createdFlight = await _flightService.CreateFlightAsync(flight, cancellationToken);
+
+            return CreatedAtAction(nameof(Get), createdFlight);
         }
     }
 }
