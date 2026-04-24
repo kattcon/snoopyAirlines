@@ -43,54 +43,91 @@ namespace SnoopyAirlines.Repositories
             return flights.ToList();
         }
 
-        public async Task<Flight> CreateAsync(Flight flight, CancellationToken cancellationToken)
+        public async Task<Flight> SaveAsync(Flight flight, CancellationToken cancellationToken)
         {
             const string sql = """
-                INSERT INTO flight (
-                    airplane_id,
-                    departure_airport_id,
-                    arrival_airport_id,
-                    departure_time,
-                    arrival_time,
-                    duration_minutes,
-                    price_first_class,
-                    price_economy_class,
-                    price_carry_on_baggage,
-                    price_checked_baggage,
-                    weight_limit_carry_on_baggage,
-                    weight_limit_checked_baggage,
-                    checked_baggage_price_multiplier
-                )
-                OUTPUT
-                    INSERTED.id AS Id,
-                    INSERTED.airplane_id AS AirplaneId,
-                    INSERTED.departure_airport_id AS DepartureAirportId,
-                    INSERTED.arrival_airport_id AS ArrivalAirportId,
-                    INSERTED.departure_time AS DepartureTime,
-                    INSERTED.arrival_time AS ArrivalTime,
-                    INSERTED.duration_minutes AS DurationMinutes,
-                    INSERTED.price_first_class AS PriceFirstClass,
-                    INSERTED.price_economy_class AS PriceEconomyClass,
-                    INSERTED.price_carry_on_baggage AS PriceCarryOnBaggage,
-                    INSERTED.price_checked_baggage AS PriceCheckedBaggage,
-                    INSERTED.weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
-                    INSERTED.weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
-                    INSERTED.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
-                VALUES (
-                    @AirplaneId,
-                    @DepartureAirportId,
-                    @ArrivalAirportId,
-                    @DepartureTime,
-                    @ArrivalTime,
-                    @DurationMinutes,
-                    @PriceFirstClass,
-                    @PriceEconomyClass,
-                    @PriceCarryOnBaggage,
-                    @PriceCheckedBaggage,
-                    @WeightLimitCarryOnBaggage,
-                    @WeightLimitCheckedBaggage,
-                    @CheckedBaggagePriceMultiplier
-                );
+                IF @Id > 0 AND EXISTS (SELECT 1 FROM flight WHERE id = @Id)
+                BEGIN
+                    UPDATE flight
+                    SET
+                        airplane_id = @AirplaneId,
+                        departure_airport_id = @DepartureAirportId,
+                        arrival_airport_id = @ArrivalAirportId,
+                        departure_time = @DepartureTime,
+                        arrival_time = @ArrivalTime,
+                        duration_minutes = @DurationMinutes,
+                        price_first_class = @PriceFirstClass,
+                        price_economy_class = @PriceEconomyClass,
+                        price_carry_on_baggage = @PriceCarryOnBaggage,
+                        price_checked_baggage = @PriceCheckedBaggage,
+                        weight_limit_carry_on_baggage = @WeightLimitCarryOnBaggage,
+                        weight_limit_checked_baggage = @WeightLimitCheckedBaggage,
+                        checked_baggage_price_multiplier = @CheckedBaggagePriceMultiplier
+                    OUTPUT
+                        INSERTED.id AS Id,
+                        INSERTED.airplane_id AS AirplaneId,
+                        INSERTED.departure_airport_id AS DepartureAirportId,
+                        INSERTED.arrival_airport_id AS ArrivalAirportId,
+                        INSERTED.departure_time AS DepartureTime,
+                        INSERTED.arrival_time AS ArrivalTime,
+                        INSERTED.duration_minutes AS DurationMinutes,
+                        INSERTED.price_first_class AS PriceFirstClass,
+                        INSERTED.price_economy_class AS PriceEconomyClass,
+                        INSERTED.price_carry_on_baggage AS PriceCarryOnBaggage,
+                        INSERTED.price_checked_baggage AS PriceCheckedBaggage,
+                        INSERTED.weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
+                        INSERTED.weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
+                        INSERTED.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
+                    WHERE id = @Id;
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO flight (
+                        airplane_id,
+                        departure_airport_id,
+                        arrival_airport_id,
+                        departure_time,
+                        arrival_time,
+                        duration_minutes,
+                        price_first_class,
+                        price_economy_class,
+                        price_carry_on_baggage,
+                        price_checked_baggage,
+                        weight_limit_carry_on_baggage,
+                        weight_limit_checked_baggage,
+                        checked_baggage_price_multiplier
+                    )
+                    OUTPUT
+                        INSERTED.id AS Id,
+                        INSERTED.airplane_id AS AirplaneId,
+                        INSERTED.departure_airport_id AS DepartureAirportId,
+                        INSERTED.arrival_airport_id AS ArrivalAirportId,
+                        INSERTED.departure_time AS DepartureTime,
+                        INSERTED.arrival_time AS ArrivalTime,
+                        INSERTED.duration_minutes AS DurationMinutes,
+                        INSERTED.price_first_class AS PriceFirstClass,
+                        INSERTED.price_economy_class AS PriceEconomyClass,
+                        INSERTED.price_carry_on_baggage AS PriceCarryOnBaggage,
+                        INSERTED.price_checked_baggage AS PriceCheckedBaggage,
+                        INSERTED.weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
+                        INSERTED.weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
+                        INSERTED.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
+                    VALUES (
+                        @AirplaneId,
+                        @DepartureAirportId,
+                        @ArrivalAirportId,
+                        @DepartureTime,
+                        @ArrivalTime,
+                        @DurationMinutes,
+                        @PriceFirstClass,
+                        @PriceEconomyClass,
+                        @PriceCarryOnBaggage,
+                        @PriceCheckedBaggage,
+                        @WeightLimitCarryOnBaggage,
+                        @WeightLimitCheckedBaggage,
+                        @CheckedBaggagePriceMultiplier
+                    );
+                END
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
