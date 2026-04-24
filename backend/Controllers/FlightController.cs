@@ -28,9 +28,9 @@ namespace SnoopyAirlines.Controllers
             Flight flight,
             CancellationToken cancellationToken)
         {
-            var createdFlight = await _flightService.CreateFlightAsync(flight, cancellationToken);
+            var savedFlight = await _flightService.SaveFlightAsync(flight, cancellationToken);
 
-            return CreatedAtAction(nameof(Get), createdFlight);
+            return CreatedAtAction(nameof(Get), savedFlight);
         }
     }
 }

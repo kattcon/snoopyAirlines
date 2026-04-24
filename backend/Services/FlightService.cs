@@ -17,9 +17,9 @@ namespace SnoopyAirlines.Services
             return _flightRepository.GetAllAsync(cancellationToken);
         }
 
-        public Task<Flight> CreateFlightAsync(Flight flight, CancellationToken cancellationToken)
+        public Task<Flight> SaveFlightAsync(Flight flight, CancellationToken cancellationToken)
         {
-            return _flightRepository.CreateAsync(flight, cancellationToken);
+            return _flightRepository.SaveAsync(flight, cancellationToken);
         }
     }
 }
