@@ -1,9 +1,9 @@
 <template>
     <div>
-        <div class="logo"><h1>Snoopy Airlines</h1></div>
+        <div class="logo"><h3>Snoopy Airlines</h3></div>
         <div class="login-form">
-            <h2>Iniciar sesión</h2>
-            <h3>Bienvenido a Snoopy Airlines</h3>
+            <h3 class="login-title">Iniciar sesión</h3>
+            <p class="welcome-message">Bienvenido a Snoopy Airlines</p>
             <form @submit.prevent="login">
                 <div class="form-group">
                     <label for="correo">Correo electrónico:</label>
@@ -27,10 +27,10 @@
                         required
                     />
                 </div>
-                <button type="submit" class="btn btn-primary">Iniciar sesión</button>
-                <a href="/">
-                    <p>¿Olvidaste tu contraseña?</p>
+                <a href="/" class="forget-pw">
+                    <p class="forget-pw">¿Olvidaste tu contraseña?</p>
                 </a>
+                <button type="submit" class="btn-login">Iniciar sesión</button>
             </form>
         </div>
     </div>
@@ -42,6 +42,56 @@
     }
 </script>
 
-<style lang="scss" scoped>
+<style>
+
+.logo {
+    text-align: left;
+    margin-top: 10px;
+    text-size-adjust: 10px;
+}
+
+.login-form {
+    width: 300px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+
+    .login-title {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .welcome-message {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #818181;
+    }
+
+    .btn-login {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+        padding: 10px;
+        background-color: oklch(0.546 0.245 262.881);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .form-group {   
+        margin-bottom: 15px;
+        font-weight: bold;
+        font-size: small;
+    }
+
+    .forget-pw {
+        text-decoration: none;
+        text-align: right;
+        font-size: small;
+    }
+}
 
 </style>
