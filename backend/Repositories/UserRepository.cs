@@ -170,8 +170,8 @@ namespace SnoopyAirlines.Repositories
                         WHEN 'AD' THEN CAST(0 AS INT)
                         WHEN 'OP' THEN CAST(1 AS INT)
                     END AS Type,
-                    password_hash as PasswordHash
-                    password_salt as PasswordSalt
+                    [password_hash] as PasswordHash,
+                    [password_salt] as PasswordSalt
                 FROM dbo.[user]
                 WHERE email = @Email;
                 """;

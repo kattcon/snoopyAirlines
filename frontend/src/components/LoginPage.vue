@@ -55,15 +55,24 @@
             login() {
                 console.log("Datos:", this.formData);
                 axios
-                    .post('https://localhost:7080/user', {
+                    .post('https://localhost:7080/user/login', {
                         email: this.formData.Email,
                         password: this.formData.Password
                     })
                     .then(function (response) {
+                        alert("Inicio de sesión exitoso");
                         console.log(response);
                         window.location.href = '/';
                     })
                     .catch(function (error) {
+                        if (error.response && error.response.status === 401)
+                        {
+                            alert("Correo electrónico o contraseña incorrectos");
+                        }
+                        else
+                        {
+                            alert("Error al iniciar sesión.");
+                        }
                         console.error(error);
                     });
             },
