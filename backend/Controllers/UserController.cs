@@ -45,6 +45,40 @@ namespace SnoopyAirlines.Controllers
             return Created($"/user/{savedPendingUser.Id}", savedPendingUser);
         }
 
+        [HttpPost("login")]
+        public async Task<ActionResult<User>> Login(
+            LoginIntake loginIntake,
+            CancellationToken cancellationToken)
+        {
+            var validationErrors = new List<ValidationError>();
+
+            ValidateRequired(nameof(loginIntake.Email), loginIntake.Email, validationErrors);
+            ValidateRequired(nameof(loginIntake.Password), loginIntake.Password, validationErrors);
+
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid login payload.",
+                    Errors = validationErrors
+                });
+            }
+
+            var user = await _userService.LoginAsync(
+                loginIntake.Email!.Trim(),
+                loginIntake.Password!.Trim(),
+                cancellationToken
+            );
+
+            if (user is null)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(user);
+        }
+    
+
         private static bool TryMapToPendingUser(
             UserIntake userIntake,
             out PendingUser pendingUser,

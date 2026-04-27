@@ -24,5 +24,24 @@ namespace SnoopyAirlines.Services
         {
             return _userRepository.SaveAsync(pendingUser, cancellationToken);
         }
+
+        public async Task<User?> LoginAsync(string email, string password, CancellationToken cancellationToken)
+        {
+            var user = await _userRepository.GetByCredentialsAsync(email, password, cancellationToken);
+
+            if (user is null)
+            {
+                return null;
+            }
+
+            bool passwordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+
+            if (!passwordValid)
+            {
+                return null;
+            }
+
+            return user;
+        }
     }
 }
