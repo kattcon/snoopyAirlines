@@ -12,10 +12,12 @@ namespace SnoopyAirlines.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
+        private readonly TokenService _tokenService;
 
-        public UserController(UserService userService)
+        public UserController(UserService userService, TokenService tokenService)
         {
             _userService = userService;
+            _tokenService = tokenService;
         }
 
         [HttpGet]
@@ -75,7 +77,9 @@ namespace SnoopyAirlines.Controllers
                 return Unauthorized();
             }
 
-            return Ok(user);
+            var token = _tokenService.GenerateToken(user);
+
+            return Ok(new {token});
         }
     
 
