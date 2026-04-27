@@ -22,9 +22,12 @@ builder.Services.AddScoped<FlightRepository>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<TokenService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
 
 var app = builder.Build();
 
