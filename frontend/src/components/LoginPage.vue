@@ -60,6 +60,7 @@
                         password: this.formData.Password
                     })
                     .then(function (response) {
+                        localStorage.setItem('token', response.data.token);
                         alert("Inicio de sesión exitoso");
                         console.log(response);
                         window.location.href = '/';
