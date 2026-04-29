@@ -12,10 +12,12 @@ namespace SnoopyAirlines.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
+        private readonly TokenService _tokenService;
 
-        public UserController(UserService userService)
+        public UserController(UserService userService, TokenService tokenService)
         {
             _userService = userService;
+            _tokenService = tokenService;
         }
 
         [HttpGet]
@@ -44,6 +46,42 @@ namespace SnoopyAirlines.Controllers
 
             return Created($"/user/{savedPendingUser.Id}", savedPendingUser);
         }
+
+        [HttpPost("login")]
+        public async Task<ActionResult<User>> Login(
+            LoginIntake loginIntake,
+            CancellationToken cancellationToken)
+        {
+            var validationErrors = new List<ValidationError>();
+
+            ValidateRequired(nameof(loginIntake.Email), loginIntake.Email, validationErrors);
+            ValidateRequired(nameof(loginIntake.Password), loginIntake.Password, validationErrors);
+
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid login payload.",
+                    Errors = validationErrors
+                });
+            }
+
+            var user = await _userService.LoginAsync(
+                loginIntake.Email!.Trim(),
+                loginIntake.Password!.Trim(),
+                cancellationToken
+            );
+
+            if (user is null)
+            {
+                return Unauthorized();
+            }
+
+            var token = _tokenService.GenerateToken(user);
+
+            return Ok(new {token});
+        }
+    
 
         private static bool TryMapToPendingUser(
             UserIntake userIntake,

@@ -1,7 +1,19 @@
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
-
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          policy.WithOrigins("http://localhost:8080");
+                          policy.AllowAnyMethod();
+                          policy.AllowAnyHeader();
+                      });
+});
 
 // Add services to the container.
 
@@ -12,9 +24,12 @@ builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AirportRepository>();
 builder.Services.AddScoped<AirportService>();
+builder.Services.AddScoped<TokenService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
 
 var app = builder.Build();
 
@@ -28,6 +43,8 @@ if (!app.Environment.IsProduction())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseCors(MyAllowSpecificOrigins);
 
 app.MapControllers();
 

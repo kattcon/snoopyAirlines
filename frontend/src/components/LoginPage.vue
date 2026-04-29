@@ -11,8 +11,8 @@
             <form @submit.prevent="login">
                 <div class="form-group-email">
                     <label for="correo" class="email-title">Correo electrónico:</label>
-                    <!--v-model="formData.Email" -->
                     <input
+                        v-model="formData.Email"
                         type="email"
                         id="email"
                         class="form-control"
@@ -22,8 +22,8 @@
                 </div>
                 <div class="form-group-password">
                     <label for="contrasena" class="password-title">Contraseña:</label>
-                    <!--v-model="formData.Password" -->
                     <input
+                        v-model="formData.Password"
                         type="password"
                         id="password"
                         class="form-control"
@@ -41,9 +41,44 @@
 </template>
 
 <script>
+    import axios from 'axios';
     export default {
-        
-    }
+        data() {
+            return {
+                formData: {
+                    Email: '',
+                    Password: ''
+                }
+            };
+        },
+        methods: {
+            login() {
+                console.log("Datos:", this.formData);
+                axios
+                    .post('https://localhost:7080/user/login', {
+                        email: this.formData.Email,
+                        password: this.formData.Password
+                    })
+                    .then(function (response) {
+                        localStorage.setItem('token', response.data.token);
+                        alert("Inicio de sesión exitoso");
+                        console.log(response);
+                        window.location.href = '/';
+                    })
+                    .catch(function (error) {
+                        if (error.response && error.response.status === 401)
+                        {
+                            alert("Correo electrónico o contraseña incorrectos");
+                        }
+                        else
+                        {
+                            alert("Error al iniciar sesión.");
+                        }
+                        console.error(error);
+                    });
+            },
+        },
+    };
 </script>
 
 <style>

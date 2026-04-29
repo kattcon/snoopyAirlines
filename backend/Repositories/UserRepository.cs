@@ -155,5 +155,31 @@ namespace SnoopyAirlines.Repositories
                 _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Unsupported user role.")
             };
         }
+
+        public async Task<User?> GetByCredentialsAsync(string email, string password, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id as Id,
+                    identification_number as IdentificationNumber,
+                    email as Email,
+                    first_name as FirstName,
+                    last_name_one as LastNameOne,
+                    last_name_two as LastNameTwo,
+                    CASE type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    [password_hash] as PasswordHash,
+                    [password_salt] as PasswordSalt
+                FROM dbo.[user]
+                WHERE email = @Email;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<User>(
+                new CommandDefinition(sql, new { Email = email }, cancellationToken: cancellationToken));    
+        }
+
     }
 }
