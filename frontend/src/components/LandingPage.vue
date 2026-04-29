@@ -78,6 +78,30 @@
         </div>
       </div>
     </section>
+
+    <!-- Popular Destinations -->
+    <section id="destinos" class="destinations">
+      <div class="section-container">
+        <h2 class="section-title">Destinos Populares</h2>
+        <p class="section-subtitle">Explora los destinos más solicitados por nuestros viajeros</p>
+        <div class="destinations-grid">
+          <div class="destination-card" v-for="dest in destinations" :key="dest.id">
+            <div class="card-image">
+              <img :src="dest.image" :alt="dest.name" />
+              <div class="card-badge" v-if="dest.badge">{{ dest.badge }}</div>
+            </div>
+            <div class="card-content">
+              <h3>{{ dest.name }}</h3>
+              <p class="country">{{ dest.country }}</p>
+              <div class="card-footer">
+                <span class="price">Desde ${{ dest.price }}</span>
+                <button class="btn-view">Ver vuelos</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -121,6 +145,56 @@ export default {
         { code: 'CDG', name: 'París' },
         { code: 'NRT', name: 'Tokio' },
         { code: 'DXB', name: 'Dubái' }
+      ],
+      destinations: [
+        {
+          id: 1,
+          name: 'Nueva York',
+          country: 'Estados Unidos',
+          price: 299,
+          image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop',
+          badge: 'Más popular'
+        },
+        {
+          id: 2,
+          name: 'Londres',
+          country: 'Reino Unido',
+          price: 449,
+          image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop',
+          badge: null
+        },
+        {
+          id: 3,
+          name: 'París',
+          country: 'Francia',
+          price: 379,
+          image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop',
+          badge: 'Best seller'
+        },
+        {
+          id: 4,
+          name: 'Tokio',
+          country: 'Japón',
+          price: 599,
+          image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
+          badge: null
+        },
+        {
+          id: 5,
+          name: 'Miami',
+          country: 'Estados Unidos',
+          price: 249,
+          image: 'https://images.unsplash.com/photo-1535498730771-e735b998cd64?w=400&h=300&fit=crop',
+          badge: 'Oferta'
+        },
+        {
+          id: 6,
+          name: 'Dubai',
+          country: 'Emiratos Árabes',
+          price: 529,
+          image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop',
+          badge: null
+        }
       ]
     };
   },
@@ -383,5 +457,125 @@ export default {
 .btn-search:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(0, 86, 179, 0.4);
+}
+
+/* Section Styles */
+.section-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 80px 40px;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  text-align: center;
+  color: #666;
+  margin-bottom: 50px;
+}
+
+/* Destinations */
+.destinations {
+  background: #f8f9fa;
+}
+
+.destinations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.destination-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.destination-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.card-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.destination-card:hover .card-image img {
+  transform: scale(1.1);
+}
+
+.card-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #0056b3;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.card-content {
+  padding: 25px;
+}
+
+.card-content h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.card-content .country {
+  color: #888;
+  font-size: 0.95rem;
+  margin-bottom: 15px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-footer .price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0056b3;
+}
+
+.btn-view {
+  padding: 10px 20px;
+  background: transparent;
+  border: 2px solid #0056b3;
+  color: #0056b3;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-view:hover {
+  background: #0056b3;
+  color: white;
 }
 </style>
