@@ -23,6 +23,8 @@ builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<AirportRepository>();
+builder.Services.AddScoped<AirportService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
