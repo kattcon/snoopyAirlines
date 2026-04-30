@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.View;
 
 namespace SnoopyAirlines.Repositories
 {
@@ -80,6 +81,34 @@ namespace SnoopyAirlines.Repositories
             await using var connection = new SqlConnection(_connectionString);
             return await connection.QuerySingleAsync<Airport>(
                 new CommandDefinition(sql, airport, cancellationToken: cancellationToken));
+        }
+
+        // Devuelve todos los aeropuertos con nombre de ciudad y país resueltos mediante JOINs.
+        // Si se proporciona un término de búsqueda, filtra por nombre del aeropuerto, código o ciudad.
+        public async Task<IReadOnlyCollection<AirportView>> GetAirportsAsync(string? search, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    a.id AS Id,
+                    a.name AS Name,
+                    a.code AS Code,
+                    ci.name AS CityName,
+                    co.name AS CountryName
+                FROM airport a
+                INNER JOIN city ci ON a.city_id = ci.id
+                INNER JOIN country co ON ci.country_id = co.id
+                WHERE @Search IS NULL
+                   OR a.name LIKE '%' + @Search + '%'
+                   OR a.code LIKE '%' + @Search + '%'
+                   OR ci.name LIKE '%' + @Search + '%'
+                ORDER BY a.name;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            var airports = await connection.QueryAsync<AirportView>(
+                new CommandDefinition(sql, new { Search = search }, cancellationToken: cancellationToken));
+
+            return airports.ToList();
         }
     }
 }

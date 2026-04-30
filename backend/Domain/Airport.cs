@@ -1,4 +1,4 @@
-﻿namespace SnoopyAirlines.Domain
+namespace SnoopyAirlines.Domain
 {
     public class Airport
     {

@@ -1,4 +1,5 @@
 using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Services
@@ -32,6 +33,11 @@ namespace SnoopyAirlines.Services
             }
 
             return await _airportRepository.CreateAirportAsync(airport, cancellationToken);
+        }
+
+        public Task<IReadOnlyCollection<AirportView>> GetAirportsAsync(string? search, CancellationToken cancellationToken)
+        {
+            return _airportRepository.GetAirportsAsync(search, cancellationToken);
         }
     }
 }
