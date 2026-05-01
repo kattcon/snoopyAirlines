@@ -29,10 +29,11 @@ namespace SnoopyAirlines.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PendingUser>> Post(
+        public async Task<ActionResult<UserView>> Post(
             UserIntake userIntake,
             CancellationToken cancellationToken)
         {
+            // Handle invalid payload
             if (!TryMapToPendingUser(userIntake, out var pendingUser, out var errors))
             {
                 return BadRequest(new ValidationErrorResponse
@@ -42,9 +43,28 @@ namespace SnoopyAirlines.Controllers
                 });
             }
 
-            var savedPendingUser = await _userService.SavePendingUserAsync(pendingUser, cancellationToken);
+            // Handle existing full registered user
+            if (await _userService.ExistsByEmailAsync(pendingUser.Email, cancellationToken))
+            {
+                var savedUser = await _userService.SaveUserAsync(ToUser(pendingUser), cancellationToken);
 
-            return Created($"/user/{savedPendingUser.Id}", savedPendingUser);
+                return Ok(savedUser);
+            }
+
+            // New pending user
+            var registrationKey = _userService.GenerateRegistrationKey();
+            pendingUser.RegistrationKeyHash = registrationKey.Hash;
+
+            bool pendingUserExists = await _userService.ExistsPendingByEmailAsync(pendingUser.Email, cancellationToken);
+            var savedPendingUser = await _userService.SavePendingUserAsync(pendingUser, cancellationToken);
+            var savedPendingUserView = ToUserView(savedPendingUser);
+
+            if (pendingUserExists)
+            {
+                return Ok(savedPendingUserView);
+            }
+
+            return Created($"/user/{savedPendingUserView.Id}", savedPendingUserView);
         }
 
         [HttpPost("login")]
@@ -127,6 +147,36 @@ namespace SnoopyAirlines.Controllers
 
             errors = Array.Empty<ValidationError>();
             return true;
+        }
+
+        private static User ToUser(PendingUser pendingUser)
+        {
+            return new User
+            {
+                IdentificationNumber = pendingUser.IdentificationNumber,
+                Email = pendingUser.Email,
+                FirstName = pendingUser.FirstName,
+                LastNameOne = pendingUser.LastNameOne,
+                LastNameTwo = pendingUser.LastNameTwo,
+                Type = pendingUser.Type,
+                PasswordHash = string.Empty,
+                PasswordSalt = string.Empty
+            };
+        }
+
+        private static UserView ToUserView(PendingUser pendingUser)
+        {
+            return new UserView
+            {
+                Id = pendingUser.Id.GetValueOrDefault(),
+                IdentificationNumber = pendingUser.IdentificationNumber,
+                Email = pendingUser.Email,
+                FirstName = pendingUser.FirstName,
+                LastNameOne = pendingUser.LastNameOne,
+                LastNameTwo = pendingUser.LastNameTwo,
+                Type = pendingUser.Type,
+                Pending = true
+            };
         }
 
         private static void ValidateRequired(
