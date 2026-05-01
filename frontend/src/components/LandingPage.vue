@@ -31,11 +31,12 @@
         <!-- Flight Search -->
         <div class="search-box">
           <div class="search-tabs">
-            <button :class="['tab-btn', { active: tripType === 'ida' }]" @click="tripType = 'ida'">Ida</button>
-            <button :class="['tab-btn', { active: tripType === 'ida-vuelta' }]" @click="tripType = 'ida-vuelta'">Ida y Vuelta</button>
+            <button :class="['tab-btn', { active: tripType === 'ida' }]" @click="setTripType('ida')">Ida</button>
+            <button :class="['tab-btn', { active: tripType === 'ida-vuelta' }]" @click="setTripType('ida-vuelta')">Ida y Vuelta</button>
+            <button :class="['tab-btn', { active: tripType === 'multiciudad' }]" @click="setTripType('multiciudad')">Multiciudad</button>
           </div>
           <form class="search-form" @submit.prevent="searchFlights">
-            <div class="search-row">
+            <div v-if="tripType !== 'multiciudad'" class="search-row">
               <div class="search-field">
                 <label>Origen</label>
                 <select v-model="search.origin" required class="search-select">
@@ -63,6 +64,47 @@
                 <input type="date" v-model="search.returnDate" class="search-input" />
               </div>
               <div class="search-field">
+                <label>Pasajeros</label>
+                <select v-model="search.passengers" class="search-select">
+                  <option value="1">1 Pasajero</option>
+                  <option value="2">2 Pasajeros</option>
+                  <option value="3">3 Pasajeros</option>
+                  <option value="4">4 Pasajeros</option>
+                  <option value="5">5 Pasajeros</option>
+                </select>
+              </div>
+            </div>
+            <div v-else class="multicity-section">
+              <div class="multicity-legs">
+                <div class="multicity-leg" v-for="(leg, index) in search.legs" :key="index">
+                  <div class="leg-title">Tramo {{ index + 1 }}</div>
+                  <div class="search-field">
+                    <label>Origen</label>
+                    <select v-model="leg.origin" required class="search-select">
+                      <option value="" disabled>Seleccionar origen</option>
+                      <option v-for="city in originCities" :key="city.code" :value="city.code">
+                        {{ city.name }} ({{ city.code }})
+                      </option>
+                    </select>
+                  </div>
+                  <div class="search-field">
+                    <label>Destino</label>
+                    <select v-model="leg.destination" required class="search-select">
+                      <option value="" disabled>Seleccionar destino</option>
+                      <option v-for="city in destinationCities" :key="city.code" :value="city.code">
+                        {{ city.name }} ({{ city.code }})
+                      </option>
+                    </select>
+                  </div>
+                  <div class="search-field">
+                    <label>Fecha</label>
+                    <input type="date" v-model="leg.departureDate" required class="search-input" />
+                  </div>
+                  <button v-if="index > 1" type="button" class="btn-remove-leg" @click="removeLeg(index)">Eliminar tramo</button>
+                </div>
+              </div>
+              <button type="button" class="btn-add-leg" @click="addLeg">Agregar otro tramo</button>
+              <div class="search-field passengers-field">
                 <label>Pasajeros</label>
                 <select v-model="search.passengers" class="search-select">
                   <option value="1">1 Pasajero</option>
@@ -201,7 +243,11 @@ export default {
         destination: '',
         departureDate: '',
         returnDate: '',
-        passengers: '1'
+        passengers: '1',
+        legs: [
+          { origin: '', destination: '', departureDate: '' },
+          { origin: '', destination: '', departureDate: '' }
+        ]
       },
       originCities: [
         { code: 'SJO', name: 'San José' },
@@ -339,9 +385,44 @@ export default {
     };
   },
   methods: {
+    setTripType(type) {
+      this.tripType = type;
+      if (type === 'multiciudad' && this.search.legs.length < 2) {
+        this.search.legs = [
+          { origin: '', destination: '', departureDate: '' },
+          { origin: '', destination: '', departureDate: '' }
+        ];
+      }
+      if (type !== 'multiciudad') {
+        this.search.legs = [
+          { origin: '', destination: '', departureDate: '' },
+          { origin: '', destination: '', departureDate: '' }
+        ];
+      }
+    },
+    addLeg() {
+      if (this.search.legs.length < 5) {
+        this.search.legs.push({ origin: '', destination: '', departureDate: '' });
+      }
+    },
+    removeLeg(index) {
+      if (this.search.legs.length > 2) {
+        this.search.legs.splice(index, 1);
+      }
+    },
     searchFlights() {
-      console.log('Buscando vuelos:', this.search);
-      alert('Búsqueda de vuelos: ' + JSON.stringify(this.search, null, 2));
+      const payload = this.tripType === 'multiciudad'
+        ? { type: 'multiciudad', legs: this.search.legs, passengers: this.search.passengers }
+        : {
+            type: this.tripType,
+            origin: this.search.origin,
+            destination: this.search.destination,
+            departureDate: this.search.departureDate,
+            returnDate: this.tripType === 'ida-vuelta' ? this.search.returnDate : null,
+            passengers: this.search.passengers
+          };
+      console.log('Buscando vuelos:', payload);
+      alert('Búsqueda de vuelos: ' + JSON.stringify(payload, null, 2));
     }
   }
 };
@@ -550,6 +631,50 @@ export default {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 15px;
+}
+
+.multicity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.multicity-legs {
+  display: grid;
+  gap: 20px;
+}
+
+.multicity-leg {
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  background: #fafafa;
+  display: grid;
+  gap: 16px;
+}
+
+.leg-title {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.btn-add-leg,
+.btn-remove-leg {
+  padding: 12px 18px;
+  background: #0056b3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-remove-leg {
+  background: #d32f2f;
+}
+
+.passengers-field {
+  max-width: 220px;
 }
 
 .search-field {
