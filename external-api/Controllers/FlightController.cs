@@ -21,10 +21,14 @@ namespace SnoopyAirlines.External.Controllers
         ];
 
         private readonly FlightService _flightService;
+        private readonly UserService _userService;
 
-        public FlightController(FlightService flightService)
+        public FlightController(
+            FlightService flightService,
+            UserService userService)
         {
             _flightService = flightService;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -38,6 +42,13 @@ namespace SnoopyAirlines.External.Controllers
             CancellationToken cancellationToken
         ){
             if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return Unauthorized();
+            }
+
+            var requester = await _userService.GetByApiKey(apiKey.Trim(), cancellationToken);
+
+            if (requester is null)
             {
                 return Unauthorized();
             }
