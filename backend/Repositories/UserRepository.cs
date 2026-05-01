@@ -277,6 +277,122 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, new { Email = email }, cancellationToken: cancellationToken));
         }
 
+        public async Task<PendingUser?> GetPendingByRegistrationKeyHashAsync(
+            string registrationKeyHash,
+            CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id AS Id,
+                    identification_number AS IdentificationNumber,
+                    email AS Email,
+                    first_name AS FirstName,
+                    last_name_one AS LastNameOne,
+                    last_name_two AS LastNameTwo,
+                    CASE type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    registration_key_hash AS RegistrationKeyHash,
+                    created_at AS CreatedAt
+                FROM dbo.pending_user
+                WHERE registration_key_hash = @RegistrationKeyHash;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<PendingUser>(
+                new CommandDefinition(
+                    sql,
+                    new { RegistrationKeyHash = registrationKeyHash },
+                    cancellationToken: cancellationToken));
+        }
+
+        public async Task<UserView> SaveUserAndDeletePendingAsync(
+            User user,
+            CancellationToken cancellationToken)
+        {
+            const string insertUserSql = """
+                INSERT INTO dbo.[user] (
+                    identification_number,
+                    email,
+                    first_name,
+                    last_name_one,
+                    last_name_two,
+                    type,
+                    password_hash,
+                    password_salt
+                )
+                OUTPUT
+                    INSERTED.id AS Id,
+                    INSERTED.identification_number AS IdentificationNumber,
+                    INSERTED.email AS Email,
+                    INSERTED.first_name AS FirstName,
+                    INSERTED.last_name_one AS LastNameOne,
+                    INSERTED.last_name_two AS LastNameTwo,
+                    CASE INSERTED.type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    CAST(0 AS BIT) AS Pending
+                VALUES (
+                    @IdentificationNumber,
+                    @Email,
+                    @FirstName,
+                    @LastNameOne,
+                    @LastNameTwo,
+                    @TypeCode,
+                    @PasswordHash,
+                    @PasswordSalt
+                );
+                """;
+
+            const string deletePendingSql = """
+                DELETE FROM dbo.pending_user
+                WHERE email = @Email;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                var savedUser = await connection.QuerySingleAsync<UserView>(
+                    new CommandDefinition(
+                        insertUserSql,
+                        new
+                        {
+                            user.IdentificationNumber,
+                            user.Email,
+                            user.FirstName,
+                            user.LastNameOne,
+                            user.LastNameTwo,
+                            TypeCode = MapRoleToDatabaseCode(user.Type),
+                            user.PasswordHash,
+                            user.PasswordSalt
+                        },
+                        transaction,
+                        cancellationToken: cancellationToken));
+
+                await connection.ExecuteAsync(
+                    new CommandDefinition(
+                        deletePendingSql,
+                        new { user.Email },
+                        transaction,
+                        cancellationToken: cancellationToken));
+
+                await transaction.CommitAsync(cancellationToken);
+
+                return savedUser;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
         private static string MapRoleToDatabaseCode(UserRole role)
         {
             return role switch

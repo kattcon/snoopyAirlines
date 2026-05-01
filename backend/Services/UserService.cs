@@ -51,6 +51,46 @@ namespace SnoopyAirlines.Services
             return (registrationKey, HashRegistrationKey(registrationKey));
         }
 
+        public async Task<UserView?> RegisterPendingUserAsync(
+            string pendingKey,
+            string password,
+            CancellationToken cancellationToken)
+        {
+            var pendingKeyHash = HashRegistrationKey(pendingKey);
+            var pendingUser = await _userRepository.GetPendingByRegistrationKeyHashAsync(
+                pendingKeyHash,
+                cancellationToken);
+
+            if (pendingUser is null)
+            {
+                return null;
+            }
+
+            if (await _userRepository.ExistsByEmailAsync(pendingUser.Email, cancellationToken))
+            {
+                throw new InvalidOperationException("A registered user already exists with this email.");
+            }
+
+            var passwordSalt = BCrypt.Net.BCrypt.GenerateSalt();
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(password, passwordSalt);
+
+            var user = new User
+            {
+                IdentificationNumber = pendingUser.IdentificationNumber,
+                Email = pendingUser.Email,
+                FirstName = pendingUser.FirstName,
+                LastNameOne = pendingUser.LastNameOne,
+                LastNameTwo = pendingUser.LastNameTwo,
+                Type = pendingUser.Type,
+                PasswordHash = passwordHash,
+                PasswordSalt = passwordSalt
+            };
+
+            return await _userRepository.SaveUserAndDeletePendingAsync(
+                user,
+                cancellationToken);
+        }
+
         public async Task<User?> LoginAsync(string email, string password, CancellationToken cancellationToken)
         {
             var user = await _userRepository.GetByCredentialsAsync(email, password, cancellationToken);

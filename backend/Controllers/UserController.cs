@@ -67,6 +67,45 @@ namespace SnoopyAirlines.Controllers
             return Created($"/user/{savedPendingUserView.Id}", savedPendingUserView);
         }
 
+        [HttpPost("registration")]
+        public async Task<ActionResult<UserView>> Registration(
+            UserRegistrationIntake registrationIntake,
+            CancellationToken cancellationToken)
+        {
+            var validationErrors = new List<ValidationError>();
+
+            ValidateRequired(nameof(registrationIntake.Password), registrationIntake.Password, validationErrors);
+            ValidateRequired(nameof(registrationIntake.PendingKey), registrationIntake.PendingKey, validationErrors);
+
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid registration payload.",
+                    Errors = validationErrors
+                });
+            }
+
+            try
+            {
+                var savedUser = await _userService.RegisterPendingUserAsync(
+                    registrationIntake.PendingKey!.Trim(),
+                    registrationIntake.Password!,
+                    cancellationToken);
+
+                if (savedUser is null)
+                {
+                    return BadRequest(new { Message = "Invalid registration key." });
+                }
+
+                return Ok(savedUser);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { ex.Message });
+            }
+        }
+
         [HttpPost("login")]
         public async Task<ActionResult<User>> Login(
             LoginIntake loginIntake,
