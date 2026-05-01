@@ -1,3 +1,5 @@
+-- Works only if the airport table is empty.
+
 ALTER TABLE airport ADD name VARCHAR(200) NOT NULL;
 ALTER TABLE airport ADD code VARCHAR(3) NOT NULL;
 ALTER TABLE airport ADD city_id INT NOT NULL;
