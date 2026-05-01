@@ -9,10 +9,14 @@ namespace SnoopyAirlines.Services
     public class UserService
     {
         private readonly UserRepository _userRepository;
+        private readonly IEmailSender _emailSender;
 
-        public UserService(UserRepository userRepository)
+        public UserService(
+            UserRepository userRepository,
+            IEmailSender emailSender)
         {
             _userRepository = userRepository;
+            _emailSender = emailSender;
         }
 
         public Task<IReadOnlyCollection<UserView>> GetUsersAsync(CancellationToken cancellationToken)
@@ -49,6 +53,21 @@ namespace SnoopyAirlines.Services
             var registrationKey = GenerateRegistrationKeyValue();
 
             return (registrationKey, HashRegistrationKey(registrationKey));
+        }
+
+        public Task SendRegistrationEmailAsync(
+            string email,
+            string registrationKey,
+            CancellationToken cancellationToken)
+        {
+            var registrationUrl = $"snoopyairlines.com/register?key={Uri.EscapeDataString(registrationKey)}";
+            var body = $"Por favor ingrese al siguiente enlace para finalizar su registro: {registrationUrl}";
+
+            return _emailSender.SendAsync(
+                email,
+                "Bienvenido a Snoopy Airlines",
+                body,
+                cancellationToken);
         }
 
         public async Task<UserView?> RegisterPendingUserAsync(

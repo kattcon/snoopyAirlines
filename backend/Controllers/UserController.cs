@@ -14,7 +14,9 @@ namespace SnoopyAirlines.Controllers
         private readonly UserService _userService;
         private readonly TokenService _tokenService;
 
-        public UserController(UserService userService, TokenService tokenService)
+        public UserController(
+            UserService userService,
+            TokenService tokenService)
         {
             _userService = userService;
             _tokenService = tokenService;
@@ -58,6 +60,11 @@ namespace SnoopyAirlines.Controllers
             bool pendingUserExists = await _userService.ExistsPendingByEmailAsync(pendingUser.Email, cancellationToken);
             var savedPendingUser = await _userService.SavePendingUserAsync(pendingUser, cancellationToken);
             var savedPendingUserView = ToUserView(savedPendingUser);
+
+            await _userService.SendRegistrationEmailAsync(
+                savedPendingUser.Email,
+                registrationKey.Value,
+                cancellationToken);
 
             if (pendingUserExists)
             {
