@@ -1,7 +1,7 @@
 <template>
     <div class="login-container">
         <div class="logo">
-            <img src="../assets/logoSA.png" alt="logo" class="logo-image" />
+            <a href="/"><img src="../assets/logoSA.png" alt="logo" class="logo-image" /></a>
             <h3>Snoopy Airlines</h3>
         </div>
         <div class="login-form">
@@ -90,8 +90,6 @@ body {
 .logo {
     text-align: left;
     display: flex;
-    margin-top: 10px;
-    margin-left: 100px;
     text-size-adjust: 10px;
 
     .logo-image {
