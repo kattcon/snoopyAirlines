@@ -51,7 +51,7 @@
       <!-- Botones de acción del formulario -->
       <div class="button-group">
         <button class="btn-Cancelar">Cancelar</button>
-        <button class="btn-registrar">Registrar</button>
+        <button class="btn-registrar" @click="registerAirport">Registrar</button>
       </div>
     </div>
   </div>
@@ -92,6 +92,27 @@ export default {
         })
         .catch((error) => {
           console.error("Error cargando países:", error);
+        });
+    },
+    // Envía los datos del formulario al backend para registrar el aeropuerto
+    registerAirport() {
+      axios
+        .post("http://localhost:5235/airport", this.airport)
+        .then(() => {
+          alert("Aeropuerto registrado correctamente");
+          this.airport = { name: "", code: "", cityId: "" };
+          this.selectedCountry = "";
+          this.cities = [];
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 409) {
+            alert("Ya existe un aeropuerto con ese código IATA");
+          } else if (error.response && error.response.status === 400) {
+            alert("Datos inválidos: " + JSON.stringify(error.response.data));
+          } else {
+            alert("Error al registrar el aeropuerto");
+          }
+          console.error(error);
         });
     }
   },
