@@ -63,7 +63,7 @@
                         localStorage.setItem('token', response.data.token);
                         alert("Inicio de sesión exitoso");
                         console.log(response);
-                        window.location.href = '/';
+                        window.location.href = '/admin';
                     })
                     .catch(function (error) {
                         if (error.response && error.response.status === 401)
