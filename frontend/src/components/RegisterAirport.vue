@@ -58,6 +58,8 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "RegisterAirport",
   data() {
@@ -75,6 +77,41 @@ export default {
       // Lista de ciudades del país seleccionado
       cities: []
     };
+  },
+  // mounted() se ejecuta automáticamente cuando el componente carga en la página
+  mounted() {
+    this.loadCountries();
+  },
+  methods: {
+    // Llama al backend para traer todos los países y llenar el dropdown
+    loadCountries() {
+      axios
+        .get("http://localhost:5235/airport/countries")
+        .then((response) => {
+          this.countries = response.data;
+        })
+        .catch((error) => {
+          console.error("Error cargando países:", error);
+        });
+    }
+  },
+  watch: {
+    // Cuando el usuario cambia el país, limpia la ciudad y carga las nuevas ciudades
+    selectedCountry(newCountryId) {
+      this.airport.cityId = "";
+      this.cities = [];
+
+      if (newCountryId) {
+        axios
+          .get(`http://localhost:5235/airport/cities?countryId=${newCountryId}`)
+          .then((response) => {
+            this.cities = response.data;
+          })
+          .catch((error) => {
+            console.error("Error cargando ciudades:", error);
+          });
+      }
+    }
   }
 };
 </script>
