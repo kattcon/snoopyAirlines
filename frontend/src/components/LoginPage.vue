@@ -31,12 +31,12 @@
                         required
                     />
                 </div>
-                <a href="/" class="forget-pw">
-                    <p class="forget-pw">¿Olvidaste tu contraseña?</p>
-                </a>
                 <button type="submit" class="btn-login">Iniciar sesión</button>
             </form>
         </div>
+        <a class="volver-a-inicio" href="/">
+            <p>Volver al inicio</p>
+        </a>
     </div>
 </template>
 
@@ -53,7 +53,6 @@
         },
         methods: {
             login() {
-                console.log("Datos:", this.formData);
                 axios
                     .post('https://localhost:7080/user/login', {
                         email: this.formData.Email,
@@ -102,14 +101,29 @@ body {
     }
 }
 
+.volver-a-inicio {
+    text-align: center;
+    text-decoration: none;
+    color: #818181;
+    
+}
+
+.volver-a-inicio:hover {
+    text-align: center;
+    text-decoration: none;
+    color: #818181;
+    
+}
+
 .login-form {
     width: 450px;
-    height: 600px;
+    height: 530px;
     margin: 0 auto;
     padding: 25px;
     border-radius: 20px;
     background-color: #ffffff;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
 
     .logo-image-login {
         width: 120px;
@@ -168,13 +182,7 @@ body {
         border: 1px solid #ccc;
         border-radius: 5px;
     }
-
-    .forget-pw {
-        margin-bottom: 30px;
-        text-decoration: none;
-        text-align: right;
-        font-size: small;
-    }
 }
+
 
 </style>
