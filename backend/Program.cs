@@ -27,6 +27,19 @@ builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AirportRepository>();
 builder.Services.AddScoped<AirportService>();
+builder.Services.AddScoped<SmtpEmailSender>();
+builder.Services.AddScoped<ConsoleEmailSender>();
+builder.Services.AddScoped<IEmailSender>(serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+    if (string.IsNullOrWhiteSpace(configuration["Email:Host"]))
+    {
+        return serviceProvider.GetRequiredService<ConsoleEmailSender>();
+    }
+
+    return serviceProvider.GetRequiredService<SmtpEmailSender>();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
