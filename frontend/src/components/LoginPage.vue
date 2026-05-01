@@ -2,7 +2,7 @@
     <div class="login-container">
         <div class="logo">
             <a href="/"><img src="../assets/logoSA.png" alt="logo" class="logo-image" /></a>
-            <h3>Snoopy Airlines</h3>
+            <h3 class="logo-text">Snoopy Airlines</h3>
         </div>
         <div class="login-form">
             <img src="../assets/logoSA.png" alt="logo" class="logo-image-login" />
@@ -91,11 +91,20 @@ body {
     text-align: left;
     display: flex;
     text-size-adjust: 10px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #2c3e50;
+
+    .logo-text {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
 
     .logo-image {
         align-items: left;
-        width: 50px;
-        height: 50px;
+        width: 45px;
+        height: 45px;
     }
 }
 

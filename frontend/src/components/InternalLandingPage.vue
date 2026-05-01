@@ -1,14 +1,22 @@
 <template>
-    <div class="logo-admin">
+    <div class="admin-layout">
+        <div class="logo-admin">
             <a href="/"><img src="../assets/logoSA.png" alt="logo" class="logo-image" /></a>
-            <h3>Snoopy Airlines</h3>
+            <h3 class="logo-text">Snoopy Airlines</h3>
         </div>
-    <div class="left-menu">
-        <button class="left-menu-options">Administrar Vuelos</button>
-        <button class="left-menu-options">Administrar Usuarios</button>
-        <button class="left-menu-options">Reportes</button>
-    </div>
+        <div class="layout-body">   
+            <aside class="left-menu">
+                <router-link to="/admin/flights" class="left-menu-options">Administrar Vuelos</router-link>
+                <router-link to="/admin/users" class="left-menu-options">Administrar Usuarios</router-link>
+                <router-link to="/admin/reports" class="left-menu-options">Reportes</router-link>
+            </aside>
+            <main class="content">
+                <router-view />
+            </main>
+        </div>
     <button class="logout-button">Cerrar sesión</button>
+    </div>
+    
 </template>
 
 <script>
@@ -25,6 +33,17 @@ body {
     background-color: #f1f1f1;
 }
 
+.layout-body {
+    display: flex;
+    min-height: 100vh;
+}
+
+.content {
+    flex: 1;
+    padding: 20px;
+    overflow: auto;
+}
+
 .logo-admin{
     text-align: left;
     width: 100vw;
@@ -35,8 +54,14 @@ body {
 
     .logo-image {
         align-items: left;
-        width: 50px;
-        height: 50px;
+        width: 45px;
+        height: 45px;
+    }
+
+    .logo-text {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
     }
 }
 
@@ -68,6 +93,7 @@ body {
     padding-top: 20px;
 
     .left-menu-options {
+        text-decoration: none;
         display: flex;
         align-items: center;
         justify-content: left;
@@ -83,6 +109,20 @@ body {
     }
 
     .left-menu-options:hover {
+        display: flex;
+        align-items: center;
+        justify-content: left;
+        width: 220px;
+        height: 20px;
+        background-color: #e0eaff;
+        margin-bottom: 10px;
+        margin-left: 10px;
+        padding: 30px;
+        color: oklch(0.546 0.245 262.881);
+        border-radius: 10px;
+    }
+
+    .router-link-active {
         display: flex;
         align-items: center;
         justify-content: left;
