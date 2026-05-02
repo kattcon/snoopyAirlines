@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="page-background">
     <div class="page-top-bar">
-      <button class="btn-volver" @click="$router.push('/airports')">Volver a aeropuertos</button>
+      <button class="btn-volver" @click="$router.push('/airports')">Volver a lista de aeropuertos</button>
     </div>
     <div class="register-form">
       <h2 class="form-title">Registro de Aeropuerto</h2>
