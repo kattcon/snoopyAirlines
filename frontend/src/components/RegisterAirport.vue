@@ -1,5 +1,8 @@
 ﻿<template>
   <div class="page-background">
+    <div class="page-top-bar">
+      <button class="btn-volver" @click="$router.push('/airports')">Volver a lista de aeropuertos</button>
+    </div>
     <div class="register-form">
       <h2 class="form-title">Registro de Aeropuerto</h2>
       <p class="form-subtitle">Complete la información para registrar un nuevo aeropuerto</p>
@@ -10,9 +13,10 @@
         <input
           v-model="airport.name"
           type="text"
-          class="form-control"
+          :class="['form-control', { 'field-error': errors.name }]"
           placeholder="ej. Juan Santamaría International Airport"
         />
+        <span v-if="errors.name" class="error-msg">{{ errors.name }}</span>
       </div>
 
       <!-- Campo para el código IATA de 3 letras -->
@@ -21,9 +25,10 @@
         <input
           v-model="airport.code"
           type="text"
-          class="form-control"
+          :class="['form-control', { 'field-error': errors.code }]"
           placeholder="ej. SJO"
         />
+        <span v-if="errors.code" class="error-msg">{{ errors.code }}</span>
       </div>
 
       <!-- Dropdown de países. Al seleccionar uno, se cargan sus ciudades -->
@@ -40,17 +45,18 @@
       <!-- Dropdown de ciudades. Está deshabilitado hasta que se elija un país -->
       <div class="form-group">
         <label>Ciudad</label>
-        <select v-model="airport.cityId" class="form-control" :disabled="!selectedCountry">
+        <select v-model="airport.cityId" :class="['form-control', { 'field-error': errors.cityId }]" :disabled="!selectedCountry">
           <option value="">Primero seleccione un país</option>
           <option v-for="city in cities" :key="city.id" :value="city.id">
             {{ city.name }}
           </option>
         </select>
+        <span v-if="errors.cityId" class="error-msg">{{ errors.cityId }}</span>
       </div>
 
       <!-- Botones de acción del formulario -->
       <div class="button-group">
-        <button class="btn-Cancelar">Cancelar</button>
+        <button class="btn-Cancelar" @click="clearForm">Cancelar</button>
         <button class="btn-registrar" @click="registerAirport">Registrar</button>
       </div>
     </div>
@@ -75,7 +81,9 @@ export default {
       // Lista de países cargada desde el backend
       countries: [],
       // Lista de ciudades del país seleccionado
-      cities: []
+      cities: [],
+      // Errores de validación por campo
+      errors: { name: "", code: "", cityId: "" }
     };
   },
   // mounted() se ejecuta automáticamente cuando el componente carga en la página
@@ -83,10 +91,39 @@ export default {
     this.loadCountries();
   },
   methods: {
+    clearForm() {
+      this.airport = { name: "", code: "", cityId: "" };
+      this.selectedCountry = "";
+      this.cities = [];
+      this.errors = { name: "", code: "", cityId: "" };
+    },
+    validate() {
+      this.errors = { name: "", code: "", cityId: "" };
+      let valid = true;
+      if (!this.airport.name || !this.airport.name.trim()) {
+        this.errors.name = "Campo obligatorio";
+        valid = false;
+      }
+      if (!this.airport.code || !this.airport.code.trim()) {
+        this.errors.code = "Campo obligatorio";
+        valid = false;
+      } else if (!/^[A-Za-z]{3}$/.test(this.airport.code.trim())) {
+        this.errors.code = "Debe tener exactamente 3 letras (ej. SJO)";
+        valid = false;
+      }
+      if (!this.airport.cityId) {
+        this.errors.cityId = "Campo obligatorio";
+        valid = false;
+      }
+      return valid;
+    },
     // Llama al backend para traer todos los países y llenar el dropdown
     loadCountries() {
+      const token = localStorage.getItem("token");
       axios
-        .get("http://localhost:5235/airport/countries")
+        .get("https://localhost:7080/airport/countries", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         .then((response) => {
           this.countries = response.data;
         })
@@ -96,8 +133,12 @@ export default {
     },
     // Envía los datos del formulario al backend para registrar el aeropuerto
     registerAirport() {
+      if (!this.validate()) return;
+      const token = localStorage.getItem("token");
       axios
-        .post("http://localhost:5235/airport", this.airport)
+        .post("https://localhost:7080/airport", this.airport, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         .then(() => {
           alert("Aeropuerto registrado correctamente");
           this.airport = { name: "", code: "", cityId: "" };
@@ -123,8 +164,11 @@ export default {
       this.cities = [];
 
       if (newCountryId) {
+        const token = localStorage.getItem("token");
         axios
-          .get(`http://localhost:5235/airport/cities?countryId=${newCountryId}`)
+          .get(`https://localhost:7080/airport/cities?countryId=${newCountryId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
           .then((response) => {
             this.cities = response.data;
           })
@@ -140,6 +184,7 @@ export default {
 <style>
 /* Fondo de toda la página con degradado azul */
 .page-background {
+  position: relative;
   min-height: 100vh;
   background: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
   display: flex;
@@ -154,6 +199,28 @@ export default {
   padding: 40px;
   width: 480px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Barra superior con el botón volver */
+.page-top-bar {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+}
+
+.btn-volver {
+  background-color: #1a2b4a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.btn-volver:hover {
+  background-color: #2c3e6b;
 }
 
 /* Título principal del formulario */
@@ -194,6 +261,19 @@ export default {
   font-size: 14px;
   box-sizing: border-box;
   background-color: #f5f5f5;
+}
+
+/* Campo con error resaltado en rojo */
+.field-error {
+  border-color: #e53935 !important;
+}
+
+/* Mensaje de error debajo del campo */
+.error-msg {
+  color: #e53935;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
 }
 
 /* Cuando el campo está deshabilitado se ve opaco */

@@ -45,15 +45,19 @@
           </tr>
           <!-- Mensaje cuando no hay resultados -->
           <tr v-if="filteredAirports.length === 0">
-            <td colspan="4" class="no-results">No se encontraron aeropuertos</td>
+            <td colspan="4" class="no-results">No hay aeropuertos disponibles.</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Pie de tabla con el conteo -->
-      <p class="table-footer">
-        Mostrando {{ filteredAirports.length }} de {{ airports.length }} aeropuertos
-      </p>
+      <!-- Mensaje de acceso no autorizado -->
+      <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
+
+      <!-- Pie de tabla con el conteo y botón crear -->
+      <div class="table-footer-bar">
+        <p class="table-footer">Mostrando {{ filteredAirports.length }} de {{ airports.length }} aeropuertos</p>
+        <button class="btn-crear">+ Crear</button>
+      </div>
     </div>
   </div>
 </template>
@@ -68,7 +72,9 @@ export default {
       // Lista completa de aeropuertos traída del backend
       airports: [],
       // Término ingresado en el buscador
-      searchTerm: ""
+      searchTerm: "",
+      // Mensaje de error de acceso
+      errorMsg: ""
     };
   },
   computed: {
@@ -90,12 +96,18 @@ export default {
   methods: {
     // Carga todos los aeropuertos desde el backend al iniciar la vista
     loadAirports() {
+      const token = localStorage.getItem("token");
       axios
-        .get("http://localhost:5235/airport")
+        .get("https://localhost:7080/airport", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         .then((response) => {
           this.airports = response.data;
         })
         .catch((error) => {
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            this.errorMsg = "Acceso no autorizado";
+          }
           console.error("Error cargando aeropuertos:", error);
         });
     }
@@ -107,7 +119,7 @@ export default {
 /* Fondo gris claro de la página */
 .airports-page {
   min-height: 100vh;
-  background-color: #f0f2f5;
+  background: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
   padding: 40px;
   box-sizing: border-box;
 }
@@ -126,7 +138,7 @@ export default {
 
 .page-subtitle {
   font-size: 14px;
-  color: #666;
+  color: rgb(219, 213, 213);
   margin: 4px 0 0 0;
 }
 
@@ -229,10 +241,39 @@ export default {
   padding: 30px;
 }
 
-/* Pie de la tabla con el conteo */
-.table-footer {
+/* Pie de la tabla con conteo y botón crear */
+.table-footer-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 16px;
+}
+
+.table-footer {
   font-size: 13px;
   color: #888;
+  margin: 0;
+}
+
+.btn-crear {
+  background-color: #1a2b4a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-crear:hover {
+  background-color: #2c3e6b;
+}
+
+/* Mensaje de acceso no autorizado */
+.error-acceso {
+  color: #e53935;
+  font-weight: bold;
+  margin-top: 12px;
+  text-align: center;
 }
 </style>
