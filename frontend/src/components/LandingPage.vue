@@ -115,8 +115,135 @@
                 </select>
               </div>
             </div>
-            <button type="submit" class="btn-search">Buscar Vuelos</button>
+            <button type="submit" class="btn-search" :disabled="loading">
+              {{ loading ? 'Buscando...' : 'Buscar Vuelos' }}
+            </button>
           </form>
+
+          <!-- Search Results -->
+          <div v-if="searchPerformed && (searchResults.length > 0 || outboundFlights.length > 0)" class="search-results">
+            <!-- Resultados para Solo Ida -->
+            <div v-if="tripType === 'ida'">
+              <h3>Vuelos disponibles</h3>
+              <div class="flights-grid">
+                <div class="flight-card" v-for="flight in searchResults" :key="flight.id">
+                  <div class="flight-header">
+                    <div class="flight-route">
+                      <span class="airport-code">{{ search.origin }}</span>
+                      <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 12h14M12 5l7 7-7 7"></path>
+                      </svg>
+                      <span class="airport-code">{{ search.destination }}</span>
+                    </div>
+                  </div>
+                  <div class="flight-details">
+                    <div class="flight-time">
+                      <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
+                      <span class="flight-duration">{{ flight.durationMinutes }}min</span>
+                      <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
+                    </div>
+                    <div class="flight-date">
+                      {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+                    </div>
+                  </div>
+                  <div class="flight-prices">
+                    <div class="price-option">
+                      <span class="class-name">Económica</span>
+                      <span class="price">${{ flight.priceEconomyClass }}</span>
+                    </div>
+                    <div class="price-option">
+                      <span class="class-name">Primera Clase</span>
+                      <span class="price">${{ flight.priceFirstClass }}</span>
+                    </div>
+                  </div>
+                  <button class="btn-select-flight">Seleccionar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resultados para Ida y Vuelta -->
+            <div v-if="tripType === 'ida-vuelta'">
+              <!-- Vuelos de IDA -->
+              <div class="trip-section">
+                <h3>Vuelos de IDA - {{ search.origin }} → {{ search.destination }}</h3>
+                <div v-if="outboundFlights.length > 0" class="flights-grid">
+                  <div class="flight-card" v-for="flight in outboundFlights" :key="'out-' + flight.id">
+                    <div class="flight-header">
+                      <div class="flight-route">
+                        <span class="airport-code">{{ search.origin }}</span>
+                        <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                        <span class="airport-code">{{ search.destination }}</span>
+                      </div>
+                    </div>
+                    <div class="flight-details">
+                      <div class="flight-time">
+                        <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
+                        <span class="flight-duration">{{ flight.durationMinutes }}min</span>
+                        <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
+                      </div>
+                      <div class="flight-date">
+                        {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+                      </div>
+                    </div>
+                    <div class="flight-prices">
+                      <div class="price-option">
+                        <span class="class-name">Económica</span>
+                        <span class="price">${{ flight.priceEconomyClass }}</span>
+                      </div>
+                      <div class="price-option">
+                        <span class="class-name">Primera Clase</span>
+                        <span class="price">${{ flight.priceFirstClass }}</span>
+                      </div>
+                    </div>
+                    <button class="btn-select-flight">Seleccionar</button>
+                  </div>
+                </div>
+                <p v-else class="no-results">No se encontraron vuelos de ida para esa fecha</p>
+              </div>
+
+              <!-- Vuelos de VUELTA -->
+              <div class="trip-section">
+                <h3>Vuelos de VUELTA - {{ search.destination }} → {{ search.origin }}</h3>
+                <div v-if="returnFlights.length > 0" class="flights-grid">
+                  <div class="flight-card" v-for="flight in returnFlights" :key="'ret-' + flight.id">
+                    <div class="flight-header">
+                      <div class="flight-route">
+                        <span class="airport-code">{{ search.destination }}</span>
+                        <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                        <span class="airport-code">{{ search.origin }}</span>
+                      </div>
+                    </div>
+                    <div class="flight-details">
+                      <div class="flight-time">
+                        <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
+                        <span class="flight-duration">{{ flight.durationMinutes }}min</span>
+                        <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
+                      </div>
+                      <div class="flight-date">
+                        {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+                      </div>
+                    </div>
+                    <div class="flight-prices">
+                      <div class="price-option">
+                        <span class="class-name">Económica</span>
+                        <span class="price">${{ flight.priceEconomyClass }}</span>
+                      </div>
+                      <div class="price-option">
+                        <span class="class-name">Primera Clase</span>
+                        <span class="price">${{ flight.priceFirstClass }}</span>
+                      </div>
+                    </div>
+                    <button class="btn-select-flight">Seleccionar</button>
+                  </div>
+                </div>
+                <p v-else class="no-results">No se encontraron vuelos de vuelta para esa fecha</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -249,34 +376,39 @@ export default {
           { origin: '', destination: '', departureDate: '' }
         ]
       },
+      airportMap: {
+        'SJO': 1, 'LIR': 2, 'JFK': 3, 'LAX': 4, 'MIA': 5,
+        'YYZ': 6, 'LHR': 7, 'MAD': 8, 'FRA': 9, 'AMS': 10
+      },
       originCities: [
         { code: 'SJO', name: 'San José' },
-        { code: 'LIM', name: 'Lima' },
-        { code: 'BOG', name: 'Bogotá' },
-        { code: 'MEX', name: 'Ciudad de México' },
-        { code: 'PTY', name: 'Panamá' },
-        { code: 'MIA', name: 'Miami' },
+        { code: 'LIR', name: 'Liberia' },
         { code: 'JFK', name: 'Nueva York' },
         { code: 'LAX', name: 'Los Ángeles' },
+        { code: 'MIA', name: 'Miami' },
+        { code: 'YYZ', name: 'Toronto' },
+        { code: 'LHR', name: 'Londres' },
         { code: 'MAD', name: 'Madrid' },
-        { code: 'BCN', name: 'Barcelona' }
+        { code: 'FRA', name: 'Fráncfort' },
+        { code: 'AMS', name: 'Ámsterdam' }
       ],
       destinationCities: [
         { code: 'SJO', name: 'San José' },
-        { code: 'LIM', name: 'Lima' },
-        { code: 'BOG', name: 'Bogotá' },
-        { code: 'MEX', name: 'Ciudad de México' },
-        { code: 'PTY', name: 'Panamá' },
-        { code: 'MIA', name: 'Miami' },
+        { code: 'LIR', name: 'Liberia' },
         { code: 'JFK', name: 'Nueva York' },
         { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'BCN', name: 'Barcelona' },
+        { code: 'MIA', name: 'Miami' },
+        { code: 'YYZ', name: 'Toronto' },
         { code: 'LHR', name: 'Londres' },
-        { code: 'CDG', name: 'París' },
-        { code: 'NRT', name: 'Tokio' },
-        { code: 'DXB', name: 'Dubái' }
+        { code: 'MAD', name: 'Madrid' },
+        { code: 'FRA', name: 'Fráncfort' },
+        { code: 'AMS', name: 'Ámsterdam' }
       ],
+      searchResults: [],
+      outboundFlights: [],
+      returnFlights: [],
+      loading: false,
+      searchPerformed: false,
       destinations: [
         {
           id: 1,
@@ -411,18 +543,90 @@ export default {
       }
     },
     searchFlights() {
-      const payload = this.tripType === 'multiciudad'
-        ? { type: 'multiciudad', legs: this.search.legs, passengers: this.search.passengers }
-        : {
-            type: this.tripType,
-            origin: this.search.origin,
-            destination: this.search.destination,
-            departureDate: this.search.departureDate,
-            returnDate: this.tripType === 'ida-vuelta' ? this.search.returnDate : null,
-            passengers: this.search.passengers
-          };
-      console.log('Buscando vuelos:', payload);
-      alert('Búsqueda de vuelos: ' + JSON.stringify(payload, null, 2));
+      if (this.tripType === 'multiciudad') {
+        alert('Búsqueda de multiciudad aún no implementada');
+        return;
+      }
+
+      if (!this.search.origin || !this.search.destination || !this.search.departureDate) {
+        alert('Por favor completa todos los campos requeridos');
+        return;
+      }
+
+      if (this.tripType === 'ida-vuelta' && !this.search.returnDate) {
+        alert('Por favor selecciona la fecha de retorno');
+        return;
+      }
+
+      this.loading = true;
+      this.searchPerformed = true;
+
+      const departureAirportId = this.airportMap[this.search.origin];
+      const arrivalAirportId = this.airportMap[this.search.destination];
+
+      // Búsqueda de ida
+      const outboundParams = new URLSearchParams({
+        departureAirportId,
+        arrivalAirportId,
+        departureDate: this.search.departureDate
+      });
+
+      const outboundPromise = fetch(`http://localhost:5235/flight?${outboundParams}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Error en la búsqueda de ida');
+          return response.json();
+        });
+
+      // Si es solo ida
+      if (this.tripType === 'ida') {
+        outboundPromise
+          .then(data => {
+            this.searchResults = data;
+            if (data.length === 0) {
+              alert('No se encontraron vuelos para esa búsqueda');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al buscar vuelos: ' + error.message);
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+        return;
+      }
+
+      // Si es ida y vuelta, hacer segunda búsqueda
+      const returnParams = new URLSearchParams({
+        departureAirportId: arrivalAirportId,
+        arrivalAirportId: departureAirportId,
+        departureDate: this.search.returnDate
+      });
+
+      const returnPromise = fetch(`http://localhost:5235/flight?${returnParams}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Error en la búsqueda de vuelta');
+          return response.json();
+        });
+
+      // Ejecutar ambas búsquedas en paralelo
+      Promise.all([outboundPromise, returnPromise])
+        .then(([outboundData, returnData]) => {
+          this.outboundFlights = outboundData;
+          this.returnFlights = returnData;
+          this.searchResults = [];
+
+          if (outboundData.length === 0 && returnData.length === 0) {
+            alert('No se encontraron vuelos para esas fechas');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error al buscar vuelos: ' + error.message);
+        })
+        .finally(() => {
+          this.loading = false;
+        });
     }
   }
 };
@@ -728,6 +932,174 @@ export default {
 .btn-search:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(0, 86, 179, 0.4);
+}
+
+.btn-search:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Search Results */
+.search-results {
+  margin-top: 50px;
+  padding-top: 40px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.search-results h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #003d7a;
+}
+
+.flights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.flight-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.flight-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 86, 179, 0.15);
+  border-color: #0056b3;
+  transform: translateY(-4px);
+}
+
+.flight-header {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.flight-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  gap: 10px;
+}
+
+.airport-code {
+  font-size: 1.3rem;
+  color: #003d7a;
+  min-width: 60px;
+  text-align: center;
+}
+
+.flight-arrow {
+  width: 24px;
+  height: 24px;
+  color: #0056b3;
+  flex-shrink: 0;
+}
+
+.flight-details {
+  margin-bottom: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.flight-time {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+  color: #003d7a;
+}
+
+.flight-time strong {
+  font-weight: 700;
+}
+
+.flight-duration {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: normal;
+}
+
+.flight-date {
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+}
+
+.flight-prices {
+  margin-bottom: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.price-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px 0;
+}
+
+.price-option:last-child {
+  margin-bottom: 0;
+}
+
+.class-name {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0056b3;
+}
+
+.btn-select-flight {
+  width: 100%;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #0056b3, #003d7a);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-select-flight:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 86, 179, 0.3);
+}
+
+.trip-section {
+  margin-bottom: 40px;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+}
+
+.trip-section h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0056b3;
+  margin-bottom: 20px;
+}
+
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 1rem;
 }
 
 /* Section Styles */
