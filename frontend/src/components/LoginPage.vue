@@ -1,8 +1,8 @@
 <template>
     <div class="login-container">
         <div class="logo">
-            <img src="../assets/logoSA.png" alt="logo" class="logo-image" />
-            <h3>Snoopy Airlines</h3>
+            <a href="/"><img src="../assets/logoSA.png" alt="logo" class="logo-image" /></a>
+            <h3 class="logo-text">Snoopy Airlines</h3>
         </div>
         <div class="login-form">
             <img src="../assets/logoSA.png" alt="logo" class="logo-image-login" />
@@ -31,12 +31,12 @@
                         required
                     />
                 </div>
-                <a href="/" class="forget-pw">
-                    <p class="forget-pw">¿Olvidaste tu contraseña?</p>
-                </a>
                 <button type="submit" class="btn-login">Iniciar sesión</button>
             </form>
         </div>
+        <a class="volver-a-inicio" href="/">
+            <p>Volver al inicio</p>
+        </a>
     </div>
 </template>
 
@@ -53,7 +53,6 @@
         },
         methods: {
             login() {
-                console.log("Datos:", this.formData);
                 axios
                     .post('https://localhost:7080/user/login', {
                         email: this.formData.Email,
@@ -63,7 +62,7 @@
                         localStorage.setItem('token', response.data.token);
                         alert("Inicio de sesión exitoso");
                         console.log(response);
-                        window.location.href = '/';
+                        window.location.href = '/admin';
                     })
                     .catch(function (error) {
                         if (error.response && error.response.status === 401)
@@ -88,28 +87,51 @@ body {
 }
 
 
-.logo {
+.logo{
     text-align: left;
+    width: 100vw;
     display: flex;
-    margin-top: 10px;
-    margin-left: 100px;
     text-size-adjust: 10px;
+    border-bottom: 1px solid #b4b4b4;
+    background-color: #f9f9f9;
 
     .logo-image {
         align-items: left;
-        width: 50px;
-        height: 50px;
+        width: 45px;
+        height: 45px;
     }
+
+    .logo-text {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+}
+
+.volver-a-inicio {
+    text-align: center;
+    text-decoration: none;
+    color: #818181;
+    
+}
+
+.volver-a-inicio:hover {
+    text-align: center;
+    text-decoration: none;
+    color: #818181;
+    
 }
 
 .login-form {
     width: 450px;
-    height: 600px;
+    height: 530px;
     margin: 0 auto;
     padding: 25px;
     border-radius: 20px;
     background-color: #ffffff;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
+    margin-top: 30px;
 
     .logo-image-login {
         width: 120px;
@@ -168,13 +190,7 @@ body {
         border: 1px solid #ccc;
         border-radius: 5px;
     }
-
-    .forget-pw {
-        margin-bottom: 30px;
-        text-decoration: none;
-        text-align: right;
-        font-size: small;
-    }
 }
+
 
 </style>
