@@ -54,7 +54,7 @@
         methods: {
             login() {
                 axios
-                    .post('https://localhost:7080/user/login', {
+                    .post('http://localhost:5235/user/login', {
                         email: this.formData.Email,
                         password: this.formData.Password
                     })

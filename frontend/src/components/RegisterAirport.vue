@@ -85,8 +85,11 @@ export default {
   methods: {
     // Llama al backend para traer todos los países y llenar el dropdown
     loadCountries() {
+      const token = localStorage.getItem("token");
       axios
-        .get("http://localhost:5235/airport/countries")
+        .get("https://localhost:7080/airport/countries", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         .then((response) => {
           this.countries = response.data;
         })
@@ -96,8 +99,11 @@ export default {
     },
     // Envía los datos del formulario al backend para registrar el aeropuerto
     registerAirport() {
+      const token = localStorage.getItem("token");
       axios
-        .post("http://localhost:5235/airport", this.airport)
+        .post("https://localhost:7080/airport", this.airport, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         .then(() => {
           alert("Aeropuerto registrado correctamente");
           this.airport = { name: "", code: "", cityId: "" };
@@ -123,8 +129,11 @@ export default {
       this.cities = [];
 
       if (newCountryId) {
+        const token = localStorage.getItem("token");
         axios
-          .get(`http://localhost:5235/airport/cities?countryId=${newCountryId}`)
+          .get(`https://localhost:7080/airport/cities?countryId=${newCountryId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
           .then((response) => {
             this.cities = response.data;
           })

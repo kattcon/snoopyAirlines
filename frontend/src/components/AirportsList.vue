@@ -90,8 +90,11 @@ export default {
   methods: {
     // Carga todos los aeropuertos desde el backend al iniciar la vista
     loadAirports() {
+      const token = localStorage.getItem("token");
       axios
-        .get("http://localhost:5235/airport")
+        .get("https://localhost:7080/airport", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         .then((response) => {
           this.airports = response.data;
         })
