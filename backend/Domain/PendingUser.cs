@@ -9,5 +9,7 @@ namespace SnoopyAirlines.Domain.User
         required public string LastNameOne { get; set; }
         public string? LastNameTwo { get; set; }
         required public UserRole Type { get; set; }
+        public string? RegistrationKeyHash { get; set; }
+        public DateTime? CreatedAt { get; set; }
     }
 }
