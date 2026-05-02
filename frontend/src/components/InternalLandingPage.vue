@@ -15,13 +15,25 @@
             </main>
         </div>
     </div>
-    <button class="logout-button">Cerrar sesión</button>
+    <button class="logout-button" @click="logout">Cerrar sesión</button>
     
 </template>
 
 <script>
     export default {
-                
+        methods: {
+            logout() {
+                localStorage.removeItem('token');
+                window.location.href = '/'
+            }
+        },
+
+        mounted() {
+            const token = localStorage.getItem('token');
+            if(!token) {
+                window.location.href = '/';
+            }
+        }
     }
     const token = localStorage.getItem('token');
     console.log(token);
