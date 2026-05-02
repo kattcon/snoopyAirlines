@@ -18,21 +18,21 @@ namespace SnoopyAirlines.Controllers
         }
 
         [HttpPost]
-        public /*async*/ Task<ActionResult<Airplane>> Post(AirplaneIntake airplaneIntake, CancellationToken cancellationToken)
+        public async Task<ActionResult<Airplane>> Post(AirplaneIntake airplaneIntake, CancellationToken cancellationToken)
         {
-            var savedAirplane = 0;
+            var airplane = new Airplane
+            {
+                ModelNumber = airplaneIntake.ModelNumber,
+                TouristColumns = airplaneIntake.TouristColumns,
+                TouristRows = airplaneIntake.TouristRows,
+                FirstclassColumns = airplaneIntake.FirstclassColumns,
+                FirstclassRows = airplaneIntake.FirstclassRows,
+                MaxWeight = airplaneIntake.MaxWeight
+            };
 
-            //return CreatedAtAction(nameof(Get), savedAirplane);
+            var savedAirplane = await _airplaneService.CreateAirplaneAsync(airplane, cancellationToken);
 
+            return CreatedAtAction(nameof(Post), savedAirplane);
         }
-
-
-
-    
-    
     }
-
-
-
-
 }
