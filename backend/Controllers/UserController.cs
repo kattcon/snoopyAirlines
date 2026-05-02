@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.User;
@@ -30,6 +31,7 @@ namespace SnoopyAirlines.Controllers
             return Ok(users);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<UserView>> Post(
             UserIntake userIntake,
@@ -74,6 +76,7 @@ namespace SnoopyAirlines.Controllers
             return Created($"/user/{savedPendingUserView.Id}", savedPendingUserView);
         }
 
+        [AllowAnonymous]
         [HttpPost("registration")]
         public async Task<ActionResult<UserView>> Registration(
             UserRegistrationIntake registrationIntake,
@@ -113,6 +116,7 @@ namespace SnoopyAirlines.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<User>> Login(
             LoginIntake loginIntake,
