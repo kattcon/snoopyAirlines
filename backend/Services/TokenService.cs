@@ -19,6 +19,11 @@ namespace SnoopyAirlines.Services
 
         public string GenerateToken(User user)
         {
+            if (!user.Id.HasValue)
+            {
+                throw new InvalidOperationException("User id is required to generate a token.");
+            }
+
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
 
@@ -26,7 +31,7 @@ namespace SnoopyAirlines.Services
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.Value.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Type.ToString())
             };
