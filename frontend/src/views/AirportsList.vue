@@ -1,9 +1,11 @@
 <template>
   <div class="airports-page">
+    <div class="page-top-bar">
+      <button class="btn-volver-airports" @click="$router.go(-1)">Volver</button>
+    </div>
     <!-- Encabezado de la página -->
     <div class="page-header">
-      <h1 class="page-title">Snoopy Airlines</h1>
-      <p class="page-subtitle">Gestión de Aeropuertos</p>
+      <h1 class="page-title">Gestión de Aeropuertos</h1>
     </div>
 
     <!-- Tarjeta principal con la tabla -->
@@ -20,7 +22,7 @@
             placeholder="Buscar por nombre, código o ciudad..."
           />
         </div>
-        <button class="btn-register" @click="$router.push('/register-airport')">
+        <button class="btn-register" @click="$router.push('/admin/register-airport')">
           + Registrar aeropuerto
         </button>
       </div>
@@ -69,16 +71,12 @@ export default {
   name: "AirportsList",
   data() {
     return {
-      // Lista completa de aeropuertos traída del backend
       airports: [],
-      // Término ingresado en el buscador
       searchTerm: "",
-      // Mensaje de error de acceso
       errorMsg: ""
     };
   },
   computed: {
-    // Filtra los aeropuertos localmente mientras el usuario escribe
     filteredAirports() {
       const term = this.searchTerm.trim().toLowerCase();
       if (!term) return this.airports;
@@ -94,7 +92,6 @@ export default {
     this.loadAirports();
   },
   methods: {
-    // Carga todos los aeropuertos desde el backend al iniciar la vista
     loadAirports() {
       const token = localStorage.getItem("token");
       axios
@@ -115,34 +112,47 @@ export default {
 };
 </script>
 
-<style>
-/* Fondo gris claro de la página */
+<style scoped>
 .airports-page {
-  min-height: 100vh;
+  position: relative;
+  min-height: 100%;
   background: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
   padding: 40px;
   box-sizing: border-box;
 }
 
-/* Encabezado superior con título y subtítulo */
+.page-top-bar {
+  position: absolute;
+  top: 24px;
+  right: 30px;
+}
+
+.btn-volver-airports {
+  background-color: #1a2b4a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.btn-volver-airports:hover {
+  background-color: #2c3e6b;
+}
+
 .page-header {
   margin-bottom: 24px;
 }
 
 .page-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
   margin: 0;
-  color: #1a1a1a;
+  color: white;
 }
 
-.page-subtitle {
-  font-size: 14px;
-  color: rgb(219, 213, 213);
-  margin: 4px 0 0 0;
-}
-
-/* Tarjeta blanca que contiene toda la tabla */
 .airports-card {
   background-color: white;
   border-radius: 12px;
@@ -150,7 +160,6 @@ export default {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Barra con buscador y botón registrar */
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -158,7 +167,6 @@ export default {
   margin-bottom: 20px;
 }
 
-/* Contenedor del input de búsqueda con ícono */
 .search-wrapper {
   display: flex;
   align-items: center;
@@ -184,7 +192,6 @@ export default {
   color: #333;
 }
 
-/* Botón para ir al formulario de registro */
 .btn-register {
   padding: 10px 18px;
   background-color: white;
@@ -199,7 +206,6 @@ export default {
   background-color: #f5f5f5;
 }
 
-/* Tabla de aeropuertos */
 .airports-table {
   width: 100%;
   border-collapse: collapse;
@@ -224,7 +230,6 @@ export default {
   border-bottom: none;
 }
 
-/* Badge azul para el código IATA */
 .iata-badge {
   background-color: #e8f0fe;
   color: #3b6fd4;
@@ -234,14 +239,12 @@ export default {
   font-size: 13px;
 }
 
-/* Mensaje cuando no hay resultados */
 .no-results {
   text-align: center;
   color: #999;
   padding: 30px;
 }
 
-/* Pie de la tabla con conteo y botón crear */
 .table-footer-bar {
   display: flex;
   justify-content: space-between;
@@ -269,7 +272,6 @@ export default {
   background-color: #2c3e6b;
 }
 
-/* Mensaje de acceso no autorizado */
 .error-acceso {
   color: #e53935;
   font-weight: bold;

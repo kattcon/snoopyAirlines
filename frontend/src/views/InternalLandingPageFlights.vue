@@ -12,7 +12,7 @@
         <div class="section-div">
             <h4 class="main-text-section">Crear Aeropuerto</h4>
             <p class="subtext-aeronave">Agrega un nuevo aeropuerto</p>
-            <router-link to="/createRoute" class="router-button">Crear Aeropuerto</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Aeropuertos-->
+            <router-link to="/admin/register-airport" class="router-button">Crear Aeropuerto</router-link>
         </div>
         <div class="section-div">
             <h4 class="main-text-section">Crear Ruta</h4>
