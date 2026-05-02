@@ -14,8 +14,8 @@
                 <router-view />
             </main>
         </div>
-    <button class="logout-button">Cerrar sesión</button>
     </div>
+    <button class="logout-button">Cerrar sesión</button>
     
 </template>
 

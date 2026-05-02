@@ -87,24 +87,24 @@ body {
 }
 
 
-.logo {
+.logo{
     text-align: left;
+    width: 100vw;
     display: flex;
     text-size-adjust: 10px;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #2c3e50;
-
-    .logo-text {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #2c3e50;
-    }
+    border-bottom: 1px solid #b4b4b4;
+    background-color: #f9f9f9;
 
     .logo-image {
         align-items: left;
         width: 45px;
         height: 45px;
+    }
+
+    .logo-text {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
     }
 }
 
@@ -131,6 +131,7 @@ body {
     background-color: #ffffff;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     margin-bottom: 40px;
+    margin-top: 30px;
 
     .logo-image-login {
         width: 120px;
