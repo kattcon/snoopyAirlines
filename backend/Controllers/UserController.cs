@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.User;
@@ -14,7 +15,9 @@ namespace SnoopyAirlines.Controllers
         private readonly UserService _userService;
         private readonly TokenService _tokenService;
 
-        public UserController(UserService userService, TokenService tokenService)
+        public UserController(
+            UserService userService,
+            TokenService tokenService)
         {
             _userService = userService;
             _tokenService = tokenService;
@@ -28,11 +31,13 @@ namespace SnoopyAirlines.Controllers
             return Ok(users);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<ActionResult<PendingUser>> Post(
+        public async Task<ActionResult<UserView>> Post(
             UserIntake userIntake,
             CancellationToken cancellationToken)
         {
+            // Handle invalid payload
             if (!TryMapToPendingUser(userIntake, out var pendingUser, out var errors))
             {
                 return BadRequest(new ValidationErrorResponse
@@ -42,11 +47,76 @@ namespace SnoopyAirlines.Controllers
                 });
             }
 
-            var savedPendingUser = await _userService.SavePendingUserAsync(pendingUser, cancellationToken);
+            // Handle existing full registered user
+            if (await _userService.ExistsByEmailAsync(pendingUser.Email, cancellationToken))
+            {
+                var savedUser = await _userService.SaveUserAsync(ToUser(pendingUser), cancellationToken);
 
-            return Created($"/user/{savedPendingUser.Id}", savedPendingUser);
+                return Ok(savedUser);
+            }
+
+            // New pending user
+            var registrationKey = _userService.GenerateRegistrationKey();
+            pendingUser.RegistrationKeyHash = registrationKey.Hash;
+
+            bool pendingUserExists = await _userService.ExistsPendingByEmailAsync(pendingUser.Email, cancellationToken);
+            var savedPendingUser = await _userService.SavePendingUserAsync(pendingUser, cancellationToken);
+            var savedPendingUserView = ToUserView(savedPendingUser);
+
+            await _userService.SendRegistrationEmailAsync(
+                savedPendingUser.Email,
+                registrationKey.Value,
+                cancellationToken);
+
+            if (pendingUserExists)
+            {
+                return Ok(savedPendingUserView);
+            }
+
+            return Created($"/user/{savedPendingUserView.Id}", savedPendingUserView);
         }
 
+        [AllowAnonymous]
+        [HttpPost("registration")]
+        public async Task<ActionResult<UserView>> Registration(
+            UserRegistrationIntake registrationIntake,
+            CancellationToken cancellationToken)
+        {
+            var validationErrors = new List<ValidationError>();
+
+            ValidateRequired(nameof(registrationIntake.Password), registrationIntake.Password, validationErrors);
+            ValidateRequired(nameof(registrationIntake.PendingKey), registrationIntake.PendingKey, validationErrors);
+
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid registration payload.",
+                    Errors = validationErrors
+                });
+            }
+
+            try
+            {
+                var savedUser = await _userService.RegisterPendingUserAsync(
+                    registrationIntake.PendingKey!.Trim(),
+                    registrationIntake.Password!,
+                    cancellationToken);
+
+                if (savedUser is null)
+                {
+                    return BadRequest(new { Message = "Invalid registration key." });
+                }
+
+                return Ok(savedUser);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<User>> Login(
             LoginIntake loginIntake,
@@ -127,6 +197,36 @@ namespace SnoopyAirlines.Controllers
 
             errors = Array.Empty<ValidationError>();
             return true;
+        }
+
+        private static User ToUser(PendingUser pendingUser)
+        {
+            return new User
+            {
+                IdentificationNumber = pendingUser.IdentificationNumber,
+                Email = pendingUser.Email,
+                FirstName = pendingUser.FirstName,
+                LastNameOne = pendingUser.LastNameOne,
+                LastNameTwo = pendingUser.LastNameTwo,
+                Type = pendingUser.Type,
+                PasswordHash = string.Empty,
+                PasswordSalt = string.Empty
+            };
+        }
+
+        private static UserView ToUserView(PendingUser pendingUser)
+        {
+            return new UserView
+            {
+                Id = pendingUser.Id.GetValueOrDefault(),
+                IdentificationNumber = pendingUser.IdentificationNumber,
+                Email = pendingUser.Email,
+                FirstName = pendingUser.FirstName,
+                LastNameOne = pendingUser.LastNameOne,
+                LastNameTwo = pendingUser.LastNameTwo,
+                Type = pendingUser.Type,
+                Pending = true
+            };
         }
 
         private static void ValidateRequired(
