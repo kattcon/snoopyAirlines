@@ -44,7 +44,7 @@ namespace SnoopyAirlines.Controllers
         {
 
             var exists = await _airplaneService.GetAirplaneByModelAync(airplaneIntake.Model, cancellationToken);
-            if (exists != null)
+            if (exists != false)
             {
                 return Conflict($"Airplane model '{airplaneIntake.Model}' already exists");
             }
