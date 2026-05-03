@@ -10,7 +10,7 @@ namespace SnoopyAirlines.Repositories
     {
         public Task<Airplane> CreateAirplaneAsync(Airplane airplane, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Airplane created: Model {airplane.ModelNumber}");
+            Console.WriteLine($"Airplane created: Model {airplane.Model}");
             return Task.FromResult(airplane);
         }
 

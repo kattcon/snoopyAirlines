@@ -2,7 +2,7 @@ namespace SnoopyAirlines.domain
 {
     public class Airplane
     {
-        public int ModelNumber { get; set; }
+        required public string Model { get; set; }
         public int TouristRows { get; set; }
         public int TouristColumns { get; set; }
         public int FirstclassRows { get; set; }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnoopyAirlines.domain;
 using SnoopyAirlines.Domain;
@@ -24,13 +25,13 @@ namespace SnoopyAirlines.Controllers
             return Ok(airplanes);
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Airplane>> Post(AirplaneIntake airplaneIntake, CancellationToken cancellationToken)
         {
             var airplane = new Airplane
             {
-                ModelNumber = airplaneIntake.ModelNumber,
+                Model = airplaneIntake.Model,
                 TouristColumns = airplaneIntake.TouristColumns,
                 TouristRows = airplaneIntake.TouristRows,
                 FirstclassColumns = airplaneIntake.FirstclassColumns,
