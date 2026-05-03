@@ -18,6 +18,19 @@ namespace SnoopyAirlines.Controllers
             _airplaneService = airplaneService;
         }
 
+        [HttpGet("{model}")]
+        public async Task<ActionResult<Airplane>> GetAirplane(string model, CancellationToken cancellationToken)
+        {
+            var airplane = _airplaneService.GetAirplaneByModelAync(model, cancellationToken);
+            if (airplane == null)
+            {
+                return NotFound($"Airplane model ' {model}' not found");
+            } else
+            {
+                return Ok(airplane);
+            }
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Airplane>>> GetAirplanes(CancellationToken cancellationToken)
         {
@@ -29,6 +42,14 @@ namespace SnoopyAirlines.Controllers
         [HttpPost]
         public async Task<ActionResult<Airplane>> Post(AirplaneIntake airplaneIntake, CancellationToken cancellationToken)
         {
+
+            var exists = await _airplaneService.GetAirplaneByModelAync(airplaneIntake.Model, cancellationToken);
+            if (exists != null)
+            {
+                return Conflict($"Airplane model '{airplaneIntake.Model}' already exists");
+            }
+
+
             var airplane = new Airplane
             {
                 Model = airplaneIntake.Model,
@@ -41,7 +62,8 @@ namespace SnoopyAirlines.Controllers
 
             var savedAirplane = await _airplaneService.CreateAirplaneAsync(airplane, cancellationToken);
 
-            return CreatedAtAction(nameof(Post), savedAirplane);
+            return CreatedAtAction(nameof(GetAirplane), 
+                new { model = savedAirplane.Model }, savedAirplane );
         }
     }
 }
