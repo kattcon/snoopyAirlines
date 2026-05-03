@@ -17,6 +17,14 @@ namespace SnoopyAirlines.Controllers
             _airplaneService = airplaneService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Airplane>>> GetAirplanes(CancellationToken cancellationToken)
+        {
+            var airplanes = await _airplaneService.GetAirplanesAsync(cancellationToken);
+            return Ok(airplanes);
+        }
+
+
         [HttpPost]
         public async Task<ActionResult<Airplane>> Post(AirplaneIntake airplaneIntake, CancellationToken cancellationToken)
         {

@@ -13,5 +13,11 @@ namespace SnoopyAirlines.Repositories
             Console.WriteLine($"Airplane created: Model {airplane.ModelNumber}");
             return Task.FromResult(airplane);
         }
+
+        public Task<IReadOnlyCollection<Airplane>> GetAirplanesAsync(CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"Airplanes retrieved");
+            return Task.FromResult<IReadOnlyCollection<Airplane>>(Array.Empty<Airplane>()); //  cambiar por consulta
+        }
     }
 }

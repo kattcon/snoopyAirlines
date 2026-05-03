@@ -16,9 +16,12 @@ namespace SnoopyAirlines.Services
 
         public Task<Airplane> CreateAirplaneAsync(Airplane airplane, CancellationToken cancellationToken)
         {
-
             return _airplaneRepository.CreateAirplaneAsync(airplane, cancellationToken);
+        }
 
+        public Task<IReadOnlyCollection<Airplane>> GetAirplanesAsync(CancellationToken cancellationToken)
+        {
+            return _airplaneRepository.GetAirplanesAsync(cancellationToken);
         }
     }
 
