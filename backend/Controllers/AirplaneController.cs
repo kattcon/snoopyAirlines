@@ -30,9 +30,9 @@ namespace SnoopyAirlines.Controllers
                 return Ok(airplane);
             }
         }
-
+        [Authorize(Roles = "Admin")] //  agregar operadores
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Airplane>>> GetAirplanes(CancellationToken cancellationToken)
+        public async Task<ActionResult<IReadOnlyCollection<Airplane>>> GetAirplanes(CancellationToken cancellationToken)
         {
             var airplanes = await _airplaneService.GetAirplanesAsync(cancellationToken);
             return Ok(airplanes);
