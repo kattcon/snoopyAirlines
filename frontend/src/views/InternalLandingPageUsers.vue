@@ -9,6 +9,11 @@
             <p class="subtext-aeronave">Agrega un nuevo usuario al sistema</p>
             <router-link to="/createFlight" class="router-button">Registrar Usuario</router-link> <!--CAMBIAR POR LA RUTA DE Registrar usuario-->
         </div>
+        <div class="section-div">
+            <h4 class="main-text-section">Ver Usuarios</h4>
+            <p class="subtext-aeronave">Consulta los usuarios registrados en el sistema</p>
+            <router-link to="/admin/list-users" class="router-button">Ver Usuarios</router-link>
+        </div>
     </div>
 
 </template>
