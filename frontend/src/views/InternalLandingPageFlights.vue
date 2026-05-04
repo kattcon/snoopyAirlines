@@ -45,10 +45,11 @@
 
 .subsection-header-title {
     font-weight: bold;
+    color: #ffffff;
 }
 
 .subsection-header-subtitle {
-    color: #636363;
+    color: #ffffff;
 }
 
 .section-div {

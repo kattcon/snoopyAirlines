@@ -40,7 +40,7 @@
 <style>
 
 body {
-    background-color: #f1f1f1;
+    background: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
 }
 
 .layout-body {
