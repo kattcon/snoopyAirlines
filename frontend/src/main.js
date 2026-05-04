@@ -10,6 +10,7 @@ import UsersList from './views/UsersList.vue';
 import LandingPage from "./components/LandingPage.vue";
 import AirportsList from "./views/AirportsList.vue";
 import RegisterAirport from "./views/RegisterAirport.vue";
+import RegisterFlight from "./views/RegisterFlight.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -22,6 +23,8 @@ const router = createRouter({
               { path: 'reports', component: InternalLandingPageReports},
               { path: 'airports', component: AirportsList },
               { path: 'register-airport', component: RegisterAirport },
+              { path: 'register-flight', component: RegisterFlight },
+              { path: 'consult-flights', component: InternalLandingPageConsultFlights },
               { path: 'list-users', component: UsersList },
             ], name: "Admin", component: InternalLandingPage},
     ],

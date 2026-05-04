@@ -4,7 +4,13 @@
     <p v-if="subtitle" class="form-subtitle">{{ subtitle }}</p>
 
     <div v-for="field in fields" :key="field.name" class="form-group">
-      <label v-if="field.type !== 'checkbox'" :for="field.name">{{ field.label }}</label>
+      <label
+        v-if="field.type !== 'checkbox'"
+        :id="field.type === 'weekday-selector' ? `${field.name}-label` : null"
+        :for="field.name"
+      >
+        {{ field.label }}
+      </label>
 
       <select
         v-if="field.type === 'select'"
@@ -34,6 +40,27 @@
         />
         <span>{{ field.label }}</span>
       </label>
+
+      <div
+        v-else-if="field.type === 'weekday-selector'"
+        :class="['weekday-selector', { 'field-error': errors[field.name], 'is-disabled': field.disabled }]"
+        role="group"
+        :aria-labelledby="`${field.name}-label`"
+      >
+        <label
+          v-for="option in field.options"
+          :key="option.value"
+          :class="['weekday-option', { selected: isObjectFieldSelected(field.name, option.value) }]"
+        >
+          <input
+            type="checkbox"
+            :checked="isObjectFieldSelected(field.name, option.value)"
+            :disabled="field.disabled"
+            @change="updateObjectField(field.name, option.value, $event.target.checked)"
+          />
+          <span>{{ option.label }}</span>
+        </label>
+      </div>
 
       <input
         v-else
@@ -101,7 +128,28 @@ export default {
   methods: {
     inputType(field) {
       if (field.type === "datetime") return "datetime-local";
+      if (field.type === "time") return "time";
       return field.type || "text";
+    },
+    fieldObject(fieldName) {
+      const value = this.modelValue[fieldName];
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {};
+      }
+
+      return value;
+    },
+    isObjectFieldSelected(fieldName, optionName) {
+      return Boolean(this.fieldObject(fieldName)[optionName]);
+    },
+    updateObjectField(fieldName, optionName, value) {
+      this.$emit("update:modelValue", {
+        ...this.modelValue,
+        [fieldName]: {
+          ...this.fieldObject(fieldName),
+          [optionName]: value
+        }
+      });
     },
     updateField(fieldName, value) {
       this.$emit("update:modelValue", {
@@ -197,6 +245,51 @@ export default {
 
 .checkbox-control.is-disabled,
 .checkbox-control input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.weekday-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.weekday-selector .weekday-option {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 38px;
+  margin-bottom: 0;
+  padding: 8px 6px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  color: #1a2b4a;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.weekday-selector .weekday-option.selected {
+  background-color: #1a2b4a;
+  border-color: #1a2b4a;
+  color: white;
+}
+
+.weekday-selector .weekday-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.weekday-selector.is-disabled,
+.weekday-selector.is-disabled .weekday-option {
   opacity: 0.6;
   cursor: not-allowed;
 }
