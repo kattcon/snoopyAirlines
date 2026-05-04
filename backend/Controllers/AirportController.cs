@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.Intake;
@@ -66,6 +67,8 @@ namespace SnoopyAirlines.Controllers
 
         // POST /airport
         // Registra un nuevo aeropuerto. Valida los datos antes de guardar.
+        // Solo los administradores pueden crear aeropuertos  
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Airport>> Post(
             AirportIntake airportIntake,
