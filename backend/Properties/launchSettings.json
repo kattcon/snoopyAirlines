@@ -40,6 +40,17 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "local-kat"
       }
+    },
+    "local-jordan": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5235",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "local-jordan"
+      }
+
     }
   }
 }
