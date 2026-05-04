@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Services;
@@ -16,11 +17,29 @@ namespace SnoopyAirlines.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Flight>>> Get(CancellationToken cancellationToken)
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<Flight>>> Get(
+            [FromQuery] int? departureAirportId,
+            [FromQuery] int? arrivalAirportId,
+            [FromQuery] DateOnly? departureDate,
+            CancellationToken cancellationToken)
         {
-            var flights = await _flightService.GetFlightsAsync(cancellationToken);
+            // Si hay parámetros de búsqueda, usa la búsqueda filtrada
+            if (departureAirportId.HasValue || arrivalAirportId.HasValue || departureDate.HasValue)
+            {
+                var flights = await _flightService.SearchFlightsAsync(
+                    departureAirportId,
+                    arrivalAirportId,
+                    departureDate,
+                    cancellationToken);
 
-            return Ok(flights);
+                return Ok(flights);
+            }
+
+            // Si no hay filtros, devuelve todos
+            var allFlights = await _flightService.GetFlightsAsync(cancellationToken);
+
+            return Ok(allFlights);
         }
 
         [HttpPost]
