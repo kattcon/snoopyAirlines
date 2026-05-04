@@ -5,6 +5,5 @@ namespace SnoopyAirlines.Domain.Intake
         required public string Name { get; set; }
         required public string Code { get; set; }
         public int CityId { get; set; }
-        required public string Timezone { get; set; }
     }
 }

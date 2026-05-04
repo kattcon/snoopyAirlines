@@ -5,9 +5,9 @@
     </div>
     <div class="container">
         <div class="section-div">
-            <h4 class="main-text-section">Registrar Usuario</h4>
-            <p class="subtext-aeronave">Agrega un nuevo usuario al sistema</p>
-            <router-link to="/createFlight" class="router-button">Registrar Usuario</router-link> <!--CAMBIAR POR LA RUTA DE Registrar usuario-->
+            <h4 class="main-text-section">Usuarios</h4>
+            <p class="subtext-aeronave">Mira y registra un nuevo usuario</p>
+            <router-link to="/admin/list-users" class="router-button">Ir a Usuarios</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Usuario-->
         </div>
     </div>
 

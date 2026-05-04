@@ -68,14 +68,13 @@ namespace SnoopyAirlines.Repositories
         public async Task<Airport> CreateAirportAsync(Airport airport, CancellationToken cancellationToken)
         {
             const string sql = """
-                INSERT INTO airport (name, code, city_id, timezone)
+                INSERT INTO airport (name, code, city_id)
                 OUTPUT
                     INSERTED.id AS Id,
                     INSERTED.name AS Name,
                     INSERTED.code AS Code,
-                    INSERTED.city_id AS CityId,
-                    INSERTED.timezone AS Timezone
-                VALUES (@Name, @Code, @CityId, @Timezone);
+                    INSERTED.city_id AS CityId
+                VALUES (@Name, @Code, @CityId);
                 """;
 
             await using var connection = new SqlConnection(_connectionString);

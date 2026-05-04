@@ -5,6 +5,7 @@ using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using SnoopyAirlines.Infrastructure.Json;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
@@ -22,9 +23,14 @@ builder.Services.AddCors(options =>
 });
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddScoped(sp => new FlightRepository(builder.Configuration));
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+    });
+builder.Services.AddScoped<FlightRepository>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped(sp => new UserRepository(builder.Configuration));
 builder.Services.AddScoped<UserService>();
@@ -98,8 +104,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-
-
 
 var app = builder.Build();
 

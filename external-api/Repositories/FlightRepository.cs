@@ -29,6 +29,7 @@ namespace SnoopyAirlines.External.Repositories
                     f.id AS Id,
                     f.departure_time AS DepartureTime,
                     f.arrival_time AS ArrivalTime,
+                    f.frequency AS Frequency,
                     f.duration_minutes AS DurationMinutes,
                     departure_airport.code AS DepartureAirportCode,
                     departure_airport.name AS DepartureAirportName,
@@ -65,14 +66,24 @@ namespace SnoopyAirlines.External.Repositories
 
             if (flightQuery.EarliestDeparture is not null)
             {
-                where.Add("f.departure_time >= @EarliestDeparture");
-                parameters.Add("EarliestDeparture", flightQuery.EarliestDeparture);
+                if (flightQuery.LatestDeparture is not null)
+                {
+                    AddDepartureWindowFilter(
+                        where,
+                        parameters,
+                        flightQuery.EarliestDeparture.Value,
+                        flightQuery.LatestDeparture.Value);
+                }
+                else
+                {
+                    where.Add("f.departure_time >= @EarliestDepartureTime");
+                    parameters.Add("EarliestDepartureTime", flightQuery.EarliestDeparture.Value.TimeOfDay);
+                }
             }
-
-            if (flightQuery.LatestDeparture is not null)
+            else if (flightQuery.LatestDeparture is not null)
             {
-                where.Add("f.departure_time <= @LatestDeparture");
-                parameters.Add("LatestDeparture", flightQuery.LatestDeparture);
+                where.Add("f.departure_time <= @LatestDepartureTime");
+                parameters.Add("LatestDepartureTime", flightQuery.LatestDeparture.Value.TimeOfDay);
             }
 
             if (where.Count > 0)
@@ -94,8 +105,9 @@ namespace SnoopyAirlines.External.Repositories
             return new Flight
             {
                 FlightGUID = CreateFlightGuid(flight.Id),
-                DepartureTime = FormatDateTime(flight.DepartureTime),
-                ArrivalTime = FormatDateTime(flight.ArrivalTime),
+                DepartureTime = FormatTime(flight.DepartureTime),
+                ArrivalTime = FormatTime(flight.ArrivalTime),
+                Frequency = FlightFrequency.FromByte(flight.Frequency),
                 Duration = FormatDuration(flight.DurationMinutes),
                 DepartureAirport = new Airport
                 {
@@ -125,9 +137,65 @@ namespace SnoopyAirlines.External.Repositories
             return new Guid(bytes).ToString();
         }
 
-        private static string FormatDateTime(DateTime dateTime)
+        private static void AddDepartureWindowFilter(
+            ICollection<string> where,
+            DynamicParameters parameters,
+            DateTime earliestDeparture,
+            DateTime latestDeparture)
         {
-            return dateTime.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+            if (latestDeparture - earliestDeparture >= TimeSpan.FromDays(7))
+            {
+                return;
+            }
+
+            var conditions = new List<string>();
+            var currentDate = earliestDeparture.Date;
+            var endDate = latestDeparture.Date;
+            var index = 0;
+
+            while (currentDate <= endDate)
+            {
+                var frequencyParameter = $"FrequencyMask{index}";
+                var startTimeParameter = $"StartTime{index}";
+                var endTimeParameter = $"EndTime{index}";
+                var startTime = currentDate == earliestDeparture.Date
+                    ? earliestDeparture.TimeOfDay
+                    : TimeSpan.Zero;
+                var endTime = currentDate == latestDeparture.Date
+                    ? latestDeparture.TimeOfDay
+                    : new TimeSpan(23, 59, 59);
+
+                conditions.Add(
+                    $"((f.frequency & @{frequencyParameter}) <> 0 AND f.departure_time >= @{startTimeParameter} AND f.departure_time <= @{endTimeParameter})");
+                parameters.Add(frequencyParameter, GetFrequencyMask(currentDate.DayOfWeek));
+                parameters.Add(startTimeParameter, startTime);
+                parameters.Add(endTimeParameter, endTime);
+
+                currentDate = currentDate.AddDays(1);
+                index++;
+            }
+
+            where.Add("(" + string.Join(" OR ", conditions) + ")");
+        }
+
+        private static byte GetFrequencyMask(DayOfWeek dayOfWeek)
+        {
+            return dayOfWeek switch
+            {
+                DayOfWeek.Monday => 0b0100_0000,
+                DayOfWeek.Tuesday => 0b0010_0000,
+                DayOfWeek.Wednesday => 0b0001_0000,
+                DayOfWeek.Thursday => 0b0000_1000,
+                DayOfWeek.Friday => 0b0000_0100,
+                DayOfWeek.Saturday => 0b0000_0010,
+                DayOfWeek.Sunday => 0b0000_0001,
+                _ => 0
+            };
+        }
+
+        private static string FormatTime(TimeSpan time)
+        {
+            return time.ToString(@"hh\:mm", CultureInfo.InvariantCulture);
         }
 
         private static string FormatDuration(int durationMinutes)
@@ -141,8 +209,9 @@ namespace SnoopyAirlines.External.Repositories
         private class FlightRecord
         {
             public int Id { get; set; }
-            public DateTime DepartureTime { get; set; }
-            public DateTime ArrivalTime { get; set; }
+            public TimeSpan DepartureTime { get; set; }
+            public TimeSpan ArrivalTime { get; set; }
+            public byte Frequency { get; set; }
             public int DurationMinutes { get; set; }
             required public string DepartureAirportCode { get; set; }
             required public string DepartureAirportName { get; set; }
