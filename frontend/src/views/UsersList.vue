@@ -9,10 +9,6 @@
     </div>
 
     <div class="users-card">
-    <button class="btn-register" @click="$router.push('/admin/register-user')"> <!--AQUI VA LA RUTA PARA CREAR USUARIO-->
-      + Registrar usuario
-    </button>
-
       <div class="toolbar">
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
@@ -25,35 +21,27 @@
         </div>
       </div>
 
-      <table class="users-table">
-        <thead>
-          <tr>
-            <th>Nombre completo</th>
-            <th>Correo electrónico</th>
-            <th>Rol</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in filteredUsers" :key="user.id">
-            <td>{{ fullName(user) }}</td>
-            <td>{{ user.email }}</td>
-            <td>
-              <span :class="['role-badge', user.type === 0 ? 'role-admin' : 'role-operator']">
-                {{ user.type === 0 ? 'Administrador' : 'Operador' }}
-              </span>
-            </td>
-            <td>
-              <span :class="['status-badge', user.pending ? 'status-pending' : 'status-active']">
-                {{ user.pending ? 'Pendiente' : 'Activo' }}
-              </span>
-            </td>
-          </tr>
-          <tr v-if="filteredUsers.length === 0">
-            <td colspan="4" class="no-results">No hay usuarios disponibles.</td>
-          </tr>
-        </tbody>
-      </table>
+      <AppList
+        :columns="userColumns"
+        :items="filteredUsers"
+        empty-message="No hay usuarios disponibles."
+      >
+        <template #cell-fullName="{ item }">
+          {{ fullName(item) }}
+        </template>
+
+        <template #cell-type="{ item }">
+          <span :class="['role-badge', item.type === 0 ? 'role-admin' : 'role-operator']">
+            {{ item.type === 0 ? 'Administrador' : 'Operador' }}
+          </span>
+        </template>
+
+        <template #cell-pending="{ item }">
+          <span :class="['status-badge', item.pending ? 'status-pending' : 'status-active']">
+            {{ item.pending ? 'Pendiente' : 'Activo' }}
+          </span>
+        </template>
+      </AppList>
 
       <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
 
@@ -66,14 +54,24 @@
 
 <script>
 import axios from "axios";
+import AppList from "../components/AppList.vue";
 
 export default {
   name: "UsersList",
+  components: {
+    AppList
+  },
   data() {
     return {
       users: [],
       searchTerm: "",
-      errorMsg: ""
+      errorMsg: "",
+      userColumns: [
+        { key: "fullName", label: "Nombre completo" },
+        { key: "email", label: "Correo electrónico" },
+        { key: "type", label: "Rol" },
+        { key: "pending", label: "Estado" }
+      ]
     };
   },
   computed: {
@@ -100,7 +98,7 @@ export default {
     loadUsers() {
       const token = localStorage.getItem("token");
       axios
-        .get("https://localhost:7080/user", {
+        .get(`${process.env.VUE_APP_BACKEND_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         .then((response) => {
@@ -207,30 +205,6 @@ export default {
   color: #333;
 }
 
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.users-table th {
-  text-align: left;
-  padding: 10px 16px;
-  color: #555;
-  font-weight: 500;
-  border-bottom: 1px solid #eee;
-}
-
-.users-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #333;
-}
-
-.users-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 .role-badge {
   padding: 4px 10px;
   border-radius: 20px;
@@ -263,12 +237,6 @@ export default {
 .status-pending {
   background-color: #fce4ec;
   color: #c62828;
-}
-
-.no-results {
-  text-align: center;
-  color: #999;
-  padding: 30px;
 }
 
 .table-footer-bar {

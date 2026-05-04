@@ -22,7 +22,8 @@ namespace SnoopyAirlines.Controllers
             _userService = userService;
             _tokenService = tokenService;
         }
-
+        // Solo los administradores pueden listar los usuarios registrados y pendientes de registro
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserView>>> Get(CancellationToken cancellationToken)
         {
