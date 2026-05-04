@@ -7,7 +7,6 @@
         <div class="layout-body">   
             <aside class="left-menu">
                 <router-link to="/admin/flights" class="left-menu-options">Administrar Vuelos</router-link>
-                <router-link to="/admin/consult-flights" class="left-menu-options">Consultar Vuelos</router-link>
                 <router-link to="/admin/users" class="left-menu-options">Administrar Usuarios</router-link>
                 <router-link to="/admin/reports" class="left-menu-options">Reportes</router-link>
             </aside>
@@ -16,22 +15,32 @@
             </main>
         </div>
     </div>
-    <button class="logout-button">Cerrar sesión</button>
+    <button class="logout-button" @click="logout">Cerrar sesión</button>
     
 </template>
 
 <script>
     export default {
-                
+        methods: {
+            logout() {
+                localStorage.removeItem('token');
+                window.location.href = '/'
+            }
+        },
+
+        mounted() {
+            const token = localStorage.getItem('token');
+            if(!token) {
+                window.location.href = '/';
+            }
+        }
     }
-    const token = localStorage.getItem('token');
-    console.log(token);
 </script>
 
 <style>
 
 body {
-    background-color: #f1f1f1;
+    background: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
 }
 
 .layout-body {
