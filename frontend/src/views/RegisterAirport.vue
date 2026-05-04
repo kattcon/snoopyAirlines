@@ -121,7 +121,7 @@ export default {
     loadCountries() {
       const token = localStorage.getItem("token");
       axios
-        .get("https://localhost:7080/airport/countries", {
+        .get(`${process.env.VUE_APP_BACKEND_URL}/airport/countries`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         .then((response) => {
@@ -135,7 +135,7 @@ export default {
       if (!this.validate()) return;
       const token = localStorage.getItem("token");
       axios
-        .post("https://localhost:7080/airport", this.airport, {
+        .post(`${process.env.VUE_APP_BACKEND_URL}/airport`, this.airport, {
           headers: { Authorization: `Bearer ${token}` }
         })
         .then(() => {
@@ -161,7 +161,7 @@ export default {
       if (newCountryId) {
         const token = localStorage.getItem("token");
         axios
-          .get(`https://localhost:7080/airport/cities?countryId=${newCountryId}`, {
+          .get(`${process.env.VUE_APP_BACKEND_URL}/airport/cities?countryId=${newCountryId}`, {
             headers: { Authorization: `Bearer ${token}` }
           })
           .then((response) => {

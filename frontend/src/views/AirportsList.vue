@@ -95,7 +95,7 @@ export default {
     loadAirports() {
       const token = localStorage.getItem("token");
       axios
-        .get("https://localhost:7080/airport", {
+        .get(`${process.env.VUE_APP_BACKEND_URL}/airport`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         .then((response) => {

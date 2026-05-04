@@ -54,7 +54,7 @@
         methods: {
             login() {
                 axios
-                    .post('https://localhost:7080/user/login', {
+                    .post(`${process.env.VUE_APP_BACKEND_URL}/user/login`, {
                         email: this.formData.Email,
                         password: this.formData.Password
                     })

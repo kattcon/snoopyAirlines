@@ -97,7 +97,7 @@ export default {
     loadUsers() {
       const token = localStorage.getItem("token");
       axios
-        .get("https://localhost:7080/user", {
+        .get(`${process.env.VUE_APP_BACKEND_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         .then((response) => {
