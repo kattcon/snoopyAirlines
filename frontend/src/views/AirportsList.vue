@@ -3,15 +3,12 @@
     <div class="page-top-bar">
       <button class="btn-volver-airports" @click="$router.go(-1)">Volver</button>
     </div>
-    <!-- Encabezado de la página -->
+
     <div class="page-header">
       <h1 class="page-title">Gestión de Aeropuertos</h1>
     </div>
 
-    <!-- Tarjeta principal con la tabla -->
     <div class="airports-card">
-
-      <!-- Barra de herramientas: búsqueda y botón registrar -->
       <div class="toolbar">
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
@@ -27,35 +24,18 @@
         </button>
       </div>
 
-      <!-- Tabla de aeropuertos -->
-      <table class="airports-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Código IATA</th>
-            <th>Ciudad</th>
-            <th>País</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Fila por cada aeropuerto filtrado -->
-          <tr v-for="airport in filteredAirports" :key="airport.id">
-            <td>{{ airport.name }}</td>
-            <td><span class="iata-badge">{{ airport.code }}</span></td>
-            <td>{{ airport.cityName }}</td>
-            <td>{{ airport.countryName }}</td>
-          </tr>
-          <!-- Mensaje cuando no hay resultados -->
-          <tr v-if="filteredAirports.length === 0">
-            <td colspan="4" class="no-results">No hay aeropuertos disponibles.</td>
-          </tr>
-        </tbody>
-      </table>
+      <AppList
+        :columns="airportColumns"
+        :items="filteredAirports"
+        empty-message="No hay aeropuertos disponibles."
+      >
+        <template #cell-code="{ value }">
+          <span class="iata-badge">{{ value }}</span>
+        </template>
+      </AppList>
 
-      <!-- Mensaje de acceso no autorizado -->
       <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
 
-      <!-- Pie de tabla con el conteo y botón crear -->
       <div class="table-footer-bar">
         <p class="table-footer">Mostrando {{ filteredAirports.length }} de {{ airports.length }} aeropuertos</p>
         <button class="btn-crear">+ Crear</button>
@@ -66,14 +46,24 @@
 
 <script>
 import axios from "axios";
+import AppList from "../components/AppList.vue";
 
 export default {
   name: "AirportsList",
+  components: {
+    AppList
+  },
   data() {
     return {
       airports: [],
       searchTerm: "",
-      errorMsg: ""
+      errorMsg: "",
+      airportColumns: [
+        { key: "name", label: "Nombre" },
+        { key: "code", label: "Código IATA" },
+        { key: "cityName", label: "Ciudad" },
+        { key: "countryName", label: "País" }
+      ]
     };
   },
   computed: {
@@ -206,30 +196,6 @@ export default {
   background-color: #f5f5f5;
 }
 
-.airports-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.airports-table th {
-  text-align: left;
-  padding: 10px 16px;
-  color: #555;
-  font-weight: 500;
-  border-bottom: 1px solid #eee;
-}
-
-.airports-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #333;
-}
-
-.airports-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 .iata-badge {
   background-color: #e8f0fe;
   color: #3b6fd4;
@@ -237,12 +203,6 @@ export default {
   border-radius: 20px;
   font-weight: 600;
   font-size: 13px;
-}
-
-.no-results {
-  text-align: center;
-  color: #999;
-  padding: 30px;
 }
 
 .table-footer-bar {
