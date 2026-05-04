@@ -22,7 +22,7 @@
         <div class="section-div">
             <h4 class="main-text-section">Crear Vuelo</h4>
             <p class="subtext-aeronave">Agrega un nuevo vuelo</p>
-            <router-link to="/createFlight" class="router-button">Crear Vuelo</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <router-link to="/admin/register-flight" class="router-button">Crear Vuelo</router-link>
         </div>
     </div>
 
