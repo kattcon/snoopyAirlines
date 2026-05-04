@@ -5,24 +5,24 @@
     </div>
     <div class="container">
         <div class="section-div">
-            <h4 class="main-text-section">Crear Aeronave</h4>
-            <p class="subtext-aeronave">Registra una nueva aeronave en el sistema</p>
-            <router-link to="/createFlight" class="router-button">Crear Aeronave</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <h4 class="main-text-section">Aeronaves</h4>
+            <p class="subtext-aeronave">Mira y registra una nueva aeronave en el sistema</p>
+            <router-link to="/createFlight" class="router-button">Ir a Aeronaves</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
         </div>
         <div class="section-div">
-            <h4 class="main-text-section">Crear Aeropuerto</h4>
-            <p class="subtext-aeronave">Agrega un nuevo aeropuerto</p>
-            <router-link to="/createRoute" class="router-button">Crear Aeropuerto</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Aeropuertos-->
+            <h4 class="main-text-section">Aeropuertos</h4>
+            <p class="subtext-aeronave">Mira y registra un nuevo aeropuerto</p>
+            <router-link to="/createRoute" class="router-button">Ir a Aeropuertos</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Aeropuertos-->
         </div>
         <div class="section-div">
-            <h4 class="main-text-section">Crear Ruta</h4>
-            <p class="subtext-aeronave">Crea una nueva ruta en el sistema</p>
-            <router-link to="/createAirport" class="router-button">Crear Ruta</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
+            <h4 class="main-text-section">Rutas</h4>
+            <p class="subtext-aeronave">Mira y registra una nueva ruta en el sistema</p>
+            <router-link to="/createRoute" class="router-button">Ir a Rutas</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
         </div>
         <div class="section-div">
-            <h4 class="main-text-section">Crear Vuelo</h4>
-            <p class="subtext-aeronave">Agrega un nuevo vuelo</p>
-            <router-link to="/createFlight" class="router-button">Crear Vuelo</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <h4 class="main-text-section">Vuelos</h4>
+            <p class="subtext-aeronave">Mira y registra un nuevo vuelo</p>
+            <router-link to="/createFlight" class="router-button">Ir a Vuelos</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
         </div>
     </div>
 
