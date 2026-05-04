@@ -19,6 +19,9 @@
             placeholder="Buscar por nombre, correo o rol..."
           />
         </div>
+        <button class="btn-register" @click="$router.push('/admin/register-user')">
+          + Registrar usuario
+        </button>
       </div>
 
       <AppList
@@ -157,7 +160,10 @@ export default {
   cursor: pointer;
   font-size: 14px;
   color: #1a1a1a;
-  float: right;
+}
+
+.btn-register:hover {
+  background-color: #f5f5f5;
 }
 
 .page-title {
@@ -176,6 +182,7 @@ export default {
 
 .toolbar {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
