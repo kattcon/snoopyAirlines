@@ -38,7 +38,6 @@
 
       <div class="table-footer-bar">
         <p class="table-footer">Mostrando {{ filteredAirports.length }} de {{ airports.length }} aeropuertos</p>
-        <button class="btn-crear">+ Crear</button>
       </div>
     </div>
   </div>

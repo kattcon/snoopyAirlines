@@ -12,17 +12,12 @@
         <div class="section-div">
             <h4 class="main-text-section">Aeropuertos</h4>
             <p class="subtext-aeronave">Mira y registra un nuevo aeropuerto</p>
-            <router-link to="/createRoute" class="router-button">Ir a Aeropuertos</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Aeropuertos-->
-        </div>
-        <div class="section-div">
-            <h4 class="main-text-section">Rutas</h4>
-            <p class="subtext-aeronave">Mira y registra una nueva ruta en el sistema</p>
-            <router-link to="/createRoute" class="router-button">Ir a Rutas</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
+            <router-link to="/admin/airports" class="router-button">Ir a Aeropuertos</router-link>
         </div>
         <div class="section-div">
             <h4 class="main-text-section">Vuelos</h4>
             <p class="subtext-aeronave">Mira y registra un nuevo vuelo</p>
-            <router-link to="/createFlight" class="router-button">Ir a Vuelos</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <router-link to="/admin/consult-flights" class="router-button">Ir a Vuelos</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
         </div>
     </div>
 
@@ -50,10 +45,11 @@
 
 .subsection-header-title {
     font-weight: bold;
+    color: #ffffff;
 }
 
 .subsection-header-subtitle {
-    color: #636363;
+    color: #ffffff;
 }
 
 .section-div {

@@ -149,6 +149,17 @@ export default {
   margin-bottom: 24px;
 }
 
+.btn-register {
+  padding: 10px 18px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #1a1a1a;
+  float: right;
+}
+
 .page-title {
   font-size: 22px;
   font-weight: bold;
