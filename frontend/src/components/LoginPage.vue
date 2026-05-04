@@ -82,10 +82,14 @@
 
 <style>
 
-body {
-    background-color: #f9f9f9;
+html, body {
+    height: 100%;
+    margin: 0;
 }
 
+body {
+    background: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
+}
 
 .logo{
     text-align: left;
@@ -111,14 +115,14 @@ body {
 .volver-a-inicio {
     text-align: center;
     text-decoration: none;
-    color: #818181;
+    color: #ffffff;
     
 }
 
 .volver-a-inicio:hover {
     text-align: center;
     text-decoration: none;
-    color: #818181;
+    color: #ebebeb;
     
 }
 
