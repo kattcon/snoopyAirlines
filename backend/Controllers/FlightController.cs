@@ -28,6 +28,11 @@ namespace SnoopyAirlines.Controllers
             Flight flight,
             CancellationToken cancellationToken)
         {
+            if (flight.Frequency is null || !flight.Frequency.HasAnyDay())
+            {
+                return BadRequest(new { frequency = "At least one day must be selected." });
+            }
+
             var savedFlight = await _flightService.SaveFlightAsync(flight, cancellationToken);
 
             return CreatedAtAction(nameof(Get), savedFlight);

@@ -5,6 +5,7 @@ namespace SnoopyAirlines.External.Domain
         required public string FlightGUID { get; set; }
         required public string DepartureTime { get; set; }
         required public string ArrivalTime { get; set; }
+        required public FlightFrequency Frequency { get; set; }
         required public string Duration { get; set; }
         required public Airport DepartureAirport { get; set; }
         required public Airport ArrivalAirport { get; set; }

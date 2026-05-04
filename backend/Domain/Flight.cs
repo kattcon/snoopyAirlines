@@ -7,8 +7,9 @@ namespace SnoopyAirlines.Domain
         public int AirplaneId { get; set; }
         public int DepartureAirportId { get; set; }
         public int ArrivalAirportId { get; set; }
-        public DateTime DepartureTime { get; set; }
-        public DateTime ArrivalTime { get; set; }
+        public TimeOnly DepartureTime { get; set; }
+        public TimeOnly ArrivalTime { get; set; }
+        public FlightFrequency Frequency { get; set; } = new();
         public int DurationMinutes { get; set; }
         public decimal PriceFirstClass { get; set; }
         public decimal PriceEconomyClass { get; set; }

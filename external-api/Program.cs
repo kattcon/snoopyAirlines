@@ -1,6 +1,5 @@
 using SnoopyAirlines.External.Repositories;
 using SnoopyAirlines.External.Services;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
