@@ -6,7 +6,11 @@ import InternalLandingPage from './components/InternalLandingPage.vue';
 import InternalLandingPageFlights from './views/InternalLandingPageFlights.vue';
 import InternalLandingPageReports from './views/InternalLandingPageReports.vue';
 import InternalLandingPageUsers from './views/InternalLandingPageUsers.vue';
+import InternalLandingPageConsultFlights from './views/InternalLandingPageConsultFlights.vue';
+import UsersList from './views/UsersList.vue';
 import LandingPage from "./components/LandingPage.vue";
+import AirportsList from "./views/AirportsList.vue";
+import RegisterAirport from "./views/RegisterAirport.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -17,6 +21,10 @@ const router = createRouter({
             [ { path: 'flights', component: InternalLandingPageFlights },
               { path: 'users', component: InternalLandingPageUsers},
               { path: 'reports', component: InternalLandingPageReports},
+              { path: 'airports', component: AirportsList },
+              { path: 'register-airport', component: RegisterAirport },
+              { path: 'consult-flights', component: InternalLandingPageConsultFlights },
+              { path: 'list-users', component: UsersList },
             ], name: "Admin", component: InternalLandingPage},
     ],
 });
