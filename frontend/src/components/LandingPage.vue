@@ -243,6 +243,65 @@
                 <p v-else class="no-results">No se encontraron vuelos de vuelta para esa fecha</p>
               </div>
             </div>
+
+            <!-- Resultados para Multiciudad -->
+            <div v-if="tripType === 'multiciudad'">
+              <div
+                class="trip-section"
+                v-for="(legFlights, index) in multiCityResults"
+                :key="'leg-' + index"
+              >
+                <h3>
+                  Tramo {{ index + 1 }} —
+                  {{ search.legs[index].origin }} → {{ search.legs[index].destination }}
+                </h3>
+
+                <div v-if="legFlights.length > 0" class="flights-grid">
+                  <div
+                    class="flight-card"
+                    v-for="flight in legFlights"
+                    :key="'mc-' + index + '-' + flight.id"
+                  >
+                    <div class="flight-header">
+                      <div class="flight-route">
+                        <span class="airport-code">{{ search.legs[index].origin }}</span>
+                        <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                        <span class="airport-code">{{ search.legs[index].destination }}</span>
+                      </div>
+                    </div>
+                    <div class="flight-details">
+                      <div class="flight-time">
+                        <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
+                        <span class="flight-duration">{{ flight.durationMinutes }}min</span>
+                        <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
+                      </div>
+                      <div class="flight-date">
+                        {{ new Date(flight.departureTime).toLocaleDateString('es-ES', {
+                          weekday: 'short', month: 'short', day: 'numeric'
+                        }) }}
+                      </div>
+                    </div>
+                    <div class="flight-prices">
+                      <div class="price-option">
+                        <span class="class-name">Económica</span>
+                        <span class="price">${{ flight.priceEconomyClass }}</span>
+                      </div>
+                      <div class="price-option">
+                        <span class="class-name">Primera Clase</span>
+                        <span class="price">${{ flight.priceFirstClass }}</span>
+                      </div>
+                    </div>
+                    <button class="btn-select-flight">Seleccionar</button>
+                  </div>
+                </div>
+
+                <p v-else class="no-results">
+                  No se encontraron vuelos para este tramo en esa fecha
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -407,6 +466,7 @@ export default {
       searchResults: [],
       outboundFlights: [],
       returnFlights: [],
+      multiCityResults: [],
       loading: false,
       searchPerformed: false,
       destinations: [
@@ -544,9 +604,49 @@ export default {
     },
     searchFlights() {
       if (this.tripType === 'multiciudad') {
-        alert('Búsqueda de multiciudad aún no implementada');
+    for (let i = 0; i < this.search.legs.length; i++) {
+      const leg = this.search.legs[i];
+      if (!leg.origin || !leg.destination || !leg.departureDate) {
+        alert(`Por favor completa todos los campos del tramo ${i + 1}`);
         return;
       }
+    }
+
+    this.loading = true;
+    this.searchPerformed = true;
+    this.multiCityResults = [];
+
+    // Una promesa por cada tramo
+    const legPromises = this.search.legs.map(leg => {
+      const params = new URLSearchParams({
+        departureAirportId: this.airportMap[leg.origin],
+        arrivalAirportId:   this.airportMap[leg.destination],
+        departureDate:      leg.departureDate
+      });
+      return fetch(`http://localhost:5235/flight?${params}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Error buscando tramo ${leg.origin} → ${leg.destination}`);
+          return res.json();
+        });
+    });
+
+    Promise.all(legPromises)
+      .then(results => {
+        this.multiCityResults = results;
+        if (results.every(r => r.length === 0)) {
+          alert('No se encontraron vuelos para ninguno de los tramos');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al buscar vuelos: ' + error.message);
+      })
+      .finally(() => {
+        this.loading = false;
+      });
+
+    return;
+  }
 
       if (!this.search.origin || !this.search.destination || !this.search.departureDate) {
         alert('Por favor completa todos los campos requeridos');
