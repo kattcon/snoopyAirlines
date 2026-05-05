@@ -1,17 +1,26 @@
--- V12_adding-airport-data.sql
+-- V13_adding-airport-data.sql
 
--- Costa Rica airports
-INSERT INTO airport (name, code, city_id, timezone) VALUES
-('Juan Santamaría International Airport', 'SJO', 91, 'America/Costa_Rica'),
-('Daniel Oduber Quirós International Airport', 'LIR', 92, 'America/Costa_Rica');
-
--- International airports
-INSERT INTO airport (name, code, city_id, timezone) VALUES
-('John F. Kennedy International Airport', 'JFK', 343, 'America/New_York'), -- New York
-('Los Angeles International Airport', 'LAX', 344, 'America/Los_Angeles'), -- Los Angeles
-('Miami International Airport', 'MIA', 346, 'America/New_York'), -- Miami
-('Toronto Pearson International Airport', 'YYZ', 61, 'America/Toronto'), -- Toronto
-('London Heathrow Airport', 'LHR', 337, 'Europe/London'), -- London
-('Madrid-Barajas Airport', 'MAD', 293, 'Europe/Madrid'), -- Madrid
-('Frankfurt Airport', 'FRA', 134, 'Europe/Berlin'), -- Frankfurt
-('Amsterdam Schiphol Airport', 'AMS', 229, 'Europe/Amsterdam'); -- Amsterdam
+WITH AirportRecord (airport_name, airport_code, city_name, country_name) AS (
+    SELECT *
+    FROM (VALUES
+        ('Juan Santamaria International Airport', 'SJO', 'San Jose', 'Costa Rica'),
+        ('Daniel Oduber Quiros International Airport', 'LIR', 'Liberia', 'Costa Rica'),
+        ('John F. Kennedy International Airport', 'JFK', 'New York', 'United States'),
+        ('Los Angeles International Airport', 'LAX', 'Los Angeles', 'United States'),
+        ('Miami International Airport', 'MIA', 'Miami', 'United States'),
+        ('Toronto Pearson International Airport', 'YYZ', 'Toronto', 'Canada'),
+        ('London Heathrow Airport', 'LHR', 'London', 'United Kingdom'),
+        ('Madrid-Barajas Airport', 'MAD', 'Madrid', 'Spain'),
+        ('Frankfurt Airport', 'FRA', 'Frankfurt', 'Germany'),
+        ('Amsterdam Schiphol Airport', 'AMS', 'Amsterdam', 'Netherlands')
+    ) AS records (airport_name, airport_code, city_name, country_name)
+)
+INSERT INTO airport (name, code, city_id)
+SELECT
+    airport.airport_name,
+    airport.airport_code,
+    city.id
+FROM AirportRecord airport
+INNER JOIN country ON country.name = airport.country_name
+INNER JOIN city ON city.name = airport.city_name
+    AND city.country_id = country.id;
