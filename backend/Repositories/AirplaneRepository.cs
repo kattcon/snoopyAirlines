@@ -69,5 +69,25 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, new { Model = model }, cancellationToken: cancellationToken)) > 0;
 
         }
+
+        public async Task<Airplane?> GetAirplaneByModelAsync(string model, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT 
+                    model AS Model,
+                    tourist_rows AS TouristRows,
+                    tourist_columns AS TouristColumns,
+                    firstclass_rows AS FirstclassRows,
+                    firstclass_columns AS FirstclassColumns,
+                    max_weight AS MaxWeight
+                
+                FROM Airplane
+                WHERE model = @Model;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Airplane>(
+                new CommandDefinition(sql, new { Model = model }, cancellationToken: cancellationToken));
+        }
     }
 }

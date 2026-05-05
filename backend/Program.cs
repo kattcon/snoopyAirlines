@@ -2,7 +2,7 @@ using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.local-jordan.json", optional: true, reloadOnChange: true);
+//builder.Configuration.AddJsonFile("appsettings.local-jordan.json", optional: true, reloadOnChange: true);
 
 
 

@@ -24,9 +24,14 @@ namespace SnoopyAirlines.Services
             return _airplaneRepository.GetAirplanesAsync(cancellationToken);
         }
 
-        public Task<bool> GetAirplaneByModelAync(string model, CancellationToken cancellationToken)
+        public Task<bool> ExistsByModelAsync(string model, CancellationToken cancellationToken)
         {
             return _airplaneRepository.ExistsByModelAsync(model, cancellationToken);
+        }
+
+        public Task<Airplane?> GetAirplaneByModelAync(string model, CancellationToken cancellationToken)
+        {
+            return _airplaneRepository.GetAirplaneByModelAsync(model, cancellationToken);
         }
     }
 
