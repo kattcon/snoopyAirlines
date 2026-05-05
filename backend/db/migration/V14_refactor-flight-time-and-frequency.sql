@@ -8,7 +8,7 @@ GO
 
 ALTER TABLE flight
 ADD frequency TINYINT NOT NULL
-    CONSTRAINT df_flight_frequency DEFAULT 127;
+    CONSTRAINT df_flight_frequency DEFAULT 127;  -- Every day of the week
 GO
 
 ALTER TABLE flight
