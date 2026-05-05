@@ -9,6 +9,8 @@ using SnoopyAirlines.Infrastructure.Json;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
+//builder.Configuration.AddJsonFile("appsettings.local-jordan.json", optional: true, reloadOnChange: true);
+
 
 
 builder.Services.AddCors(options =>
@@ -37,6 +39,10 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(sp => new AirportRepository(builder.Configuration));
 builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<AirportRepository>();
+builder.Services.AddScoped<AirportService>();
+builder.Services.AddScoped<AirplaneRepository>();
+builder.Services.AddScoped<AirplaneService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<ConsoleEmailSender>();
 builder.Services.AddScoped<IEmailSender>(serviceProvider =>
