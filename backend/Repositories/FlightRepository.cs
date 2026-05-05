@@ -24,6 +24,7 @@ namespace SnoopyAirlines.Repositories
                     arrival_airport_id AS ArrivalAirportId,
                     departure_time AS DepartureTime,
                     arrival_time AS ArrivalTime,
+                    frequency AS Frequency,
                     duration_minutes AS DurationMinutes,
                     price_first_class AS PriceFirstClass,
                     price_economy_class AS PriceEconomyClass,
@@ -37,8 +38,52 @@ namespace SnoopyAirlines.Repositories
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            var flights = await connection.QueryAsync<Flight>(
+            var flights = await connection.QueryAsync<FlightRecord>(
                 new CommandDefinition(sql, cancellationToken: cancellationToken));
+
+            return flights.Select(ToFlight).ToList();
+        }
+
+        public async Task<IReadOnlyCollection<Flight>> SearchAsync(
+            int? departureAirportId,
+            int? arrivalAirportId,
+            DateOnly? departureDate,
+            CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id AS Id,
+                    airplane_id AS AirplaneId,
+                    departure_airport_id AS DepartureAirportId,
+                    arrival_airport_id AS ArrivalAirportId,
+                    departure_time AS DepartureTime,
+                    arrival_time AS ArrivalTime,
+                    duration_minutes AS DurationMinutes,
+                    price_first_class AS PriceFirstClass,
+                    price_economy_class AS PriceEconomyClass,
+                    price_carry_on_baggage AS PriceCarryOnBaggage,
+                    price_checked_baggage AS PriceCheckedBaggage,
+                    weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
+                    weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
+                    checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
+                FROM flight
+                WHERE (@DepartureAirportId IS NULL OR departure_airport_id = @DepartureAirportId)
+                  AND (@ArrivalAirportId IS NULL OR arrival_airport_id = @ArrivalAirportId)
+                  AND (@DepartureDate IS NULL OR CAST(departure_time AS date) = @DepartureDate)
+                ORDER BY departure_time;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            var flights = await connection.QueryAsync<Flight>(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        DepartureAirportId = departureAirportId,
+                        ArrivalAirportId = arrivalAirportId,
+                        DepartureDate = departureDate?.ToDateTime(TimeOnly.MinValue)
+                    },
+                    cancellationToken: cancellationToken));
 
             return flights.ToList();
         }
@@ -55,6 +100,7 @@ namespace SnoopyAirlines.Repositories
                         arrival_airport_id = @ArrivalAirportId,
                         departure_time = @DepartureTime,
                         arrival_time = @ArrivalTime,
+                        frequency = @Frequency,
                         duration_minutes = @DurationMinutes,
                         price_first_class = @PriceFirstClass,
                         price_economy_class = @PriceEconomyClass,
@@ -70,6 +116,7 @@ namespace SnoopyAirlines.Repositories
                         INSERTED.arrival_airport_id AS ArrivalAirportId,
                         INSERTED.departure_time AS DepartureTime,
                         INSERTED.arrival_time AS ArrivalTime,
+                        INSERTED.frequency AS Frequency,
                         INSERTED.duration_minutes AS DurationMinutes,
                         INSERTED.price_first_class AS PriceFirstClass,
                         INSERTED.price_economy_class AS PriceEconomyClass,
@@ -88,6 +135,7 @@ namespace SnoopyAirlines.Repositories
                         arrival_airport_id,
                         departure_time,
                         arrival_time,
+                        frequency,
                         duration_minutes,
                         price_first_class,
                         price_economy_class,
@@ -104,6 +152,7 @@ namespace SnoopyAirlines.Repositories
                         INSERTED.arrival_airport_id AS ArrivalAirportId,
                         INSERTED.departure_time AS DepartureTime,
                         INSERTED.arrival_time AS ArrivalTime,
+                        INSERTED.frequency AS Frequency,
                         INSERTED.duration_minutes AS DurationMinutes,
                         INSERTED.price_first_class AS PriceFirstClass,
                         INSERTED.price_economy_class AS PriceEconomyClass,
@@ -118,6 +167,7 @@ namespace SnoopyAirlines.Repositories
                         @ArrivalAirportId,
                         @DepartureTime,
                         @ArrivalTime,
+                        @Frequency,
                         @DurationMinutes,
                         @PriceFirstClass,
                         @PriceEconomyClass,
@@ -131,8 +181,73 @@ namespace SnoopyAirlines.Repositories
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            return await connection.QuerySingleAsync<Flight>(
-                new CommandDefinition(sql, flight, cancellationToken: cancellationToken));
+            var savedFlight = await connection.QuerySingleAsync<FlightRecord>(
+                new CommandDefinition(sql, ToParameters(flight), cancellationToken: cancellationToken));
+
+            return ToFlight(savedFlight);
+        }
+
+        private static Flight ToFlight(FlightRecord flight)
+        {
+            return new Flight
+            {
+                Id = flight.Id,
+                AirplaneId = flight.AirplaneId,
+                DepartureAirportId = flight.DepartureAirportId,
+                ArrivalAirportId = flight.ArrivalAirportId,
+                DepartureTime = TimeOnly.FromTimeSpan(flight.DepartureTime),
+                ArrivalTime = TimeOnly.FromTimeSpan(flight.ArrivalTime),
+                Frequency = FlightFrequency.FromByte(flight.Frequency),
+                DurationMinutes = flight.DurationMinutes,
+                PriceFirstClass = flight.PriceFirstClass,
+                PriceEconomyClass = flight.PriceEconomyClass,
+                PriceCarryOnBaggage = flight.PriceCarryOnBaggage,
+                PriceCheckedBaggage = flight.PriceCheckedBaggage,
+                WeightLimitCarryOnBaggage = flight.WeightLimitCarryOnBaggage,
+                WeightLimitCheckedBaggage = flight.WeightLimitCheckedBaggage,
+                CheckedBaggagePriceMultiplier = flight.CheckedBaggagePriceMultiplier
+            };
+        }
+
+        private static object ToParameters(Flight flight)
+        {
+            return new
+            {
+                flight.Id,
+                flight.AirplaneId,
+                flight.DepartureAirportId,
+                flight.ArrivalAirportId,
+                DepartureTime = flight.DepartureTime.ToTimeSpan(),
+                ArrivalTime = flight.ArrivalTime.ToTimeSpan(),
+                Frequency = flight.Frequency.ToByte(),
+                flight.DurationMinutes,
+                flight.PriceFirstClass,
+                flight.PriceEconomyClass,
+                flight.PriceCarryOnBaggage,
+                flight.PriceCheckedBaggage,
+                flight.WeightLimitCarryOnBaggage,
+                flight.WeightLimitCheckedBaggage,
+                flight.CheckedBaggagePriceMultiplier
+            };
+        }
+
+        private class FlightRecord
+        {
+            public int Id { get; set; }
+            public int AirplaneId { get; set; }
+            public int DepartureAirportId { get; set; }
+            public int ArrivalAirportId { get; set; }
+            public TimeSpan DepartureTime { get; set; }
+            public TimeSpan ArrivalTime { get; set; }
+            public byte Frequency { get; set; }
+            public int DurationMinutes { get; set; }
+            public decimal PriceFirstClass { get; set; }
+            public decimal PriceEconomyClass { get; set; }
+            public decimal PriceCarryOnBaggage { get; set; }
+            public decimal PriceCheckedBaggage { get; set; }
+            public int WeightLimitCarryOnBaggage { get; set; }
+            public int WeightLimitCheckedBaggage { get; set; }
+            public decimal CheckedBaggagePriceMultiplier { get; set; }
         }
     }
 }

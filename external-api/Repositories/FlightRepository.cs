@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -8,8 +7,6 @@ namespace SnoopyAirlines.External.Repositories
 {
     public class FlightRepository
     {
-        private static readonly Guid FlightGuidNamespace = new("9e991ddc-7c58-4e29-a379-503fc594c1e2");
-
         private readonly string _connectionString;
 
         public FlightRepository(IConfiguration configuration)
@@ -18,17 +15,18 @@ namespace SnoopyAirlines.External.Repositories
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<IReadOnlyCollection<Flight>> GetFlights(
-            FlightQuery? flightQuery,
+        public async Task<IReadOnlyCollection<FlightDefinition>> GetFlightDefinitions(
+            FlightDefinitionQuery? flightQuery,
             CancellationToken cancellationToken = default)
         {
-            flightQuery ??= new FlightQuery();
+            flightQuery ??= new FlightDefinitionQuery();
 
             var sql = new StringBuilder("""
                 SELECT
                     f.id AS Id,
                     f.departure_time AS DepartureTime,
                     f.arrival_time AS ArrivalTime,
+                    f.frequency AS Frequency,
                     f.duration_minutes AS DurationMinutes,
                     departure_airport.code AS DepartureAirportCode,
                     departure_airport.name AS DepartureAirportName,
@@ -63,16 +61,9 @@ namespace SnoopyAirlines.External.Repositories
                 parameters.Add("Destination", flightQuery.Destination);
             }
 
-            if (flightQuery.EarliestDeparture is not null)
+            if (flightQuery.DepartureWindows.Count > 0)
             {
-                where.Add("f.departure_time >= @EarliestDeparture");
-                parameters.Add("EarliestDeparture", flightQuery.EarliestDeparture);
-            }
-
-            if (flightQuery.LatestDeparture is not null)
-            {
-                where.Add("f.departure_time <= @LatestDeparture");
-                parameters.Add("LatestDeparture", flightQuery.LatestDeparture);
+                AddDepartureWindowFilters(where, parameters, flightQuery.DepartureWindows);
             }
 
             if (where.Count > 0)
@@ -86,17 +77,18 @@ namespace SnoopyAirlines.External.Repositories
             var flights = await connection.QueryAsync<FlightRecord>(
                 new CommandDefinition(sql.ToString(), parameters, cancellationToken: cancellationToken));
 
-            return flights.Select(ToFlight).ToList();
+            return flights.Select(ToFlightDefinition).ToList();
         }
 
-        private static Flight ToFlight(FlightRecord flight)
+        private static FlightDefinition ToFlightDefinition(FlightRecord flight)
         {
-            return new Flight
+            return new FlightDefinition
             {
-                FlightGUID = CreateFlightGuid(flight.Id),
-                DepartureTime = FormatDateTime(flight.DepartureTime),
-                ArrivalTime = FormatDateTime(flight.ArrivalTime),
-                Duration = FormatDuration(flight.DurationMinutes),
+                Id = flight.Id,
+                DepartureTime = TimeOnly.FromTimeSpan(flight.DepartureTime),
+                ArrivalTime = TimeOnly.FromTimeSpan(flight.ArrivalTime),
+                Frequency = FlightFrequency.FromByte(flight.Frequency),
+                DurationMinutes = flight.DurationMinutes,
                 DepartureAirport = new Airport
                 {
                     Code = flight.DepartureAirportCode,
@@ -116,33 +108,62 @@ namespace SnoopyAirlines.External.Repositories
             };
         }
 
-        private static string CreateFlightGuid(int flightId)
+        private static void AddDepartureWindowFilters(
+            ICollection<string> where,
+            DynamicParameters parameters,
+            IReadOnlyCollection<FlightDefinitionDepartureWindow> departureWindows)
         {
-            var bytes = FlightGuidNamespace.ToByteArray();
-            var idBytes = BitConverter.GetBytes(flightId);
-            Array.Copy(idBytes, 0, bytes, bytes.Length - idBytes.Length, idBytes.Length);
+            var conditions = new List<string>();
+            var index = 0;
 
-            return new Guid(bytes).ToString();
+            foreach (var departureWindow in departureWindows)
+            {
+                var frequencyParameter = $"FrequencyMask{index}";
+                var startTimeParameter = $"StartTime{index}";
+                var endTimeParameter = $"EndTime{index}";
+                var frequencyMask = ToByte(departureWindow.Frequency);
+
+                if (frequencyMask == 0)
+                {
+                    continue;
+                }
+
+                conditions.Add(
+                    $"((f.frequency & @{frequencyParameter}) <> 0 AND f.departure_time >= @{startTimeParameter} AND f.departure_time <= @{endTimeParameter})");
+                parameters.Add(frequencyParameter, frequencyMask);
+                parameters.Add(startTimeParameter, departureWindow.EarliestDeparture.ToTimeSpan());
+                parameters.Add(endTimeParameter, departureWindow.LatestDeparture.ToTimeSpan());
+
+                index++;
+            }
+
+            if (conditions.Count > 0)
+            {
+                where.Add("(" + string.Join(" OR ", conditions) + ")");
+            }
         }
 
-        private static string FormatDateTime(DateTime dateTime)
+        private static byte ToByte(FlightFrequency frequency)
         {
-            return dateTime.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
-        }
+            byte value = 0;
 
-        private static string FormatDuration(int durationMinutes)
-        {
-            var hours = durationMinutes / 60;
-            var minutes = durationMinutes % 60;
+            if (frequency.Monday) value |= 0b0100_0000;
+            if (frequency.Tuesday) value |= 0b0010_0000;
+            if (frequency.Wednesday) value |= 0b0001_0000;
+            if (frequency.Thursday) value |= 0b0000_1000;
+            if (frequency.Friday) value |= 0b0000_0100;
+            if (frequency.Saturday) value |= 0b0000_0010;
+            if (frequency.Sunday) value |= 0b0000_0001;
 
-            return $"{hours:00}:{minutes:00}";
+            return value;
         }
 
         private class FlightRecord
         {
             public int Id { get; set; }
-            public DateTime DepartureTime { get; set; }
-            public DateTime ArrivalTime { get; set; }
+            public TimeSpan DepartureTime { get; set; }
+            public TimeSpan ArrivalTime { get; set; }
+            public byte Frequency { get; set; }
             public int DurationMinutes { get; set; }
             required public string DepartureAirportCode { get; set; }
             required public string DepartureAirportName { get; set; }

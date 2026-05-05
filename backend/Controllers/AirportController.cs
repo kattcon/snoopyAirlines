@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.Intake;
@@ -66,6 +67,8 @@ namespace SnoopyAirlines.Controllers
 
         // POST /airport
         // Registra un nuevo aeropuerto. Valida los datos antes de guardar.
+        // Solo los administradores pueden crear aeropuertos  
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Airport>> Post(
             AirportIntake airportIntake,
@@ -110,7 +113,6 @@ namespace SnoopyAirlines.Controllers
             // Verifica que los campos de texto obligatorios no estén vacíos
             ValidateRequired(nameof(airportIntake.Name), airportIntake.Name, validationErrors);
             ValidateRequired(nameof(airportIntake.Code), airportIntake.Code, validationErrors);
-            ValidateRequired(nameof(airportIntake.Timezone), airportIntake.Timezone, validationErrors);
 
             // Valida que el código IATA tenga exactamente 3 letras (ej: SJO, LAX)
             // Solo lo valida si el código no está vacío para no duplicar el error de "requerido"
@@ -147,8 +149,7 @@ namespace SnoopyAirlines.Controllers
             {
                 Name = airportIntake.Name.Trim(),
                 Code = airportIntake.Code.Trim().ToUpperInvariant(),
-                CityId = airportIntake.CityId,
-                Timezone = airportIntake.Timezone.Trim()
+                CityId = airportIntake.CityId
             };
 
             errors = Array.Empty<ValidationError>();
