@@ -419,6 +419,11 @@
 </template>
 
 <script>
+
+
+const EXTERNAL_API_BASE = 'http://localhost:5187';  // Puerto del proyecto External
+const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';         // API key
+
 export default {
   name: 'LandingPage',
   data() {
@@ -434,10 +439,6 @@ export default {
           { origin: '', destination: '', departureDate: '' },
           { origin: '', destination: '', departureDate: '' }
         ]
-      },
-      airportMap: {
-        'SJO': 1, 'LIR': 2, 'JFK': 3, 'LAX': 4, 'MIA': 5,
-        'YYZ': 6, 'LHR': 7, 'MAD': 8, 'FRA': 9, 'AMS': 10
       },
       originCities: [
         { code: 'SJO', name: 'San José' },
@@ -602,52 +603,96 @@ export default {
         this.search.legs.splice(index, 1);
       }
     },
+
+    /**
+     * Construye los query params para el External API.
+     * El rango cubre todo el día solicitado (T00:00 → T23:59) para que la
+     * búsqueda por día de la semana funcione correctamente.
+     */
+    buildExternalParams(origin, destination, date, passengers) {
+      return new URLSearchParams({
+        origin,
+        detination: destination,
+        earliestDeparture: `${date}T00:00`,
+        latestDeparture:   `${date}T23:59`,
+        quantityOfPassengers: passengers,
+        apiKey: EXTERNAL_API_KEY,
+      });
+    },
+
+    /**
+     * Normaliza un vuelo del External API al shape que usa el template.
+     *
+     * Mapeo de campos:
+     *   flightGUID        → id
+     *   touristPrice      → priceEconomyClass
+     *   firstClassPrice   → priceFirstClass
+     *   duration "hh-mm"  → durationMinutes (int)
+     *
+     * departureTime y arrivalTime ya vienen en formato ISO, no cambian.
+     */
+    mapFlight(flight) {
+      const [hours, minutes] = flight.duration.split('-').map(Number);
+      return {
+        ...flight,
+        id:               flight.flightGUID,
+        priceEconomyClass: flight.touristPrice,
+        priceFirstClass:   flight.firstClassPrice,
+        durationMinutes:   hours * 60 + minutes,
+      };
+    },
+
+    /**
+     * Hace el fetch al External API y devuelve los vuelos ya normalizados.
+     */
+    fetchFlights(origin, destination, date, passengers) {
+      const params = this.buildExternalParams(origin, destination, date, passengers);
+      return fetch(`${EXTERNAL_API_BASE}/api/external?${params}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
+          return res.json();
+        })
+        .then(data => data.flights.map(this.mapFlight));
+    },
+
     searchFlights() {
+      // ── Multiciudad
       if (this.tripType === 'multiciudad') {
-    for (let i = 0; i < this.search.legs.length; i++) {
-      const leg = this.search.legs[i];
-      if (!leg.origin || !leg.destination || !leg.departureDate) {
-        alert(`Por favor completa todos los campos del tramo ${i + 1}`);
+        for (let i = 0; i < this.search.legs.length; i++) {
+          const leg = this.search.legs[i];
+          if (!leg.origin || !leg.destination || !leg.departureDate) {
+            alert(`Por favor completa todos los campos del tramo ${i + 1}`);
+            return;
+          }
+        }
+
+        this.loading = true;
+        this.searchPerformed = true;
+        this.multiCityResults = [];
+
+        const legPromises = this.search.legs.map(leg =>
+          this.fetchFlights(leg.origin, leg.destination, leg.departureDate, this.search.passengers)
+        );
+
+        Promise.all(legPromises)
+          .then(results => {
+            this.multiCityResults = results;
+            if (results.every(r => r.length === 0)) {
+              alert('No se encontraron vuelos para ninguno de los tramos');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al buscar vuelos: ' + error.message);
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+
         return;
       }
-    }
 
-    this.loading = true;
-    this.searchPerformed = true;
-    this.multiCityResults = [];
-
-    // Una promesa por cada tramo
-    const legPromises = this.search.legs.map(leg => {
-      const params = new URLSearchParams({
-        departureAirportId: this.airportMap[leg.origin],
-        arrivalAirportId:   this.airportMap[leg.destination],
-        departureDate:      leg.departureDate
-      });
-      return fetch(`http://localhost:5235/flight?${params}`)
-        .then(res => {
-          if (!res.ok) throw new Error(`Error buscando tramo ${leg.origin} → ${leg.destination}`);
-          return res.json();
-        });
-    });
-
-    Promise.all(legPromises)
-      .then(results => {
-        this.multiCityResults = results;
-        if (results.every(r => r.length === 0)) {
-          alert('No se encontraron vuelos para ninguno de los tramos');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error al buscar vuelos: ' + error.message);
-      })
-      .finally(() => {
-        this.loading = false;
-      });
-
-    return;
-  }
-
+      // ── Ida / Ida y Vuelta
       if (!this.search.origin || !this.search.destination || !this.search.departureDate) {
         alert('Por favor completa todos los campos requeridos');
         return;
@@ -661,23 +706,14 @@ export default {
       this.loading = true;
       this.searchPerformed = true;
 
-      const departureAirportId = this.airportMap[this.search.origin];
-      const arrivalAirportId = this.airportMap[this.search.destination];
+      const outboundPromise = this.fetchFlights(
+        this.search.origin,
+        this.search.destination,
+        this.search.departureDate,
+        this.search.passengers
+      );
 
-      // Búsqueda de ida
-      const outboundParams = new URLSearchParams({
-        departureAirportId,
-        arrivalAirportId,
-        departureDate: this.search.departureDate
-      });
-
-      const outboundPromise = fetch(`http://localhost:5235/flight?${outboundParams}`)
-        .then(response => {
-          if (!response.ok) throw new Error('Error en la búsqueda de ida');
-          return response.json();
-        });
-
-      // Si es solo ida
+      // Solo ida
       if (this.tripType === 'ida') {
         outboundPromise
           .then(data => {
@@ -696,25 +732,19 @@ export default {
         return;
       }
 
-      // Si es ida y vuelta, hacer segunda búsqueda
-      const returnParams = new URLSearchParams({
-        departureAirportId: arrivalAirportId,
-        arrivalAirportId: departureAirportId,
-        departureDate: this.search.returnDate
-      });
+      // Ida y vuelta — buscar ambos tramos en paralelo
+      const returnPromise = this.fetchFlights(
+        this.search.destination,
+        this.search.origin,
+        this.search.returnDate,
+        this.search.passengers
+      );
 
-      const returnPromise = fetch(`http://localhost:5235/flight?${returnParams}`)
-        .then(response => {
-          if (!response.ok) throw new Error('Error en la búsqueda de vuelta');
-          return response.json();
-        });
-
-      // Ejecutar ambas búsquedas en paralelo
       Promise.all([outboundPromise, returnPromise])
         .then(([outboundData, returnData]) => {
           this.outboundFlights = outboundData;
-          this.returnFlights = returnData;
-          this.searchResults = [];
+          this.returnFlights   = returnData;
+          this.searchResults   = [];
 
           if (outboundData.length === 0 && returnData.length === 0) {
             alert('No se encontraron vuelos para esas fechas');
@@ -1544,5 +1574,4 @@ export default {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.9rem;
 }
-
 </style>
