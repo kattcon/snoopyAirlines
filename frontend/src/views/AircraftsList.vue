@@ -29,6 +29,9 @@
                     :items="filteredAircrafts"
                     empty-message="No hay aeronaves disponibles"
                     >
+                    <template #cell-actions>
+                        <button @click.stop="">Ver</button>
+                    </template>
                 </AppList>
                 <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
                 <div class="table-footer-bar">
@@ -57,7 +60,8 @@ export default{
                 {key: "touristColumns", label:"Asientos por fila clase turista"},
                 {key: "firstclassRows", label:"Filas clase ejecutiva"},
                 {key: "firstclassColumns", label:"Asientos por fila clase ejecutiva"},
-                {key: "maxWeight", label:"Peso máximo permitido"}
+                {key: "maxWeight", label:"Peso máximo permitido"},
+                { key: "actions", label: "Acciones" }
             ]
         }
     },

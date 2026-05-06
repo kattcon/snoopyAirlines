@@ -30,7 +30,7 @@ namespace SnoopyAirlines.Controllers
                 return Ok(airplane);
             }
         }
-        //[Authorize(Roles = "Admin")] //  agregar operadores
+        [Authorize(Roles = "Admin")] //  agregar operadores
         [HttpGet]
         public async Task<ActionResult<IReadOnlyCollection<Airplane>>> GetAirplanes(CancellationToken cancellationToken)
         {
@@ -38,7 +38,7 @@ namespace SnoopyAirlines.Controllers
             return Ok(airplanes);
         }
 
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Airplane>> Post(AirplaneIntake airplaneIntake, CancellationToken cancellationToken)
         {

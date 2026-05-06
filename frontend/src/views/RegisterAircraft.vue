@@ -48,31 +48,31 @@ export default {
           name: "touristRows", 
           label: "Número de filas en clase turista", 
           type: "number", 
-          min: 0
+          min: 1
         },
         {
           name: "touristColumns", 
           label: "Número de asientos por fila en clase turista", 
           type: "number", 
-          min: 0
+          min: 1
         },
         {
           name: "firstClassRows", 
           label: "Número de filas en primera clase", 
           type: "number", 
-          min: 0
+          min: 1
         },
         {
           name: "firstClassColumns", 
           label: "Número de asientos por fila en primera clase", 
           type: "number", 
-          min: 0
+          min: 1
         },
         {
           name: "maxWeight", 
           label: "Peso máximo de la aeronave (kg)", 
           type: "number", 
-          min: 0
+          min: 1
         }
       ]
     }
