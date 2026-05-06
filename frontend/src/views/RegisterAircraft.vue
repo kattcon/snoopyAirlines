@@ -42,8 +42,7 @@ export default {
           name: "model",
           label: "Modelo de la aeronave",
           type: "text",
-          maxlength: 100, //  revisar en la base de datos el lenght
-          placeholder: "ej. Boeing 737-800"
+          maxlength: 50
         },
         {
           name: "touristRows", 
@@ -93,33 +92,58 @@ export default {
     validate(){
       this.errors = { model: "", touristRows: "", touristColumns: "", firstClassRows: "", firstClassColumns: "", maxWeight: "" };
       let valid = true;
+
+      const touristRows = parseInt(this.aircraft.touristRows) || 0;
+      const touristColumns = parseInt(this.aircraft.touristColumns) || 0;
+      const firstclassRows = parseInt(this.aircraft.firstClassRows) || 0;
+      const firstclassColumns = parseInt(this.aircraft.firstClassColumns) || 0;
       
       if (this.aircraft.model.trim() === "") {
         this.errors.model = "El modelo es requerido.";
         valid = false;
       }
-      if (this.aircraft.touristRows < 0) {
-        this.errors.touristRows = "El número de filas en clase turista no puede ser negativo.";
+      if (touristRows <= 0) {
+        this.errors.touristRows = "El número de filas en clase turista debe ser mayor que cero.";
         valid = false;
       }
-      if (this.aircraft.touristColumns < 0) {
-        this.errors.touristColumns = "El número de asientos por fila en clase turista no puede ser negativo.";
+      if (touristColumns <= 0) {
+        this.errors.touristColumns = "El número de asientos por fila en clase turista debe ser mayor que cero.";
         valid = false;
       }
-      if (this.aircraft.firstClassRows < 0) {
-        this.errors.firstClassRows = "El número de filas en primera clase no puede ser negativo.";
+      if (firstclassRows <= 0) {
+        this.errors.firstClassRows = "El número de filas en primera clase debe ser mayor que cero.";
         valid = false;
       }
-      if (this.aircraft.firstClassColumns < 0) {
-        this.errors.firstClassColumns = "El número de asientos por fila en primera clase no puede ser negativo.";
+      if (firstclassColumns <= 0) {
+        this.errors.firstClassColumns = "El número de asientos por fila en primera clase debe ser mayor que cero.";
         valid = false;
       }
-      if (this.aircraft.maxWeight < 0) {
-        this.errors.maxWeight = "El peso máximo no puede ser negativo.";
+      if (this.aircraft.maxWeight <= 0) {
+        this.errors.maxWeight = "El peso máximo debe ser mayor que cero.";
         valid = false;
       }
-      if(!this.aircraft.touristRows || !this.aircraft.firstClassRows || !this.aircraft.touristColumns
-      || !this.aircraft.firstClassColumns || !this.aircraft.maxWeight){
+
+      const totalSeats = (touristRows * touristColumns) + (firstclassRows * firstclassColumns);
+
+      if (
+        touristRows > 0 &&
+        touristColumns > 0 &&
+        firstclassRows > 0 &&
+        firstclassColumns > 0 &&
+        totalSeats > 999
+      ) {
+        const msg = "La aeronave no puede tener más de 999 asientos en total.";
+        
+        this.errors.touristRows = msg;
+        this.errors.touristColumns = msg;
+        this.errors.firstClassRows = msg;
+        this.errors.firstClassColumns = msg;
+
+        valid = false;
+      }
+      
+      if(!touristRows || !firstclassRows || !touristColumns
+      || !firstclassColumns || !this.aircraft.maxWeight) {
         this.errors.touristRows = "Campo obligatorio";
         this.errors.firstClassRows = "Campo obligatorio";
         this.errors.touristColumns = "Campo obligatorio";
@@ -136,11 +160,11 @@ export default {
       const token = localStorage.getItem("token");
       const airplaneRequest = {
         model: this.aircraft.model.trim(),
-        touristRows: this.aircraft.touristRows,
-        touristColumns: this.aircraft.touristColumns,
-        firstClassRows: this.aircraft.firstClassRows,
-        firstClassColumns: this.aircraft.firstClassColumns,
-        maxWeight: this.aircraft.maxWeight
+        touristRows: parseInt(this.aircraft.touristRows),
+        touristColumns: parseInt(this.aircraft.touristColumns),
+        firstclassRows: parseInt(this.aircraft.firstClassRows),
+        firstclassColumns: parseInt(this.aircraft.firstClassColumns),
+        maxWeight: parseFloat(this.aircraft.maxWeight)
       };
       axios.post(`${process.env.VUE_APP_BACKEND_URL}/airplane`, airplaneRequest,{
         headers: { Authorization: `Bearer ${token}` }
