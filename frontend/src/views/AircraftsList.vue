@@ -52,8 +52,12 @@ export default{
             searchTerm:"",
             errorMsg:"",
             aircraftColumns:[
-                {key: "model", label:"Modelo"}
-                //  agregar mas columnas
+                {key: "model", label:"Modelo"},
+                {key: "touristRows", label:"Filas clase turista"},
+                {key: "touristColumns", label:"Asientos por fila clase turista"},
+                {key: "firstclassRows", label:"Filas clase ejecutiva"},
+                {key: "firstclassColumns", label:"Asientos por fila clase ejecutiva"},
+                {key: "maxWeight", label:"Peso máximo permitido"}
             ]
         }
     },
