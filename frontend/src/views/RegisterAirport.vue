@@ -1,16 +1,19 @@
 <template>
-  <IntakePage
-    v-model="airport"
-    back-label="Volver a la lista"
-    title="Registro de Aeropuerto"
-    subtitle="Complete la información para registrar un nuevo aeropuerto"
-    :fields="airportFields"
-    :errors="errors"
-    submit-label="Registrar"
-    @back="$router.push('/admin/airports')"
-    @cancel="clearForm"
-    @submit="registerAirport"
-  />
+  <div>
+    <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
+    <IntakePage
+      v-model="airport"
+      back-label="Volver a la lista"
+      title="Registro de Aeropuerto"
+      subtitle="Complete la información para registrar un nuevo aeropuerto"
+      :fields="airportFields"
+      :errors="errors"
+      submit-label="Registrar"
+      @back="$router.push('/admin/airports')"
+      @cancel="clearForm"
+      @submit="registerAirport"
+    />
+  </div>
 </template>
 
 <script>
@@ -32,7 +35,8 @@ export default {
       },
       countries: [],
       cities: [],
-      errors: { name: "", code: "", countryId: "", cityId: "" }
+      errors: { name: "", code: "", countryId: "", cityId: "" },
+      errorMsg: ""
     };
   },
   computed: {
@@ -145,7 +149,9 @@ export default {
           this.clearForm();
         })
         .catch((error) => {
-          if (error.response && error.response.status === 409) {
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            this.errorMsg = "Acceso no autorizado";
+          } else if (error.response && error.response.status === 409) {
             alert("Error de registro: código existente");
           } else if (error.response && error.response.status === 400) {
             alert("Datos inválidos: " + JSON.stringify(error.response.data));
@@ -178,3 +184,12 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.error-acceso {
+  color: #e53935;
+  font-weight: bold;
+  margin-top: 12px;
+  text-align: center;
+}
+</style>
