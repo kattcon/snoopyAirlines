@@ -8,6 +8,9 @@ namespace SnoopyAirlines.Services
 {
     public class UserService
     {
+        private const int MinimumPasswordLength = 8;
+        private const string SpecialPasswordSymbols = "!#$%&@";
+
         private readonly UserRepository _userRepository;
         private readonly IEmailSender _emailSender;
 
@@ -75,6 +78,13 @@ namespace SnoopyAirlines.Services
             string password,
             CancellationToken cancellationToken)
         {
+            var passwordErrors = ValidatePassword(password);
+
+            if (passwordErrors.Count > 0)
+            {
+                throw new ArgumentException("Password does not meet the required rules.", nameof(password));
+            }
+
             var pendingKeyHash = HashRegistrationKey(pendingKey);
             var pendingUser = await _userRepository.GetPendingByRegistrationKeyHashAsync(
                 pendingKeyHash,
@@ -127,6 +137,39 @@ namespace SnoopyAirlines.Services
             }
 
             return user;
+        }
+
+        public static IReadOnlyCollection<string> ValidatePassword(string? password)
+        {
+            var errors = new List<string>();
+            var value = password ?? string.Empty;
+
+            if (value.Length < MinimumPasswordLength)
+            {
+                errors.Add($"Password must be at least {MinimumPasswordLength} characters long.");
+            }
+
+            if (!value.Any(char.IsUpper))
+            {
+                errors.Add("Password must include at least one uppercase letter.");
+            }
+
+            if (!value.Any(char.IsLower))
+            {
+                errors.Add("Password must include at least one lowercase letter.");
+            }
+
+            if (!value.Any(char.IsDigit))
+            {
+                errors.Add("Password must include at least one number.");
+            }
+
+            if (!value.Any(SpecialPasswordSymbols.Contains))
+            {
+                errors.Add($"Password must include at least one special symbol ({SpecialPasswordSymbols}).");
+            }
+
+            return errors;
         }
 
         private static string GenerateRegistrationKeyValue()
