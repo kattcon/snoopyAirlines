@@ -1,7 +1,7 @@
 <template>
   <div class="airports-page">
     <div class="page-top-bar">
-      <button class="btn-volver-airports" @click="$router.go(-1)">Volver</button>
+      <button class="btn-volver-airports" @click="$router.push('/admin/flights')">Volver</button>
     </div>
 
     <div class="page-header">
