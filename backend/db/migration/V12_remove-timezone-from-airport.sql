@@ -1,1 +1,0 @@
-ALTER TABLE airport DROP COLUMN timezone;
