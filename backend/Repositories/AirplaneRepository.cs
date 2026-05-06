@@ -23,6 +23,7 @@ namespace SnoopyAirlines.Repositories
            const string sql = """
             INSERT INTO airplane (model, tourist_rows, tourist_columns, firstclass_rows, firstclass_columns, max_weight)
             OUTPUT
+                INSERTED.id AS Id,
                 INSERTED.model AS Model,
                 INSERTED.tourist_rows AS TouristRows,
                 INSERTED.tourist_columns AS TouristColumns,
@@ -41,6 +42,7 @@ namespace SnoopyAirlines.Repositories
         {
             const string sql = """
                 Select 
+                id AS Id,
                 model AS Model, 
                 tourist_rows AS TouristRows, 
                 tourist_columns AS TouristColumns, 
@@ -74,6 +76,7 @@ namespace SnoopyAirlines.Repositories
         {
             const string sql = """
                 SELECT 
+                    id AS Id,
                     model AS Model,
                     tourist_rows AS TouristRows,
                     tourist_columns AS TouristColumns,

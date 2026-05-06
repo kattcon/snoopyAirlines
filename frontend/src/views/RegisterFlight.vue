@@ -25,11 +25,22 @@ export default {
   data() {
     return {
       flight: this.emptyFlight(),
+      aircrafts: [],
       airports: [],
       errors: this.emptyErrors()
     };
   },
   computed: {
+    aircraftOptions() {
+      return this.aircrafts
+        .map((aircraft, index) => {
+          const value = this.aircraftId(aircraft, index);
+          return {
+            value,
+            label: this.aircraftLabel(aircraft, value)
+          };
+        });
+    },
     airportOptions() {
       return this.airports.map((airport) => ({
         value: airport.id,
@@ -52,10 +63,9 @@ export default {
         {
           name: "airplaneId",
           label: "Aeronave",
-          type: "number",
-          min: 1,
-          step: 1,
-          placeholder: "ej. 1"
+          type: "select",
+          placeholder: "Seleccione la aeronave",
+          options: this.aircraftOptions
         },
         {
           name: "departureAirportId",
@@ -155,6 +165,7 @@ export default {
     }
   },
   mounted() {
+    this.loadAircrafts();
     this.loadAirports();
   },
   methods: {
@@ -313,6 +324,42 @@ export default {
       }
 
       return true;
+    },
+    fieldValue(source, camelCaseKey, pascalCaseKey) {
+      return source[camelCaseKey] ?? source[pascalCaseKey];
+    },
+    aircraftId(aircraft, index) {
+      const id = this.fieldValue(aircraft, "id", "Id");
+      return id === null || id === undefined || id === "" ? index + 1 : id;
+    },
+    aircraftLabel(aircraft, id) {
+      const model = this.fieldValue(aircraft, "model", "Model");
+      const touristRows = this.fieldValue(aircraft, "touristRows", "TouristRows");
+      const touristColumns = this.fieldValue(aircraft, "touristColumns", "TouristColumns");
+      const firstClassRows = this.fieldValue(aircraft, "firstclassRows", "FirstclassRows");
+      const firstClassColumns = this.fieldValue(aircraft, "firstclassColumns", "FirstclassColumns");
+      const maxWeightValue = this.fieldValue(aircraft, "maxWeight", "MaxWeight");
+      const touristSeats = Number(touristRows) * Number(touristColumns);
+      const firstClassSeats = Number(firstClassRows) * Number(firstClassColumns);
+      const totalSeats = touristSeats + firstClassSeats;
+      const maxWeight = Number(maxWeightValue);
+      const seatsLabel = Number.isFinite(totalSeats) ? `${totalSeats} asientos` : "capacidad no disponible";
+      const weightLabel = Number.isFinite(maxWeight) ? `${maxWeight} kg max` : "peso no disponible";
+
+      return `${model || "Aeronave"} #${id} - ${seatsLabel} - ${weightLabel}`;
+    },
+    loadAircrafts() {
+      const token = localStorage.getItem("token");
+      axios
+        .get(`${process.env.VUE_APP_BACKEND_URL}/airplane`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then((response) => {
+          this.aircrafts = response.data;
+        })
+        .catch((error) => {
+          console.error("Error cargando aeronaves:", error);
+        });
     },
     loadAirports() {
       const token = localStorage.getItem("token");
