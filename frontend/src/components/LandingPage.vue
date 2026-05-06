@@ -307,49 +307,6 @@
       </div>
     </section>
 
-    <!-- Popular Destinations -->
-    <section id="destinos" class="destinations">
-      <div class="section-container">
-        <h2 class="section-title">Destinos Populares</h2>
-        <p class="section-subtitle">Explora los destinos más solicitados por nuestros viajeros</p>
-        <div class="destinations-grid">
-          <div class="destination-card" v-for="dest in destinations" :key="dest.id">
-            <div class="card-image">
-              <img :src="dest.image" :alt="dest.name" />
-              <div class="card-badge" v-if="dest.badge">{{ dest.badge }}</div>
-            </div>
-            <div class="card-content">
-              <h3>{{ dest.name }}</h3>
-              <p class="country">{{ dest.country }}</p>
-              <div class="card-footer">
-                <span class="price">Desde ${{ dest.price }}</span>
-                <button class="btn-view">Ver vuelos</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Special Offers -->
-    <section id="ofertas" class="offers">
-      <div class="section-container">
-        <h2 class="section-title">Ofertas Especiales</h2>
-        <p class="section-subtitle">Aprovecha nuestros descuentos exclusivos</p>
-        <div class="offers-grid">
-          <div class="offer-card" v-for="offer in offers" :key="offer.id">
-            <div class="offer-discount">{{ offer.discount }}%</div>
-            <div class="offer-content">
-              <h3>{{ offer.title }}</h3>
-              <p>{{ offer.description }}</p>
-              <span class="offer-route">{{ offer.route }}</span>
-              <button class="btn-offer">Reservar Ahora</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Advantages -->
     <section id="ventajas" class="advantages">
       <div class="section-container">
@@ -817,7 +774,8 @@ export default {
 
 .nav-menu {
   display: flex;
-  gap: 35px;
+  gap: 45px;
+  margin-right: 40px;
 }
 
 .nav-link {
