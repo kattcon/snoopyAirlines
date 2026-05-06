@@ -7,7 +7,7 @@
         <div class="section-div">
             <h4 class="main-text-section">Aeronaves</h4>
             <p class="subtext-aeronave">Mira y registra una nueva aeronave en el sistema</p>
-            <router-link to="/createFlight" class="router-button">Ir a Aeronaves</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <router-link to="/admin/list-aircrafts" class="router-button">Ir a Aeronaves</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
         </div>
         <div class="section-div">
             <h4 class="main-text-section">Aeropuertos</h4>
