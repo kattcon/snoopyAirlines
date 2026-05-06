@@ -78,6 +78,7 @@ namespace SnoopyAirlines.Controllers
         }
 
         [AllowAnonymous]
+        [HttpPost("register")]
         [HttpPost("registration")]
         public async Task<ActionResult<UserView>> Registration(
             UserRegistrationIntake registrationIntake,
@@ -87,6 +88,11 @@ namespace SnoopyAirlines.Controllers
 
             ValidateRequired(nameof(registrationIntake.Password), registrationIntake.Password, validationErrors);
             ValidateRequired(nameof(registrationIntake.PendingKey), registrationIntake.PendingKey, validationErrors);
+
+            if (!string.IsNullOrWhiteSpace(registrationIntake.Password))
+            {
+                AddPasswordValidationErrors(registrationIntake.Password, validationErrors);
+            }
 
             if (validationErrors.Count > 0)
             {
@@ -114,6 +120,16 @@ namespace SnoopyAirlines.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { ex.Message });
+            }
+            catch (ArgumentException ex) when (ex.ParamName == "password")
+            {
+                AddPasswordValidationErrors(registrationIntake.Password, validationErrors);
+
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid registration payload.",
+                    Errors = validationErrors
+                });
             }
         }
 
@@ -241,6 +257,20 @@ namespace SnoopyAirlines.Controllers
                 {
                     Field = fieldName,
                     Message = $"{fieldName} is required."
+                });
+            }
+        }
+
+        private static void AddPasswordValidationErrors(
+            string? password,
+            ICollection<ValidationError> errors)
+        {
+            foreach (var message in UserService.ValidatePassword(password))
+            {
+                errors.Add(new ValidationError
+                {
+                    Field = nameof(UserRegistrationIntake.Password),
+                    Message = message
                 });
             }
         }
