@@ -1,0 +1,341 @@
+@startuml SnoopyAirlinesBackendClasses
+title Snoopy Airlines Backend - Class Diagram
+
+top to bottom direction
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam Linetype ortho
+skinparam ArrowLinetype ortho
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 35
+hide circle
+
+package "Controllers" as Controllers {
+    class AirplaneController <<Controller>> {
+        - airplaneService : AirplaneService
+        + AirplaneController()
+        + GetAirplane()
+        + GetAirplanes()
+        + Post()
+    }
+
+    class AirportController <<Controller>> {
+        - airportService : AirportService
+        + AirportController()
+        + GetAirports()
+        + GetCountries()
+        + GetCities()
+        + Post()
+    }
+
+    class FlightController <<Controller>> {
+        - flightService : FlightService
+        + FlightController()
+        + Get()
+        + Post()
+    }
+
+    class UserController <<Controller>> {
+        - userService : UserService
+        - tokenService : TokenService
+        + UserController()
+        + Get()
+        + Post()
+        + Registration()
+        + Login()
+    }
+
+    AirplaneController -[hidden]right- AirportController
+    AirportController -[hidden]right- FlightController
+    FlightController -[hidden]right- UserController
+}
+
+package "Services" as Services {
+    class AirplaneService <<Service>> {
+        - airplaneRepository : AirplaneRepository
+        + AirplaneService()
+        + CreateAirplane()
+        + GetAirplanes()
+        + ExistsByModel()
+        + GetAirplaneByModel()
+    }
+
+    class AirportService <<Service>> {
+        - airportRepository : AirportRepository
+        + AirportService()
+        + GetCountries()
+        + GetCitiesByCountry()
+        + CreateAirport()
+        + GetAirports()
+    }
+
+    class FlightService <<Service>> {
+        - flightRepository : FlightRepository
+        + FlightService()
+        + GetFlights()
+        + SearchFlights()
+        + SaveFlight()
+    }
+
+    class UserService <<Service>> {
+        - userRepository : UserRepository
+        - emailSender : IEmailSender
+        + UserService()
+        + GetUsers()
+        + SavePendingUser()
+        + SaveUser()
+        + ExistsByEmail()
+        + ExistsPendingByEmail()
+        + GenerateRegistrationKey()
+        + SendRegistrationEmail()
+        + RegisterPendingUser()
+        + Login()
+    }
+
+    class TokenService <<Service>> {
+        - configuration : IConfiguration
+        + TokenService()
+        + GenerateToken()
+    }
+
+    interface IEmailSender {
+        + Send()
+    }
+
+    AirplaneService -[hidden]right- AirportService
+    AirportService -[hidden]right- FlightService
+    FlightService -[hidden]right- UserService
+    UserService -[hidden]right- TokenService
+    TokenService -[hidden]right- IEmailSender
+}
+
+package "Repositories" as Repositories {
+    class AirplaneRepository <<Repository>> {
+        - connectionString : string
+        + AirplaneRepository()
+        + CreateAirplane()
+        + GetAirplanes()
+        + ExistsByModel()
+        + GetAirplaneByModel()
+    }
+
+    class AirportRepository <<Repository>> {
+        - connectionString : string
+        + AirportRepository()
+        + GetCountries()
+        + GetCitiesByCountry()
+        + AirportCodeExists()
+        + CreateAirport()
+        + GetAirports()
+    }
+
+    class FlightRepository <<Repository>> {
+        - connectionString : string
+        + FlightRepository()
+        + GetAll()
+        + Search()
+        + Save()
+    }
+
+    class UserRepository <<Repository>> {
+        - connectionString : string
+        + UserRepository()
+        + GetAll()
+        + Save()
+        + ExistsByEmail()
+        + ExistsPendingByEmail()
+        + GetPendingByRegistrationKeyHash()
+        + SaveUserAndDeletePending()
+        + GetByCredentials()
+    }
+
+    AirplaneRepository -[hidden]right- AirportRepository
+    AirportRepository -[hidden]right- FlightRepository
+    FlightRepository -[hidden]right- UserRepository
+}
+
+package "Domain" as Domain {
+    class Airplane <<Entity>> {
+        + Model : string
+        + TouristRows : int
+        + TouristColumns : int
+        + FirstclassRows : int
+        + FirstclassColumns : int
+        + MaxWeight : float
+    }
+
+    class Airport <<Entity>> {
+        + Id : int
+        + Name : string
+        + Code : string
+        + CityId : int
+    }
+
+    class City <<Entity>> {
+        + Id : int
+        + Name : string
+        + CountryId : int
+    }
+
+    class Country <<Entity>> {
+        + Id : int
+        + Name : string
+    }
+
+    class Flight <<Entity>> {
+        + Id : int
+        + AirplaneId : int
+        + DepartureAirportId : int
+        + ArrivalAirportId : int
+        + DepartureTime : TimeOnly
+        + ArrivalTime : TimeOnly
+        + Frequency : FlightFrequency
+        + DurationMinutes : int
+        + PriceFirstClass : decimal
+        + PriceEconomyClass : decimal
+        + PriceCarryOnBaggage : decimal
+        + PriceCheckedBaggage : decimal
+        + WeightLimitCarryOnBaggage : int
+        + WeightLimitCheckedBaggage : int
+        + CheckedBaggagePriceMultiplier : decimal
+    }
+
+    class FlightFrequency <<Value Object>> {
+        + Monday : bool
+        + Tuesday : bool
+        + Wednesday : bool
+        + Thursday : bool
+        + Friday : bool
+        + Saturday : bool
+        + Sunday : bool
+        + FromByte()
+        + ToByte()
+        + HasAnyDay()
+    }
+}
+
+package "User Domain" as UserDomain {
+    class "User" as DomainUser <<Entity>> {
+        + Id : int?
+        + IdentificationNumber : string
+        + Email : string
+        + FirstName : string
+        + LastNameOne : string
+        + LastNameTwo : string?
+        + Type : UserRole
+        + PasswordHash : string
+        + PasswordSalt : string
+    }
+
+    class "PendingUser" as DomainPendingUser <<Entity>> {
+        + Id : int?
+        + IdentificationNumber : string
+        + Email : string
+        + FirstName : string
+        + LastNameOne : string
+        + LastNameTwo : string?
+        + Type : UserRole
+        + RegistrationKeyHash : string?
+        + CreatedAt : DateTime?
+    }
+
+    enum "UserRole" as DomainUserRole {
+        Admin
+        Operator
+    }
+
+    class "UserRoleExtensions" as DomainUserRoleExtensions <<Utility>> {
+        + ToString()
+        + FromString()
+    }
+}
+
+package "Intake DTOs" as IntakeDtos {
+    class AirplaneIntake <<DTO>> {
+        + Model : string
+        + TouristRows : int
+        + TouristColumns : int
+        + FirstclassRows : int
+        + FirstclassColumns : int
+        + MaxWeight : float
+        + Validate()
+    }
+
+    class AirportIntake <<DTO>> {
+        + Name : string
+        + Code : string
+        + CityId : int
+    }
+
+    class LoginIntake <<DTO>> {
+        + Email : string?
+        + Password : string?
+    }
+
+    class UserIntake <<DTO>> {
+        + Id : int?
+        + IdentificationNumber : string
+        + Email : string
+        + FirstName : string
+        + LastNameOne : string
+        + LastNameTwo : string?
+        + Type : string
+    }
+
+    class UserRegistrationIntake <<DTO>> {
+        + Password : string?
+        + PendingKey : string?
+    }
+}
+
+package "View DTOs" as ViewDtos {
+    class AirportView <<DTO>> {
+        + Id : int
+        + Name : string
+        + Code : string
+        + CityName : string
+        + CountryName : string
+    }
+
+    class UserView <<DTO>> {
+        + Id : int
+        + IdentificationNumber : string
+        + Email : string
+        + FirstName : string
+        + LastNameOne : string
+        + LastNameTwo : string?
+        + Type : UserRole
+        + Pending : bool
+    }
+}
+
+AirplaneController -down-> AirplaneService
+AirportController -down-> AirportService
+FlightController -down-> FlightService
+UserController -down-> UserService
+UserController -down-> TokenService
+
+AirplaneService -down-> AirplaneRepository
+AirportService -down-> AirportRepository
+FlightService -down-> FlightRepository
+UserService -down-> UserRepository
+UserService -down-> IEmailSender
+
+DomainUser -down-> DomainUserRole
+DomainPendingUser -down-> DomainUserRole
+DomainUserRoleExtensions -down-> DomainUserRole
+
+Controllers -down-> IntakeDtos
+Controllers -down-> ViewDtos
+Services -down-> Domain
+Services -down-> UserDomain
+Repositories -down-> Domain
+Repositories -down-> UserDomain
+
+Domain -[hidden]right- UserDomain
+IntakeDtos -[hidden]right- ViewDtos
+
+@enduml
+ 
