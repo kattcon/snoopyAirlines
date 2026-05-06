@@ -8,6 +8,7 @@ import InternalLandingPageReports from './views/InternalLandingPageReports.vue';
 import InternalLandingPageUsers from './views/InternalLandingPageUsers.vue';
 import UsersList from './views/UsersList.vue';
 import LandingPage from "./components/LandingPage.vue";
+import RegisterPage from "./components/RegisterPage.vue";
 import AirportsList from "./views/AirportsList.vue";
 import RegisterAirport from "./views/RegisterAirport.vue";
 import RegisterFlight from "./views/RegisterFlight.vue";
@@ -18,6 +19,7 @@ const router = createRouter({
     routes: [
         { path: "/", name: "Home", component: LandingPage },
         { path: "/login", name: "Login", component: LoginPage },
+        { path: "/register", name: "Register", component: RegisterPage },
         { path: "/admin", children: 
             [ { path: 'flights', component: InternalLandingPageFlights },
               { path: 'users', component: InternalLandingPageUsers},
