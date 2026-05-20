@@ -10,7 +10,7 @@ namespace SnoopyAirlines.Services
 
         public AirplaneService(AirplaneRepository airplaneRepository)
         {
-            _airplaneRepository = airplaneRepository;
+            _airplaneRepository = airplaneRepository
         }
 
 
