@@ -1,7 +1,6 @@
 /*
-   Snoopy Airlines — Design Tokens
-   Centraliza todos los valores de diseño reutilizables.
-   Uso: var(--nombre-variable)
+   Variables usage: var(--variableName)
+   Classes usage:   class="className"
  */
 
 :root {
@@ -85,4 +84,80 @@
 
   --maximumContainerWidth: 1400px;
   --maximumFormWidth: 480px;
+}
+
+.primaryButton {
+  background-color: var(--primaryButtonBackgroundColor);
+  color: var(--primaryButtonTextColor);
+  padding: var(--primaryButtonPadding);
+  border-radius: var(--primaryButtonBorderRadius);
+  border: none;
+  cursor: pointer;
+  font-family: var(--primaryFontFamily);
+  font-weight: var(--semiboldFontWeight);
+}
+
+.primaryButton:hover {
+  background-color: var(--primaryButtonBackgroundColorHover);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background-color: var(--secondaryButtonBackgroundColor);
+  color: var(--secondaryButtonTextColor);
+  padding: var(--secondaryButtonPadding);
+  border-radius: var(--secondaryButtonBorderRadius);
+  border: var(--secondaryButtonBorder);
+  cursor: pointer;
+  font-family: var(--primaryFontFamily);
+  font-weight: var(--semiboldFontWeight);
+}
+
+.secondaryButton:hover {
+  background-color: var(--secondaryButtonBackgroundColorHover);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formInput {
+  background-color: var(--inputBackgroundColor);
+  border: var(--inputBorder);
+  border-radius: var(--inputBorderRadius);
+  padding: var(--inputPadding);
+  color: var(--inputTextColor);
+  font-family: var(--primaryFontFamily);
+  font-size: var(--baseFontSize);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.formInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contentCard {
+  background-color: var(--whiteColor);
+  border-radius: var(--cardBorderRadius);
+  box-shadow: var(--cardShadow);
+  padding: var(--largeSpacing);
+}
+
+.contentCardLarge {
+  background-color: var(--whiteColor);
+  border-radius: var(--largeCardBorderRadius);
+  box-shadow: var(--largeCardShadow);
+  padding: var(--extraLargeSpacing);
+}
+
+.gradientBackground {
+  background: var(--mainBackgroundGradient);
+  min-height: 100vh;
 }
