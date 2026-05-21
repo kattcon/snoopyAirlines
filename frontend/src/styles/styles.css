@@ -1,0 +1,163 @@
+/*
+   Variables usage: var(--variableName)
+   Classes usage:   class="className"
+ */
+
+:root {
+
+  --primaryColor: #1a2b4a;
+  --primaryColorHover: #2c3e6b;
+  --accentColor: oklch(0.546 0.245 262.881);
+  --brandCyanColor: #4da6ff;
+
+  --linkColor: #0056b3;
+  --linkColorHover: #3498db;
+  --navigationBackgroundColorHover: #e0eaff;
+
+  --errorColor: #e53935;
+
+  --lightBackgroundColor: #f9f9f9;
+  --whiteColor: #ffffff;
+  --mainBackgroundGradient: linear-gradient(to bottom right, #1a3a6b, #b0bec5);
+
+  --primaryBorderColor: #ccc;
+  --secondaryBorderColor: #b4b4b4;
+  --tertiaryBorderColor: #c4c4c4;
+
+  --primaryTextColor: #333;
+  --secondaryTextColor: #2c3e50;
+  --bodyTextColor: #555;
+  --mutedTextColor: #666;
+  --placeholderTextColor: #818181;
+  --disabledTextColor: #636363;
+  --whiteTextColor: #ffffff;
+
+  --primaryFontFamily: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  --extraSmallFontSize: 0.75rem;
+  --smallFontSize: 0.85rem;
+  --baseFontSize: 1rem;
+  --mediumFontSize: 1.25rem;
+  --largeFontSize: 1.5rem;
+  --extraLargeFontSize: 2rem;
+  --doubleExtraLargeFontSize: 2.5rem;
+  --tripleExtraLargeFontSize: 3.5rem;
+
+  --mediumFontWeight: 500;
+  --semiboldFontWeight: 600;
+  --boldFontWeight: 700;
+  --extraboldFontWeight: 800;
+
+  --extraSmallSpacing: 4px;
+  --smallSpacing: 8px;
+  --mediumSpacing: 16px;
+  --largeSpacing: 24px;
+  --extraLargeSpacing: 32px;
+  --doubleExtraLargeSpacing: 40px;
+
+  --smallBorderRadius: 4px;
+  --defaultBorderRadius: 8px;
+  --cardBorderRadius: 15px;
+  --largeCardBorderRadius: 20px;
+
+  --cardShadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  --largeCardShadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  --primaryButtonBackgroundColor: var(--primaryColor);
+  --primaryButtonBackgroundColorHover: var(--primaryColorHover);
+  --primaryButtonTextColor: var(--whiteColor);
+  --primaryButtonPadding: 10px 16px;
+  --primaryButtonBorderRadius: var(--defaultBorderRadius);
+
+  --secondaryButtonBackgroundColor: var(--whiteColor);
+  --secondaryButtonBackgroundColorHover: var(--lightBackgroundColor);
+  --secondaryButtonTextColor: var(--secondaryTextColor);
+  --secondaryButtonBorder: 1px solid var(--primaryBorderColor);
+  --secondaryButtonPadding: var(--primaryButtonPadding);
+  --secondaryButtonBorderRadius: var(--defaultBorderRadius);
+
+  --inputBackgroundColor: #f5f5f5;
+  --inputBorder: 1px solid var(--primaryBorderColor);
+  --inputBorderRadius: var(--defaultBorderRadius);
+  --inputPadding: 10px 16px;
+  --inputTextColor: var(--primaryTextColor);
+
+  --maximumContainerWidth: 1400px;
+  --maximumFormWidth: 480px;
+}
+
+.primaryButton {
+  background-color: var(--primaryButtonBackgroundColor);
+  color: var(--primaryButtonTextColor);
+  padding: var(--primaryButtonPadding);
+  border-radius: var(--primaryButtonBorderRadius);
+  border: none;
+  cursor: pointer;
+  font-family: var(--primaryFontFamily);
+  font-weight: var(--semiboldFontWeight);
+}
+
+.primaryButton:hover {
+  background-color: var(--primaryButtonBackgroundColorHover);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background-color: var(--secondaryButtonBackgroundColor);
+  color: var(--secondaryButtonTextColor);
+  padding: var(--secondaryButtonPadding);
+  border-radius: var(--secondaryButtonBorderRadius);
+  border: var(--secondaryButtonBorder);
+  cursor: pointer;
+  font-family: var(--primaryFontFamily);
+  font-weight: var(--semiboldFontWeight);
+}
+
+.secondaryButton:hover {
+  background-color: var(--secondaryButtonBackgroundColorHover);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formInput {
+  background-color: var(--inputBackgroundColor);
+  border: var(--inputBorder);
+  border-radius: var(--inputBorderRadius);
+  padding: var(--inputPadding);
+  color: var(--inputTextColor);
+  font-family: var(--primaryFontFamily);
+  font-size: var(--baseFontSize);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.formInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contentCard {
+  background-color: var(--whiteColor);
+  border-radius: var(--cardBorderRadius);
+  box-shadow: var(--cardShadow);
+  padding: var(--largeSpacing);
+}
+
+.contentCardLarge {
+  background-color: var(--whiteColor);
+  border-radius: var(--largeCardBorderRadius);
+  box-shadow: var(--largeCardShadow);
+  padding: var(--extraLargeSpacing);
+}
+
+.gradientBackground {
+  background: var(--mainBackgroundGradient);
+  min-height: 100vh;
+}
