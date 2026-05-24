@@ -32,6 +32,9 @@
         <template #cell-code="{ value }">
           <span class="iata-badge">{{ value }}</span>
         </template>
+        <template #cell-actions="{ item: airport }">
+          <button class="primaryButton" @click="$router.push(`/admin/edit-airport/${airport.id}`)">Editar</button>
+        </template>
       </AppList>
 
       <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
@@ -62,7 +65,8 @@ export default {
         { key: "name", label: "Nombre" },
         { key: "code", label: "Código IATA" },
         { key: "cityName", label: "Ciudad" },
-        { key: "countryName", label: "País" }
+        { key: "countryName", label: "País" },
+        { key: "actions", label: "Acciones" }
       ]
     };
   },
