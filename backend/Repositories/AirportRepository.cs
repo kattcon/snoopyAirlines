@@ -109,5 +109,29 @@ namespace SnoopyAirlines.Repositories
 
             return airports.ToList();
         }
+
+        public async Task<Airport?> GetAirportByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT id AS Id, name AS Name, code AS Code, city_id AS CityId
+                FROM airport
+                WHERE id = @Id;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<Airport>(
+                new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+        }
+
+        public async Task<bool> UpdateAirportNameAsync(int id, string name, CancellationToken cancellationToken)
+        {
+            const string sql = "UPDATE airport SET name = @Name WHERE id = @Id;";
+
+            await using var connection = new SqlConnection(_connectionString);
+            var rowsAffected = await connection.ExecuteAsync(
+                new CommandDefinition(sql, new { Id = id, Name = name }, cancellationToken: cancellationToken));
+
+            return rowsAffected > 0;
+        }
     }
 }
