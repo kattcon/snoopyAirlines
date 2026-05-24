@@ -39,6 +39,7 @@ namespace SnoopyAirlines.External.Repositories
                     f.price_carry_on_baggage AS CarryOnPrice,
                     f.price_checked_baggage AS CheckedPrice
                 FROM flight f
+                INNER JOIN airplane plane ON f.airplane_id = plane.id
                 INNER JOIN airport departure_airport ON f.departure_airport_id = departure_airport.id
                 INNER JOIN city departure_city ON departure_airport.city_id = departure_city.id
                 INNER JOIN airport arrival_airport ON f.arrival_airport_id = arrival_airport.id
@@ -49,21 +50,21 @@ namespace SnoopyAirlines.External.Repositories
             var where = new List<string>();
             var parameters = new DynamicParameters();
 
-            if (!string.IsNullOrWhiteSpace(flightQuery.Origin))
-            {
-                where.Add("departure_airport.code = @Origin");
-                parameters.Add("Origin", flightQuery.Origin);
-            }
-
             if (!string.IsNullOrWhiteSpace(flightQuery.Destination))
             {
                 where.Add("arrival_airport.code = @Destination");
                 parameters.Add("Destination", flightQuery.Destination);
             }
 
-            if (flightQuery.DepartureWindows.Count > 0)
+            if (flightQuery.QuantityOfPassengers.HasValue)
             {
-                AddDepartureWindowFilters(where, parameters, flightQuery.DepartureWindows);
+                where.Add("((plane.tourist_rows * plane.tourist_columns) + (plane.firstClass_rows * plane.firstClass_columns)) >= @QuantityOfPassengers");
+                parameters.Add("QuantityOfPassengers", flightQuery.QuantityOfPassengers.Value);
+            }
+
+            if (flightQuery.ArrivalWindows.Count > 0)
+            {
+                AddArrivalWindowFilters(where, parameters, flightQuery.ArrivalWindows);
             }
 
             if (where.Count > 0)
@@ -71,7 +72,7 @@ namespace SnoopyAirlines.External.Repositories
                 sql.AppendLine("WHERE " + string.Join(" AND ", where));
             }
 
-            sql.AppendLine("ORDER BY f.departure_time;");
+            sql.AppendLine("ORDER BY f.arrival_time, f.departure_time;");
 
             await using var connection = new SqlConnection(_connectionString);
             var flights = await connection.QueryAsync<FlightRecord>(
@@ -108,31 +109,46 @@ namespace SnoopyAirlines.External.Repositories
             };
         }
 
-        private static void AddDepartureWindowFilters(
+        private static void AddArrivalWindowFilters(
             ICollection<string> where,
             DynamicParameters parameters,
-            IReadOnlyCollection<FlightDefinitionDepartureWindow> departureWindows)
+            IReadOnlyCollection<FlightDefinitionArrivalWindow> arrivalWindows)
         {
             var conditions = new List<string>();
             var index = 0;
 
-            foreach (var departureWindow in departureWindows)
+            foreach (var arrivalWindow in arrivalWindows)
             {
-                var frequencyParameter = $"FrequencyMask{index}";
+                var sameDayFrequencyParameter = $"SameDayFrequencyMask{index}";
+                var previousDayFrequencyParameter = $"PreviousDayFrequencyMask{index}";
                 var startTimeParameter = $"StartTime{index}";
                 var endTimeParameter = $"EndTime{index}";
-                var frequencyMask = ToByte(departureWindow.Frequency);
+                var sameDayFrequencyMask = ToByte(arrivalWindow.SameDayDepartureFrequency);
+                var previousDayFrequencyMask = ToByte(arrivalWindow.PreviousDayDepartureFrequency);
+                var windowConditions = new List<string>();
 
-                if (frequencyMask == 0)
+                if (sameDayFrequencyMask != 0)
+                {
+                    windowConditions.Add(
+                        $"((f.frequency & @{sameDayFrequencyParameter}) <> 0 AND f.arrival_time >= @{startTimeParameter} AND f.arrival_time <= @{endTimeParameter} AND f.arrival_time >= f.departure_time)");
+                    parameters.Add(sameDayFrequencyParameter, sameDayFrequencyMask);
+                }
+
+                if (previousDayFrequencyMask != 0)
+                {
+                    windowConditions.Add(
+                        $"((f.frequency & @{previousDayFrequencyParameter}) <> 0 AND f.arrival_time >= @{startTimeParameter} AND f.arrival_time <= @{endTimeParameter} AND f.arrival_time < f.departure_time)");
+                    parameters.Add(previousDayFrequencyParameter, previousDayFrequencyMask);
+                }
+
+                if (windowConditions.Count == 0)
                 {
                     continue;
                 }
 
-                conditions.Add(
-                    $"((f.frequency & @{frequencyParameter}) <> 0 AND f.departure_time >= @{startTimeParameter} AND f.departure_time <= @{endTimeParameter})");
-                parameters.Add(frequencyParameter, frequencyMask);
-                parameters.Add(startTimeParameter, departureWindow.EarliestDeparture.ToTimeSpan());
-                parameters.Add(endTimeParameter, departureWindow.LatestDeparture.ToTimeSpan());
+                conditions.Add("(" + string.Join(" OR ", windowConditions) + ")");
+                parameters.Add(startTimeParameter, arrivalWindow.EarliestArrival.ToTimeSpan());
+                parameters.Add(endTimeParameter, arrivalWindow.LatestArrival.ToTimeSpan());
 
                 index++;
             }
