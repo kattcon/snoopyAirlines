@@ -39,5 +39,22 @@ namespace SnoopyAirlines.Services
         {
             return _airportRepository.GetAirportsAsync(search, cancellationToken);
         }
+
+        public Task<Airport?> GetAirportByIdAsync(int airportId, CancellationToken cancellationToken)
+        {
+            return _airportRepository.GetAirportByIdAsync(airportId, cancellationToken);
+        }
+
+        public async Task UpdateAirportNameAsync(int airportId, string newAirportName, CancellationToken cancellationToken)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(newAirportName);
+
+            var airportWasUpdated = await _airportRepository.UpdateAirportNameAsync(airportId, newAirportName.Trim(), cancellationToken);
+
+            if (!airportWasUpdated)
+            {
+                throw new KeyNotFoundException($"Airport with id '{airportId}' was not found.");
+            }
+        }
     }
 }
