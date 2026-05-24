@@ -99,8 +99,40 @@ namespace SnoopyAirlines.Controllers
             }
         }
 
+        [HttpGet("{airportId}")]
+        public async Task<ActionResult<Airport>> GetAirportById(int airportId, CancellationToken cancellationToken)
+        {
+            var airport = await _airportService.GetAirportByIdAsync(airportId, cancellationToken);
+            return airport is null ? NotFound() : Ok(airport);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{airportId}")]
+        public async Task<IActionResult> UpdateAirportName(
+            int airportId,
+            AirportNameUpdateIntake airportNameUpdateIntake,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _airportService.UpdateAirportNameAsync(airportId, airportNameUpdateIntake.Name, cancellationToken);
+                return NoContent();
+            }
+            catch (ArgumentException invalidNameException)
+            {
+                return BadRequest(new { Message = invalidNameException.Message });
+            }
+            catch (KeyNotFoundException airportNotFoundException)
+            {
+                return NotFound(new { Message = airportNotFoundException.Message });
+            }
+        }
+
         // Valida los datos del intake y los convierte en un Airport listo para guardar.
         // Devuelve true si todo está bien, false si hay errores de validación.
+        // controlador no pooner logica de negocio***
+        // metodo super largo ****
+        // como usar validation tabs no dentro del controler, en el dominio o dentro de la parte del controlador pero para todos
         private static bool TryMapToAirport(
             AirportIntake airportIntake,
             out Airport airport,
