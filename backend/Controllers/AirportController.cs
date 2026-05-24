@@ -128,11 +128,6 @@ namespace SnoopyAirlines.Controllers
             }
         }
 
-        // Valida los datos del intake y los convierte en un Airport listo para guardar.
-        // Devuelve true si todo está bien, false si hay errores de validación.
-        // controlador no pooner logica de negocio***
-        // metodo super largo ****
-        // como usar validation tabs no dentro del controler, en el dominio o dentro de la parte del controlador pero para todos
         private static bool TryMapToAirport(
             AirportIntake airportIntake,
             out Airport airport,
