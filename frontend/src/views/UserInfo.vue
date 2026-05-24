@@ -60,7 +60,7 @@
           </div>
 
           <div class="sectionDivider">
-            <h3>Información Editable</h3>
+            <h3>Información Personal</h3>
 
             <div class="editableField">
               <label>Primer Nombre</label>
