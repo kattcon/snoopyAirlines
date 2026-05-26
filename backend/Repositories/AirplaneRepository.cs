@@ -1,7 +1,9 @@
+using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.domain;
 using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.View;
 
 namespace SnoopyAirlines.Repositories
@@ -91,6 +93,55 @@ namespace SnoopyAirlines.Repositories
             await using var connection = new SqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<Airplane>(
                 new CommandDefinition(sql, new { Model = model }, cancellationToken: cancellationToken));
+        }
+
+        public async Task<Airplane?> GetAirplaneByIdAsync(int airplaneId, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id AS Id,
+                    model AS Model,
+                    tourist_rows AS TouristRows,
+                    tourist_columns AS TouristColumns,
+                    firstclass_rows AS FirstclassRows,
+                    firstclass_columns AS FirstclassColumns,
+                    max_weight AS MaxWeight
+                FROM airplane
+                WHERE id = @Id;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<Airplane>(
+                new CommandDefinition(sql, new { Id = airplaneId }, cancellationToken: cancellationToken));
+        }
+
+        public async Task UpdateAirplaneCapacitiesAsync(int airplaneId, AirplaneUpdateIntake intake, CancellationToken cancellationToken)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+
+            try
+            {
+                await connection.ExecuteAsync(new CommandDefinition(
+                    "sp_update_airplane_capacities",
+                    new
+                    {
+                        Id = airplaneId,
+                        TouristRows = intake.TouristRows,
+                        TouristColumns = intake.TouristColumns,
+                        FirstclassRows = intake.FirstClassRows,
+                        FirstclassColumns = intake.FirstClassColumns,
+                        MaxWeight = intake.MaxWeight
+                    },
+                    commandType: CommandType.StoredProcedure,
+                    cancellationToken: cancellationToken));
+            }
+            catch (SqlException exception)
+            {
+                if (exception.Message.Contains("No se encontró"))
+                    throw new KeyNotFoundException(exception.Message, exception);
+
+                throw new InvalidOperationException(exception.Message, exception);
+            }
         }
     }
 }
