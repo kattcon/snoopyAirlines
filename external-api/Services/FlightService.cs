@@ -43,37 +43,37 @@ namespace SnoopyAirlines.External.Services
         {
             return new FlightDefinitionQuery
             {
-                Origin = flightQuery.Origin,
                 Destination = flightQuery.Destination,
                 QuantityOfPassengers = flightQuery.QuantityOfPassengers,
-                DepartureWindows = CreateDepartureWindows(flightQuery)
+                ArrivalWindows = CreateArrivalWindows(flightQuery)
             };
         }
 
-        private static IReadOnlyCollection<FlightDefinitionDepartureWindow> CreateDepartureWindows(FlightQuery flightQuery)
+        private static IReadOnlyCollection<FlightDefinitionArrivalWindow> CreateArrivalWindows(FlightQuery flightQuery)
         {
-            if (flightQuery.EarliestDeparture is null || flightQuery.LatestDeparture is null)
+            if (flightQuery.EarliestArrival is null || flightQuery.LatestArrival is null)
             {
-                return Array.Empty<FlightDefinitionDepartureWindow>();
+                return Array.Empty<FlightDefinitionArrivalWindow>();
             }
 
-            var earliestDeparture = flightQuery.EarliestDeparture.Value;
-            var latestDeparture = flightQuery.LatestDeparture.Value;
+            var earliestArrival = flightQuery.EarliestArrival.Value;
+            var latestArrival = flightQuery.LatestArrival.Value;
 
-            var windows = new List<FlightDefinitionDepartureWindow>();
-            var currentDate = earliestDeparture.Date;
-            var endDate = latestDeparture.Date;
+            var windows = new List<FlightDefinitionArrivalWindow>();
+            var currentDate = earliestArrival.Date;
+            var endDate = latestArrival.Date;
 
             while (currentDate <= endDate)
             {
-                windows.Add(new FlightDefinitionDepartureWindow
+                windows.Add(new FlightDefinitionArrivalWindow
                 {
-                    Frequency = CreateFrequency(currentDate.DayOfWeek),
-                    EarliestDeparture = currentDate == earliestDeparture.Date
-                        ? TimeOnly.FromDateTime(earliestDeparture)
+                    SameDayDepartureFrequency = CreateFrequency(currentDate.DayOfWeek),
+                    PreviousDayDepartureFrequency = CreateFrequency(currentDate.AddDays(-1).DayOfWeek),
+                    EarliestArrival = currentDate == earliestArrival.Date
+                        ? TimeOnly.FromDateTime(earliestArrival)
                         : TimeOnly.MinValue,
-                    LatestDeparture = currentDate == latestDeparture.Date
-                        ? TimeOnly.FromDateTime(latestDeparture)
+                    LatestArrival = currentDate == latestArrival.Date
+                        ? TimeOnly.FromDateTime(latestArrival)
                         : new TimeOnly(23, 59, 59)
                 });
 
@@ -87,33 +87,38 @@ namespace SnoopyAirlines.External.Services
             IReadOnlyCollection<FlightDefinition> flightDefinitions,
             FlightQuery flightQuery)
         {
-            if (flightQuery.EarliestDeparture is null || flightQuery.LatestDeparture is null)
+            if (flightQuery.EarliestArrival is null || flightQuery.LatestArrival is null)
             {
                 return Array.Empty<Flight>();
             }
 
             var flights = new List<Flight>();
-            var earliestDeparture = flightQuery.EarliestDeparture.Value;
-            var latestDeparture = flightQuery.LatestDeparture.Value;
-            var currentDate = earliestDeparture.Date;
-            var endDate = latestDeparture.Date;
+            var earliestArrival = flightQuery.EarliestArrival.Value;
+            var latestArrival = flightQuery.LatestArrival.Value;
+            var currentDate = earliestArrival.Date;
+            var endDate = latestArrival.Date;
 
             while (currentDate <= endDate)
             {
                 foreach (var flightDefinition in flightDefinitions)
                 {
-                    if (!OccursOn(flightDefinition.Frequency, currentDate.DayOfWeek))
+                    var departureDate = ArrivesNextDay(flightDefinition)
+                        ? currentDate.AddDays(-1)
+                        : currentDate;
+
+                    if (!OccursOn(flightDefinition.Frequency, departureDate.DayOfWeek))
                     {
                         continue;
                     }
 
-                    var departureTime = currentDate.Add(flightDefinition.DepartureTime.ToTimeSpan());
+                    var arrivalTime = currentDate.Add(flightDefinition.ArrivalTime.ToTimeSpan());
 
-                    if (departureTime < earliestDeparture || departureTime > latestDeparture)
+                    if (arrivalTime < earliestArrival || arrivalTime > latestArrival)
                     {
                         continue;
                     }
 
+                    var departureTime = departureDate.Add(flightDefinition.DepartureTime.ToTimeSpan());
                     flights.Add(CreateFlight(flightDefinition, departureTime));
                 }
 
@@ -121,16 +126,17 @@ namespace SnoopyAirlines.External.Services
             }
 
             return flights
-                .OrderBy(flight => flight.DepartureTime)
+                .OrderBy(flight => flight.ArrivalTime)
+                .ThenBy(flight => flight.DepartureTime)
                 .ThenBy(flight => flight.FlightGUID, StringComparer.Ordinal)
                 .ToList();
         }
 
         private static Flight CreateFlight(FlightDefinition flightDefinition, DateTime departureTime)
         {
-            var arrivalDate = flightDefinition.ArrivalTime >= flightDefinition.DepartureTime
-                ? departureTime.Date
-                : departureTime.Date.AddDays(1);
+            var arrivalDate = ArrivesNextDay(flightDefinition)
+                ? departureTime.Date.AddDays(1)
+                : departureTime.Date;
             var arrivalTime = arrivalDate.Add(flightDefinition.ArrivalTime.ToTimeSpan());
 
             return new Flight
@@ -146,6 +152,11 @@ namespace SnoopyAirlines.External.Services
                 CarryOnPrice = flightDefinition.CarryOnPrice,
                 CheckedPrice = flightDefinition.CheckedPrice
             };
+        }
+
+        private static bool ArrivesNextDay(FlightDefinition flightDefinition)
+        {
+            return flightDefinition.ArrivalTime < flightDefinition.DepartureTime;
         }
 
         private static bool OccursOn(FlightFrequency frequency, DayOfWeek dayOfWeek)
