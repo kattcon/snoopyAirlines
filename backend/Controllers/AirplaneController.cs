@@ -65,5 +65,35 @@ namespace SnoopyAirlines.Controllers
             return CreatedAtAction(nameof(GetAirplane),
                 new { model = savedAirplane.Model }, savedAirplane );
         }
+
+        [HttpGet("id/{airplaneId}")]
+        public async Task<ActionResult<Airplane>> GetAirplaneById(int airplaneId, CancellationToken cancellationToken)
+        {
+            var airplane = await _airplaneService.GetAirplaneByIdAsync(airplaneId, cancellationToken);
+
+            if (airplane == null)
+                return NotFound($"No se encontró una aeronave con el id {airplaneId}.");
+
+            return Ok(airplane);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{airplaneId}")]
+        public async Task<IActionResult> UpdateAirplaneCapacities(int airplaneId, AirplaneUpdateIntake intake, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _airplaneService.UpdateAirplaneCapacitiesAsync(airplaneId, intake, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(exception.Message);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(exception.Message);
+            }
+        }
     }
 }
