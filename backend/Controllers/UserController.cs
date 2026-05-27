@@ -5,6 +5,7 @@ using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Services;
 using System.Collections.Generic;
+using System.Security.Claims;
 
 namespace SnoopyAirlines.Controllers
 {
@@ -168,7 +169,110 @@ namespace SnoopyAirlines.Controllers
 
             return Ok(new {token});
         }
-    
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<ActionResult<UserView>> GetMe(CancellationToken cancellationToken)
+        {
+            if (!TryGetAuthenticatedUserId(out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userService.GetByIdAsync(userId, cancellationToken);
+
+            if (user is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(user);
+        }
+
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<ActionResult<UserView>> UpdateMe(
+            UserUpdateIntake intake,
+            CancellationToken cancellationToken)
+        {
+
+            var validationErrors = new List<ValidationError>();
+
+            ValidateRequired(nameof(intake.FirstName), intake.FirstName, validationErrors);
+            ValidateRequired(nameof(intake.LastNameOne), intake.LastNameOne, validationErrors);
+
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid update payload.",
+                    Errors = validationErrors
+                });
+            }
+
+            if (!TryGetAuthenticatedUserId(out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var upodatedUser = await _userService.UpdateUserAsync(userId, intake, cancellationToken);
+
+            if (upodatedUser is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(upodatedUser);
+        }
+
+        [Authorize]
+        [HttpPut("me/password")]
+        public async Task<ActionResult> ChangePassword(
+            ChangePasswordIntake intake,
+            CancellationToken cancellationToken)
+        {
+            var validationErrors = new List<ValidationError>();
+
+            ValidateRequired(nameof(intake.CurrentPassword), intake.CurrentPassword, validationErrors);
+            ValidateRequired(nameof(intake.NewPassword), intake.NewPassword, validationErrors);
+
+            if (!string.IsNullOrWhiteSpace(intake.NewPassword))
+            {
+                AddPasswordValidationErrors(intake.NewPassword, validationErrors);
+            }
+
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid change password payload.",
+                    Errors = validationErrors
+                });
+            }
+
+            if (!TryGetAuthenticatedUserId(out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _userService.ChangePasswordAsync(
+                userId,
+                intake.CurrentPassword!,
+                intake.NewPassword!,
+                cancellationToken);
+
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            if (!result.Value)
+            {
+                return Unauthorized(new { Message = "Current password is incorrect." });
+            }
+
+            return NoContent();
+        }
 
         private static bool TryMapToPendingUser(
             UserIntake userIntake,
@@ -301,6 +405,20 @@ namespace SnoopyAirlines.Controllers
         {
             required public string Message { get; set; }
             required public IReadOnlyCollection<ValidationError> Errors { get; set; }
+        }
+
+        private bool TryGetAuthenticatedUserId(out int userId)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(claim, out userId))
+            {
+                return true;
+            }
+
+            userId = default;
+            return false;
+
         }
     }
 }
