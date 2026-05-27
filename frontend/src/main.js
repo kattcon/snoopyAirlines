@@ -18,6 +18,7 @@ import RegisterAircraft from './views/RegisterAircraft.vue';
 import AircraftsList from './views/AircraftsList.vue';
 import UserInfo from './views/UserInfo.vue';
 import EditAirport from './views/EditAirport.vue';
+import EditAircraft from './views/EditAircraft.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -37,8 +38,9 @@ const router = createRouter({
               { path: 'list-users', component: UsersList },
               { path: 'register-aircraft', component: RegisterAircraft },
               { path: 'list-aircrafts', component: AircraftsList },
-              { path: 'user-info', component: UserInfo }
+              { path: 'user-info', component: UserInfo },
               { path: 'edit-airport/:id', component: EditAirport },
+              { path: 'edit-aircraft/:id', component: EditAircraft },
             ], name: "Admin", component: InternalLandingPage},
     ],
 });

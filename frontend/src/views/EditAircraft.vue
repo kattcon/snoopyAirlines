@@ -61,7 +61,10 @@ export default {
   },
   methods: {
     loadAircraft() {
-      axios.get(`${process.env.VUE_APP_BACKEND_URL}/airplane/id/${this.airplaneId}`)
+      const token = localStorage.getItem("token");
+      axios.get(`${process.env.VUE_APP_BACKEND_URL}/airplane/id/${this.airplaneId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
         .then((response) => {
           const data = response.data;
           this.aircraft = {
