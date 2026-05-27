@@ -2,6 +2,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
+using SnoopyAirlines.Domain.Intake;
 
 namespace SnoopyAirlines.Repositories
 {
@@ -428,5 +429,82 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, new { Email = email }, cancellationToken: cancellationToken));    
         }
 
+        public async Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id AS Id,
+                    identification_number AS IdentificationNumber,
+                    email AS Email,
+                    first_name AS FirstName,
+                    last_name_one AS LastNameOne,
+                    last_name_two AS LastNameTwo,
+                    CASE type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    password_hash AS PasswordHash,
+                    password_salt AS PasswordSalt
+                FROM dbo.[user]
+                WHERE id = @Id;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<User>(
+                new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+        }
+
+        public async Task<UserView> UpdateAsync(int id, UserUpdateIntake intake, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                UPDATE dbo.[user]
+                SET
+                    first_name = @FirstName,
+                    last_name_one = @LastNameOne,
+                    last_name_two = @LastNameTwo
+                OUTPUT
+                    INSERTED.id AS Id,
+                    INSERTED.identification_number AS IdentificationNumber,
+                    INSERTED.email AS Email,
+                    INSERTED.first_name AS FirstName,
+                    INSERTED.last_name_one AS LastNameOne,
+                    INSERTED.last_name_two AS LastNameTwo,
+                    CASE INSERTED.type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    CAST(0 AS BIT) AS Pending
+                WHERE id = @Id;
+                """;
+
+            var parameters = new
+            {
+                Id = id,
+                intake.FirstName,
+                intake.LastNameOne,
+                intake.LastNameTwo
+            };
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleAsync<UserView>(
+                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+        }
+
+        public async Task UpdatePasswordAsync(int id, string passwordHash, string passwordSalt, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                UPDATE dbo.[user]
+                SET
+                    password_hash = @PasswordHash,
+                    password_salt = @PasswordSalt
+                WHERE id = @Id;
+                """;
+
+            var parameters = new { Id = id, PasswordHash = passwordHash, PasswordSalt = passwordSalt };
+
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+        }
     }
 }
