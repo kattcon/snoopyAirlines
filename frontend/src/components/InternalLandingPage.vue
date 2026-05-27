@@ -9,6 +9,7 @@
                 <router-link to="/admin/flights" class="left-menu-options">Administrar Vuelos</router-link>
                 <router-link to="/admin/users" class="left-menu-options">Administrar Usuarios</router-link>
                 <router-link to="/admin/reports" class="left-menu-options">Reportes</router-link>
+                <router-link to="/admin/user-info" class="left-menu-options">Mi Usuario</router-link>
             </aside>
             <main class="content">
                 <router-view />
