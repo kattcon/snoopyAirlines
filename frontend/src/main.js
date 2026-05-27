@@ -37,7 +37,7 @@ const router = createRouter({
               { path: 'list-users', component: UsersList },
               { path: 'register-aircraft', component: RegisterAircraft },
               { path: 'list-aircrafts', component: AircraftsList },
-              { path: 'user-info', component: UserInfo }
+              { path: 'user-info', component: UserInfo },
               { path: 'edit-airport/:id', component: EditAirport },
             ], name: "Admin", component: InternalLandingPage},
     ],

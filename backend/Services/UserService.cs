@@ -198,12 +198,12 @@ namespace SnoopyAirlines.Services
 
             if (user is null)
             {
-                return new NotFound();
+                return null;
             }
 
             return new UserView
             {
-                Id = user.Id,
+                Id = user.Id.GetValueOrDefault(),
                 IdentificationNumber = user.IdentificationNumber,
                 Email = user.Email,
                 FirstName = user.FirstName,
@@ -220,7 +220,7 @@ namespace SnoopyAirlines.Services
 
             if (!userExists)
             {
-                return new NotFound();
+                return null;
             }
 
             return await _userRepository.UpdateAsync(id, intake, cancellationToken);
@@ -233,7 +233,7 @@ namespace SnoopyAirlines.Services
 
             if (user is null)
             {
-                return new NotFound();
+                return null;
             }
 
             if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
