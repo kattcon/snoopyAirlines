@@ -2,6 +2,7 @@ using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using System.Security.Cryptography;
+using SnoopyAirlines.Domain.Intake;
 using System.Text;
 
 namespace SnoopyAirlines.Services
@@ -189,6 +190,63 @@ namespace SnoopyAirlines.Services
             var hashBytes = SHA256.HashData(keyBytes);
 
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        }
+
+        public async Task<UserView?> GetByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+
+            if (user is null)
+            {
+                return new NotFound();
+            }
+
+            return new UserView
+            {
+                Id = user.Id,
+                IdentificationNumber = user.IdentificationNumber,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastNameOne = user.LastNameOne,
+                LastNameTwo = user.LastNameTwo,
+                Type = user.Type,
+                Pending = false
+            };
+        }
+
+        public async Task<UserView?> UpdateUserAsync(int id, UserUpdateIntake intake, CancellationToken cancellationToken)
+        {
+            bool userExists = await _userRepository.GetByIdAsync(id, cancellationToken) is not null;
+
+            if (!userExists)
+            {
+                return new NotFound();
+            }
+
+            return await _userRepository.UpdateAsync(id, intake, cancellationToken);
+
+        }
+
+        public async Task<bool?> ChangePasswordAsync(int id, string currentPassword, string newPassword, CancellationToken cancellationToken)
+        {
+            var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+
+            if (user is null)
+            {
+                return new NotFound();
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            {
+                return false;
+            }
+
+            var passwordSalt = BCrypt.Net.BCrypt.GenerateSalt();
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(newPassword, passwordSalt);
+
+            await _userRepository.UpdatePasswordAsync(id, passwordHash, passwordSalt, cancellationToken);
+
+            return true;
         }
     }
 }
