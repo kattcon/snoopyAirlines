@@ -336,7 +336,7 @@ function applyUserData(data) {
 }
 
 function mapUserType(type) {
-  const map = { Admin: 'Administrador', Operator: 'Operador' };
+  const map = { Admin: 'Administrador', Operator: 'Operario', 0: 'Administrador', 1: 'Operario' };
   return map[type] ?? type;
 }
 
