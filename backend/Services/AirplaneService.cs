@@ -1,4 +1,5 @@
 using SnoopyAirlines.domain;
+using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 
@@ -32,6 +33,16 @@ namespace SnoopyAirlines.Services
         public Task<Airplane?> GetAirplaneByModelAync(string model, CancellationToken cancellationToken)
         {
             return _airplaneRepository.GetAirplaneByModelAsync(model, cancellationToken);
+        }
+
+        public Task<Airplane?> GetAirplaneByIdAsync(int airplaneId, CancellationToken cancellationToken)
+        {
+            return _airplaneRepository.GetAirplaneByIdAsync(airplaneId, cancellationToken);
+        }
+
+        public Task UpdateAirplaneCapacitiesAsync(int airplaneId, AirplaneUpdateIntake intake, CancellationToken cancellationToken)
+        {
+            return _airplaneRepository.UpdateAirplaneCapacitiesAsync(airplaneId, intake, cancellationToken);
         }
     }
 
