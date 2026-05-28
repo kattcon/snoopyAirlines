@@ -397,30 +397,8 @@ export default {
           { origin: '', destination: '', departureDate: '' }
         ]
       },
-      originCities: [
-        { code: 'SJO', name: 'San José' },
-        { code: 'LIR', name: 'Liberia' },
-        { code: 'JFK', name: 'Nueva York' },
-        { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MIA', name: 'Miami' },
-        { code: 'YYZ', name: 'Toronto' },
-        { code: 'LHR', name: 'Londres' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'FRA', name: 'Fráncfort' },
-        { code: 'AMS', name: 'Ámsterdam' }
-      ],
-      destinationCities: [
-        { code: 'SJO', name: 'San José' },
-        { code: 'LIR', name: 'Liberia' },
-        { code: 'JFK', name: 'Nueva York' },
-        { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MIA', name: 'Miami' },
-        { code: 'YYZ', name: 'Toronto' },
-        { code: 'LHR', name: 'Londres' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'FRA', name: 'Fráncfort' },
-        { code: 'AMS', name: 'Ámsterdam' }
-      ],
+      originCities: [],
+      destinationCities: [],
       searchResults: [],
       outboundFlights: [],
       returnFlights: [],
@@ -534,7 +512,36 @@ export default {
       ]
     };
   },
+  mounted() {
+    this.loadAirports();
+  },
   methods: {
+    /**
+     * Carga todos los aeropuertos disponibles desde el External API
+     * y los asigna a las listas de origen y destino.
+     */
+    async loadAirports() {
+      try {
+        const response = await fetch(`${EXTERNAL_API_BASE}/api/external/airports`);
+        if (!response.ok) {
+          console.error('Error al cargar aeropuertos:', response.statusText);
+          return;
+        }
+
+        const airports = await response.json();
+
+        // Convertir formato API { code, name, city } a formato de la app { code, name }
+        const formattedCities = airports.map(airport => ({
+          code: airport.code,
+          name: airport.name
+        }));
+
+        this.originCities = formattedCities;
+        this.destinationCities = formattedCities;
+      } catch (error) {
+        console.error('Error cargando aeropuertos:', error);
+      }
+    },
     setTripType(type) {
       this.tripType = type;
       if (type === 'multiciudad' && this.search.legs.length < 2) {
