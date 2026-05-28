@@ -215,14 +215,14 @@ namespace SnoopyAirlines.Controllers
                 return Unauthorized();
             }
 
-            var upodatedUser = await _userService.UpdateUserAsync(userId, intake, cancellationToken);
+            var updatedUser = await _userService.UpdateUserAsync(userId, intake, cancellationToken);
 
-            if (upodatedUser is null)
+            if (updatedUser is null)
             {
                 return NotFound();
             }
 
-            return Ok(upodatedUser);
+            return Ok(updatedUser);
         }
 
         [Authorize]

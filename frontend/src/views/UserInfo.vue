@@ -108,7 +108,7 @@
                 </template>
               </div>
 
-              <p v-if="fieldErrors.name" class="fieldError">{{ fieldErrors.name }}</p>>
+              <p v-if="fieldErrors.name" class="fieldError">{{ fieldErrors.name }}</p>
             </div>
 
             <div class="editableField">
@@ -420,6 +420,14 @@ function cancelPasswordChange() {
 
 function extractErrorMessage(error) {
   return error.response?.data?.message ?? error.response?.data?.Message ?? null;
+}
+
+function cancelEdit() {
+  editableData.firstName = userData.firstName;
+  editableData.firstLastName = userData.firstLastName;
+  editableData.secondLastName = userData.secondLastName;
+ 
+  closeEditors();
 }
 
 </script>
