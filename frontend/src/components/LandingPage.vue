@@ -584,18 +584,23 @@ export default {
      *   flightGUID        → id
      *   touristPrice      → priceEconomyClass
      *   firstClassPrice   → priceFirstClass
-     *   duration "hh-mm"  → durationMinutes (int)
+     *   duration "hh:mm" o "hh-mm" → durationMinutes (int)
      *
      * departureTime y arrivalTime ya vienen en formato ISO, no cambian.
      */
     mapFlight(flight) {
-      const [hours, minutes] = flight.duration.split('-').map(Number);
+      const [hours, minutes] = (flight.duration ?? '')
+        .split(/[:-]/)
+        .map(Number);
+      const validHours = Number.isFinite(hours) ? hours : 0;
+      const validMinutes = Number.isFinite(minutes) ? minutes : 0;
+
       return {
         ...flight,
-        id:               flight.flightGUID,
+        id:                flight.flightGUID,
         priceEconomyClass: flight.touristPrice,
         priceFirstClass:   flight.firstClassPrice,
-        durationMinutes:   hours * 60 + minutes,
+        durationMinutes:   validHours * 60 + validMinutes,
       };
     },
 
