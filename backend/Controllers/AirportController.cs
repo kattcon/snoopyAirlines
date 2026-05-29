@@ -23,6 +23,7 @@ namespace SnoopyAirlines.Controllers
 
         // GET /airport o GET /airport?search=SJO
         // Devuelve la lista de aeropuertos, con filtro opcional por nombre, código o ciudad
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AirportView>>> GetAirports(
             [FromQuery] string? search,
@@ -35,6 +36,7 @@ namespace SnoopyAirlines.Controllers
 
         // GET /airport/countries
         // Devuelve la lista de todos los países para el formulario de registro
+        [AllowAnonymous]
         [HttpGet("countries")]
         public async Task<ActionResult<IEnumerable<Country>>> GetCountries(CancellationToken cancellationToken)
         {
@@ -45,6 +47,7 @@ namespace SnoopyAirlines.Controllers
 
         // GET /airport/cities?countryId=5
         // Devuelve las ciudades del país indicado para el formulario de registro
+        [AllowAnonymous]
         [HttpGet("cities")]
         public async Task<ActionResult<IEnumerable<City>>> GetCities(
             [FromQuery] int countryId,

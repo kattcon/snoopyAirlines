@@ -51,7 +51,8 @@ namespace SnoopyAirlines.Repositories
         {
             flightQuery ??= new FlightDefinitionQuery();
 
-            var sql = new StringBuilder("""
+            var sql = new StringBuilder();
+            sql.Append("""
                 SELECT
                     f.id AS Id,
                     f.departure_time AS DepartureTime,
@@ -95,12 +96,13 @@ namespace SnoopyAirlines.Repositories
                 AddDepartureWindowFilters(where, parameters, flightQuery.DepartureWindows);
             }
 
-            if (where.Count > 0)
+           if (where.Count > 0)
             {
-                sql.AppendLine("WHERE " + string.Join(" AND ", where));
+                sql.Append(" WHERE ");
+                sql.Append(string.Join(" AND ", where));
             }
 
-            sql.AppendLine("ORDER BY f.departure_time;");
+            sql.Append(" ORDER BY f.departure_time;");
 
             await using var connection = new SqlConnection(_connectionString);
             var flights = await connection.QueryAsync<FlightDefinitionRecord>(
