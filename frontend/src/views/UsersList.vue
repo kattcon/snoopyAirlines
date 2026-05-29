@@ -44,6 +44,14 @@
             {{ item.pending ? 'Pendiente' : 'Activo' }}
           </span>
         </template>
+
+        <template #cell-actions="{ item }">
+          <button
+            v-if="!item.pending"
+            class="primaryButton"
+            @click.stop="$router.push(`/admin/edit-user/${item.id}`)"
+          >Editar</button>
+        </template>
       </AppList>
 
       <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
@@ -73,7 +81,8 @@ export default {
         { key: "fullName", label: "Nombre completo" },
         { key: "email", label: "Correo electrónico" },
         { key: "type", label: "Rol" },
-        { key: "pending", label: "Estado" }
+        { key: "pending", label: "Estado" },
+        { key: "actions", label: "Acciones" }
       ]
     };
   },
