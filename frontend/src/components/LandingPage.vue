@@ -378,8 +378,8 @@
 <script>
 
 
-const EXTERNAL_API_BASE = 'http://localhost:5187';  // Puerto del proyecto External
-const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';         // API key
+const BACKEND_API_BASE = 'http://localhost:5235';
+const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';
 
 export default {
   name: 'LandingPage',
@@ -522,7 +522,7 @@ export default {
      */
     async loadAirports() {
       try {
-        const response = await fetch(`${EXTERNAL_API_BASE}/api/external/airports`);
+const response = await fetch(`${BACKEND_API_BASE}/airport`);
         if (!response.ok) {
           console.error('Error al cargar aeropuertos:', response.statusText);
           return;
@@ -616,7 +616,7 @@ export default {
      */
     fetchFlights(origin, destination, date, passengers) {
       const params = this.buildExternalParams(origin, destination, date, passengers);
-      return fetch(`${EXTERNAL_API_BASE}/api/external?${params}`)
+      return fetch(`${BACKEND_API_BASE}/Flight/search?${params}`)
         .then(res => {
           if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
           return res.json();
