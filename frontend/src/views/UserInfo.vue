@@ -25,6 +25,10 @@
           </div>
         </div>
         <div class="profileContent">
+          <div v-if="loadError" class="errorMessage">
+            {{ loadError }}
+          </div>
+
           <div class="infoGrid">
             <div class="fieldGroup">
               <label>ID de Usuario</label>
@@ -75,13 +79,15 @@
 
                   <button
                     class="primaryButton"
+                    :disabled="isSaving"
                     @click="saveField('name')"
                   >
-                    Guardar
+                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
                   </button>
 
                   <button
                     class="secondaryButton"
+                    :disabled="isSaving"
                     @click="cancelEdit('name')"
                   >
                     Cancelar
@@ -95,12 +101,14 @@
 
                   <button
                     class="iconButton"
-                    @click="isEditingName = true"
+                    @click="startEdit('name')"
                   >
                     <i class="bi bi-pencil-square"></i>
                   </button>
                 </template>
               </div>
+
+              <p v-if="fieldErrors.name" class="fieldError">{{ fieldErrors.name }}</p>
             </div>
 
             <div class="editableField">
@@ -116,13 +124,15 @@
 
                   <button
                     class="primaryButton"
+                    :disabled="isSaving"
                     @click="saveField('lastName1')"
                   >
-                    Guardar
+                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
                   </button>
 
                   <button
                     class="secondaryButton"
+                    :disabled="isSaving"
                     @click="cancelEdit('lastName1')"
                   >
                     Cancelar
@@ -136,12 +146,13 @@
 
                   <button
                     class="iconButton"
-                    @click="isEditingLastName1 = true"
+                    @click="startEdit('lastName1')"
                   >
                     <i class="bi bi-pencil-square"></i>
                   </button>
                 </template>
               </div>
+              <p v-if="fieldErrors.lastName1" class="fieldError">{{ fieldErrors.lastName1 }}</p>
             </div>
 
             <div class="editableField">
@@ -157,13 +168,15 @@
 
                   <button
                     class="primaryButton"
+                    :disabled="isSaving"
                     @click="saveField('lastName2')"
                   >
-                    Guardar
+                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
                   </button>
 
                   <button
                     class="secondaryButton"
+                    :disabled="isSaving"
                     @click="cancelEdit('lastName2')"
                   >
                     Cancelar
@@ -177,12 +190,13 @@
 
                   <button
                     class="iconButton"
-                    @click="isEditingLastName2 = true"
+                    @click="startEdit('lastName2')"
                   >
                     <i class="bi bi-pencil-square"></i>
                   </button>
                 </template>
               </div>
+              <p v-if="fieldErrors.lastName2" class="fieldError">{{ fieldErrors.lastName2 }}</p>
             </div>
           </div>
 
@@ -198,9 +212,52 @@
                 </div>
               </div>
 
-              <button class="primaryButton">
+              <button class="primaryButton" @click="isChangingPassword = true">
                 Cambiar Contraseña
               </button>
+            </div>
+            <div v-if="isChangingPassword" class = "passwordForm">
+              <div class="fieldGroup">
+                <label>Contraseña Actual</label>
+
+                <input
+                  v-model="passwordData.currentPassword"
+                  type="password"
+                  class="formInput"
+                />
+              </div>
+
+              <div class="fieldGroup">
+                <label>Nueva Contraseña</label>
+
+                <input
+                  v-model="passwordData.newPassword"
+                  type="password"
+                  class="formInput"
+                />
+              </div>
+
+              <p v-if="passwordError" class="fieldError">{{ passwordError }}</p>
+              <p v-if="passwordSuccess" class="successMessage">{{ passwordSuccess }}</p>
+
+              <div class="passwordActions">
+                <button 
+                  class="primaryButton"
+                  :disabled="isSavingPassword"
+                  @click="savePassword"
+                >
+                  {{ isSavingPassword ? 'Guardando...' : 'Guardar Cambios' }}
+                </button>
+
+                <button
+                  class="secondaryButton"
+                  :disabled="isSavingPassword"
+                  @click="cancelPasswordChange"
+                >
+                  Cancelar
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -210,68 +267,169 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
+import axios from 'axios';
 
-/*
-  Datos hardcodeados por ahora, pendiente de obtener desde backend
-*/
 const userData = reactive({
-  id: 1001,
-  identificationNumber: '1-2345-6789',
-  email: 'admin@snoopyairlines.com',
-  firstName: 'Juan',
-  firstLastName: 'Pérez',
-  secondLastName: 'González',
-  userType: 'Admin',
+  id: null,
+  identificationNumber: '',
+  email: '',
+  firstName: '',
+  firstLastName: '',
+  secondLastName: '',
+  userType: ''
 });
 
 const editableData = reactive({
-  firstName: userData.firstName,
-  firstLastName: userData.firstLastName,
-  secondLastName: userData.secondLastName,
+  firstName: '',
+  firstLastName: '',
+  secondLastName: ''
+});
+
+const passwordData = reactive({
+  currentPassword: '',
+  newPassword: ''
 });
 
 const isEditingName = ref(false);
 const isEditingLastName1 = ref(false);
 const isEditingLastName2 = ref(false);
+const isChangingPassword = ref(false);
 
-function saveField(field) {
-  switch (field) {
-    case 'name':
-      userData.firstName = editableData.firstName;
-      isEditingName.value = false;
-      break;
+const isSaving = ref(false);
+const isSavingPassword = ref(false);
 
-    case 'lastName1':
-      userData.firstLastName = editableData.firstLastName;
-      isEditingLastName1.value = false;
-      break;
+const loadError = ref('');
+const fieldErrors = reactive({
+  name: '',
+  lastName1: '',
+  lastName2: ''
+});
 
-    case 'lastName2':
-      userData.secondLastName = editableData.secondLastName;
-      isEditingLastName2.value = false;
-      break;
+const passwordError = ref('');
+const passwordSuccess = ref('');
+
+onMounted(async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const { data } = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/user/me`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    applyUserData(data); 
+  } catch (error) {
+    loadError.value = 'Error al cargar los datos del usuario.';
+  }
+});
+
+function applyUserData(data) {
+  userData.id = data.id;
+  userData.identificationNumber = data.identificationNumber;
+  userData.email = data.email;
+  userData.firstName = data.firstName;
+  userData.firstLastName = data.lastNameOne;
+  userData.secondLastName = data.lastNameTwo  ?? '';
+  userData.userType = mapUserType(data.type);
+
+  editableData.firstName = userData.firstName;
+  editableData.firstLastName = userData.firstLastName;
+  editableData.secondLastName = userData.secondLastName;
+}
+
+function mapUserType(type) {
+  const map = { Admin: 'Administrador', Operator: 'Operario', 0: 'Administrador', 1: 'Operario' };
+  return map[type] ?? type;
+}
+
+function startEdit(field) {
+  editableData.firstName = userData.firstName;
+  editableData.firstLastName = userData.firstLastName;
+  editableData.secondLastName = userData.secondLastName;
+
+  if (field === 'name') isEditingName.value = true;
+  if (field === 'lastName1') isEditingLastName1.value = true;
+  if (field === 'lastName2') isEditingLastName2.value = true;
+}
+
+async function saveField(field) {
+  fieldErrors.name = '';
+  fieldErrors.lastName1 = '';
+  fieldErrors.lastName2 = '';
+  isSaving.value = true;
+
+  const token = localStorage.getItem("token");
+  try {
+    const { data } = await axios.put(`${process.env.VUE_APP_BACKEND_URL}/user/me`, 
+    {
+      firstName: editableData.firstName,
+      lastNameOne: editableData.firstLastName,
+      lastNameTwo: editableData.secondLastName || null,
+    },
+    { headers: { Authorization: `Bearer ${token}` } }
+    );
+    applyUserData(data);
+    closeEditors();
+  } catch (error) {
+    const errorKey = field === 'name' ? 'name' : field === 'lastName1' ? 'lastName1' : 'lastName2';
+    fieldErrors[errorKey] = extractErrorMessage(error) ?? 'Error al guardar los cambios.';
+  } finally {
+    isSaving.value = false;
   }
 }
 
-function cancelEdit(field) {
-  switch (field) {
-    case 'name':
-      editableData.firstName = userData.firstName;
-      isEditingName.value = false;
-      break;
+function closeEditors() {
+  isEditingName.value = false;
+  isEditingLastName1.value = false;
+  isEditingLastName2.value = false;
+}
 
-    case 'lastName1':
-      editableData.firstLastName = userData.firstLastName;
-      isEditingLastName1.value = false;
-      break;
+async function savePassword() {
+  passwordError.value = '';
+  passwordSuccess.value = '';
+  isSavingPassword.value = true;
 
-    case 'lastName2':
-      editableData.secondLastName = userData.secondLastName;
-      isEditingLastName2.value = false;
-      break;
+  const token = localStorage.getItem("token");
+  try {
+    await axios.put(`${process.env.VUE_APP_BACKEND_URL}/user/me/password`, {
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    passwordSuccess.value = 'Contraseña actualizada correctamente.';
+    passwordData.currentPassword = '';
+    passwordData.newPassword = '';
+  } catch (error) {
+    if (error.response?.status === 401) {
+      passwordError.value = 'Contraseña actual incorrecta.';
+    } else {
+      passwordError.value = extractErrorMessage(error) ?? 'Error al actualizar la contraseña.';
+    }
+  } finally {
+    isSavingPassword.value = false;
   }
 }
+
+function cancelPasswordChange() {
+  isChangingPassword.value = false;
+  passwordData.currentPassword = '';
+  passwordData.newPassword = '';
+  passwordError.value = '';
+  passwordSuccess.value = '';
+}
+
+function extractErrorMessage(error) {
+  return error.response?.data?.message ?? error.response?.data?.Message ?? null;
+}
+
+function cancelEdit() {
+  editableData.firstName = userData.firstName;
+  editableData.firstLastName = userData.firstLastName;
+  editableData.secondLastName = userData.secondLastName;
+ 
+  closeEditors();
+}
+
 </script>
 
 <style scoped>
