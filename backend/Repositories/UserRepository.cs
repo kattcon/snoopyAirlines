@@ -429,6 +429,30 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, new { Email = email }, cancellationToken: cancellationToken));    
         }
 
+        public async Task<UserView?> GetByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id AS Id,
+                    identification_number AS IdentificationNumber,
+                    email AS Email,
+                    first_name AS FirstName,
+                    last_name_one AS LastNameOne,
+                    last_name_two AS LastNameTwo,
+                    CASE type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    CAST(0 AS BIT) AS Pending
+                FROM dbo.[user]
+                WHERE id = @Id;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<UserView>(
+                new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+        }
+
         public async Task<UserView?> AdminUpdateAsync(int id, AdminUserUpdateIntake intake, CancellationToken cancellationToken)
         {
             const string sql = """
