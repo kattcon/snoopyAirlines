@@ -168,7 +168,58 @@ namespace SnoopyAirlines.Controllers
 
             return Ok(new {token});
         }
-    
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{userId}")]
+        public async Task<ActionResult<UserView>> GetById(int userId, CancellationToken cancellationToken)
+        {
+            var user = await _userService.GetByIdAsync(userId, cancellationToken);
+
+            if (user is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(user);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{userId}")]
+        public async Task<ActionResult<UserView>> AdminUpdate(
+            int userId,
+            AdminUserUpdateIntake intake,
+            CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!TryMapRole(intake.Type, out _))
+            {
+                return BadRequest(new ValidationErrorResponse
+                {
+                    Message = "Invalid user payload.",
+                    Errors = new[]
+                    {
+                        new ValidationError
+                        {
+                            Field = nameof(intake.Type),
+                            Message = "Type must be 'ad' or 'op'."
+                        }
+                    }
+                });
+            }
+
+            var updatedUser = await _userService.AdminUpdateUserAsync(userId, intake, cancellationToken);
+
+            if (updatedUser is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(updatedUser);
+        }
 
         private static bool TryMapToPendingUser(
             UserIntake userIntake,
