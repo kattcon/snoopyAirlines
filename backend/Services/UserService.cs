@@ -1,3 +1,4 @@
+using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
@@ -190,5 +191,11 @@ namespace SnoopyAirlines.Services
 
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
+
+        public Task<UserView?> GetByIdAsync(int id, CancellationToken cancellationToken)
+            => _userRepository.GetByIdAsync(id, cancellationToken);
+
+        public Task<UserView?> AdminUpdateUserAsync(int id, AdminUserUpdateIntake intake, CancellationToken cancellationToken)
+            => _userRepository.AdminUpdateAsync(id, intake, cancellationToken);
     }
 }
