@@ -378,8 +378,8 @@
 <script>
 
 
-const EXTERNAL_API_BASE = 'http://localhost:5187';  // Puerto del proyecto External
-const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';         // API key
+const BACKEND_API_BASE = 'http://localhost:5235';
+const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';
 
 export default {
   name: 'LandingPage',
@@ -397,30 +397,8 @@ export default {
           { origin: '', destination: '', departureDate: '' }
         ]
       },
-      originCities: [
-        { code: 'SJO', name: 'San José' },
-        { code: 'LIR', name: 'Liberia' },
-        { code: 'JFK', name: 'Nueva York' },
-        { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MIA', name: 'Miami' },
-        { code: 'YYZ', name: 'Toronto' },
-        { code: 'LHR', name: 'Londres' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'FRA', name: 'Fráncfort' },
-        { code: 'AMS', name: 'Ámsterdam' }
-      ],
-      destinationCities: [
-        { code: 'SJO', name: 'San José' },
-        { code: 'LIR', name: 'Liberia' },
-        { code: 'JFK', name: 'Nueva York' },
-        { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MIA', name: 'Miami' },
-        { code: 'YYZ', name: 'Toronto' },
-        { code: 'LHR', name: 'Londres' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'FRA', name: 'Fráncfort' },
-        { code: 'AMS', name: 'Ámsterdam' }
-      ],
+      originCities: [],
+      destinationCities: [],
       searchResults: [],
       outboundFlights: [],
       returnFlights: [],
@@ -534,7 +512,36 @@ export default {
       ]
     };
   },
+  mounted() {
+    this.loadAirports();
+  },
   methods: {
+    /**
+     * Carga todos los aeropuertos disponibles desde el External API
+     * y los asigna a las listas de origen y destino.
+     */
+    async loadAirports() {
+      try {
+const response = await fetch(`${BACKEND_API_BASE}/airport`);
+        if (!response.ok) {
+          console.error('Error al cargar aeropuertos:', response.statusText);
+          return;
+        }
+
+        const airports = await response.json();
+
+        // Convertir formato API { code, name, city } a formato de la app { code, name }
+        const formattedCities = airports.map(airport => ({
+          code: airport.code,
+          name: airport.name
+        }));
+
+        this.originCities = formattedCities;
+        this.destinationCities = formattedCities;
+      } catch (error) {
+        console.error('Error cargando aeropuertos:', error);
+      }
+    },
     setTripType(type) {
       this.tripType = type;
       if (type === 'multiciudad' && this.search.legs.length < 2) {
@@ -584,18 +591,23 @@ export default {
      *   flightGUID        → id
      *   touristPrice      → priceEconomyClass
      *   firstClassPrice   → priceFirstClass
-     *   duration "hh-mm"  → durationMinutes (int)
+     *   duration "hh:mm" o "hh-mm" → durationMinutes (int)
      *
      * departureTime y arrivalTime ya vienen en formato ISO, no cambian.
      */
     mapFlight(flight) {
-      const [hours, minutes] = flight.duration.split('-').map(Number);
+      const [hours, minutes] = (flight.duration ?? '')
+        .split(/[:-]/)
+        .map(Number);
+      const validHours = Number.isFinite(hours) ? hours : 0;
+      const validMinutes = Number.isFinite(minutes) ? minutes : 0;
+
       return {
         ...flight,
-        id:               flight.flightGUID,
+        id:                flight.flightGUID,
         priceEconomyClass: flight.touristPrice,
         priceFirstClass:   flight.firstClassPrice,
-        durationMinutes:   hours * 60 + minutes,
+        durationMinutes:   validHours * 60 + validMinutes,
       };
     },
 
@@ -604,7 +616,7 @@ export default {
      */
     fetchFlights(origin, destination, date, passengers) {
       const params = this.buildExternalParams(origin, destination, date, passengers);
-      return fetch(`${EXTERNAL_API_BASE}/api/external?${params}`)
+      return fetch(`${BACKEND_API_BASE}/Flight/search?${params}`)
         .then(res => {
           if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
           return res.json();
