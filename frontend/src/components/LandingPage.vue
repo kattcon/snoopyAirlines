@@ -126,7 +126,7 @@
             <div v-if="tripType === 'ida'">
               <h3>Vuelos disponibles</h3>
               <div class="flights-grid">
-                <div class="flight-card" v-for="flight in searchResults" :key="flight.id">
+                <div class="flight-card" v-for="flight in searchResults" :key="flight.id" @click="toggleFlight(flight.id)" style="cursor:pointer">
                   <div class="flight-header">
                     <div class="flight-route">
                       <span class="airport-code">{{ search.origin }}</span>
@@ -147,16 +147,18 @@
                     </div>
                   </div>
                   <div class="flight-prices">
-                    <div class="price-option">
-                      <span class="class-name">Económica</span>
-                      <span class="price">${{ flight.priceEconomyClass }}</span>
-                    </div>
-                    <div class="price-option">
-                      <span class="class-name">Primera Clase</span>
-                      <span class="price">${{ flight.priceFirstClass }}</span>
+                    <div v-if="selectedFlightId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
+                        <span class="class-name">Económica</span>
+                        <span class="price">${{ flight.priceEconomyClass }}</span>
+      
+                      </div>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
+                        <span class="price">${{ flight.priceFirstClass }}</span>
+                      </div>
                     </div>
                   </div>
-                  <button class="btn-select-flight">Seleccionar</button>
                 </div>
               </div>
             </div>
@@ -167,7 +169,7 @@
               <div class="trip-section">
                 <h3>Vuelos de IDA - {{ search.origin }} → {{ search.destination }}</h3>
                 <div v-if="outboundFlights.length > 0" class="flights-grid">
-                  <div class="flight-card" v-for="flight in outboundFlights" :key="'out-' + flight.id">
+                  <div class="flight-card" v-for="flight in outboundFlights" :key="'out-' + flight.id" @click="toggleOutbound(flight.id)" style="cursor:pointer">
                     <div class="flight-header">
                       <div class="flight-route">
                         <span class="airport-code">{{ search.origin }}</span>
@@ -188,16 +190,18 @@
                       </div>
                     </div>
                     <div class="flight-prices">
-                      <div class="price-option">
+                      <div v-if="selectedOutboundId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
+      
                       </div>
-                      <div class="price-option">
-                        <span class="class-name">Primera Clase</span>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
                     </div>
-                    <button class="btn-select-flight">Seleccionar</button>
+                    </div>
                   </div>
                 </div>
                 <p v-else class="no-results">No se encontraron vuelos de ida para esa fecha</p>
@@ -207,7 +211,7 @@
               <div class="trip-section">
                 <h3>Vuelos de VUELTA - {{ search.destination }} → {{ search.origin }}</h3>
                 <div v-if="returnFlights.length > 0" class="flights-grid">
-                  <div class="flight-card" v-for="flight in returnFlights" :key="'ret-' + flight.id">
+                  <div class="flight-card" v-for="flight in returnFlights" :key="'ret-' + flight.id" @click="toggleReturn(flight.id)" style="cursor:pointer">
                     <div class="flight-header">
                       <div class="flight-route">
                         <span class="airport-code">{{ search.destination }}</span>
@@ -228,14 +232,17 @@
                       </div>
                     </div>
                     <div class="flight-prices">
-                      <div class="price-option">
+                      <div v-if="selectedReturnId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
+      
                       </div>
-                      <div class="price-option">
-                        <span class="class-name">Primera Clase</span>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
+                    </div>
                     </div>
                     <button class="btn-select-flight">Seleccionar</button>
                   </div>
@@ -284,16 +291,18 @@
                       </div>
                     </div>
                     <div class="flight-prices">
-                      <div class="price-option">
+                      <div v-if="selectedOutboundId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
+      
                       </div>
-                      <div class="price-option">
-                        <span class="class-name">Primera Clase</span>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
                     </div>
-                    <button class="btn-select-flight">Seleccionar</button>
+                    </div>
                   </div>
                 </div>
 
@@ -385,6 +394,10 @@ export default {
   name: 'LandingPage',
   data() {
     return {
+      selectedFlightId: null,
+      selectedOutboundId: null,      // para ida de ida-vuelta
+      selectedReturnId: null,        // para vuelta de ida-vuelta
+      selectedMultiCityIds: [],
       tripType: 'ida-vuelta',
       search: {
         origin: '',
@@ -714,6 +727,35 @@ export default {
         .finally(() => {
           this.loading = false;
         });
+    },
+
+    toggleFlight(flightId) {
+      this.selectedFlightId = this.selectedFlightId === flightId ? null : flightId;
+    },
+
+    toggleOutbound(flightId) {
+      this.selectedOutboundId = this.selectedOutboundId === flightId ? null : flightId;
+    },
+
+    toggleReturn(flightId) {
+      this.selectedReturnId = this.selectedReturnId === flightId ? null : flightId;
+    },
+
+    toggleMultiCity(flightId) {
+      if (this.selectedMultiCityIds.includes(flightId)) {
+        this.selectedMultiCityIds = this.selectedMultiCityIds.filter(id => id !== flightId);
+      } else {
+        this.selectedMultiCityIds.push(flightId);
+      }
+    },
+
+    selectSeatClass(flight, seatClass) {
+
+      this.$router.push({path: '/booking', query: {
+        flightId: flight.id,
+        seatClass: seatClass,
+        passengersCount: this.search.passengers
+      }})
     }
   }
 };
@@ -1531,5 +1573,21 @@ export default {
 .footer-bottom p {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.9rem;
+}
+
+.seat-option {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  margin: 5px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.seat-option:hover {
+  background: #f0f7ff;
+  border-color: #4a90e2;
 }
 </style>
