@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using snoopy_airlines_backend.Repositories;
+using snoopy_airlines_backend.Services;
+using SnoopyAirlines.Infrastructure.Json;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
 using System.Text;
-using Microsoft.OpenApi.Models;
-using SnoopyAirlines.Infrastructure.Json;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
@@ -43,6 +45,8 @@ builder.Services.AddScoped<AirportRepository>();
 builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<AirplaneRepository>();
 builder.Services.AddScoped<AirplaneService>();
+builder.Services.AddScoped<PurchaseOrderRepository>();
+builder.Services.AddScoped<PurchaseOrderService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<ConsoleEmailSender>();
 builder.Services.AddScoped<IEmailSender>(serviceProvider =>

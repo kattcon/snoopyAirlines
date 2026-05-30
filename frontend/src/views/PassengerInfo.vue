@@ -131,7 +131,7 @@
 </template>
 
 <script>
-//import axios from "axios";
+import axios from "axios";
 export default {
     name: "passengerInfo",
     data() {
@@ -156,7 +156,8 @@ export default {
                 email: '',
             },
             errors: [],
-            months: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+            months: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+            'Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
         };
     },
     computed:{
@@ -175,7 +176,8 @@ export default {
         },
         PassengerValid(index) {
             const passenger = this.passengers[index];
-            return passenger.firstName && passenger.lastName && passenger.gender && passenger.birthDay && passenger.birthMonth && passenger.birthYear && passenger.nationality;
+            return passenger.firstName && passenger.lastName && passenger.gender &&
+            passenger.birthDay && passenger.birthMonth && passenger.birthYear && passenger.nationality;
         },
         HolderValid() {
             return this.holder.firstName && this.holder.lastName && this.holder.email;
@@ -195,11 +197,34 @@ export default {
                 email: !this.holder.email,
             };
 
-            const hasErrorsPassenger = this.errors.some(error => error.firstName || error.lastName || error.gender || error.nationality || error.birthdate);
+            const hasErrorsPassenger = this.errors.some(error => error.firstName ||
+            error.lastName || error.gender || error.nationality || error.birthdate);
             const hasErrorsHolder = this.errors.holder.firstName || this.errors.holder.lastName || this.errors.holder.email;
             if(hasErrorsPassenger || hasErrorsHolder){
                 return;
             }
+
+            const purchaseOrderRequest = {
+                flightId: parseInt(this.$route.query.flightId),
+                seatClass: this.$route.query.seatClass,
+                passengers: this.passengers.map(p => ({
+                    ...p,
+                    birthDay: String(p.birthDay),
+                    birthMonth: String(p.birthMonth),
+                    birthYear: String(p.birthYear),
+                }))
+            };
+            console.log('Request:', JSON.stringify(purchaseOrderRequest));
+            axios.post(`${process.env.VUE_APP_BACKEND_URL}/PurchaseOrder`, purchaseOrderRequest)
+            .then((response) => {
+                sessionStorage.setItem('purchaseOrderId', response.data.id);
+                alert("Datos guardados exitosamente");
+                this.$router.push('/payment');
+            })
+            .catch((error) => {
+                alert("Error al guardar los datos de los pasajeros");
+                console.error(error);
+            });
         }
     }
 }
