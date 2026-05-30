@@ -1,0 +1,28 @@
+﻿using snoopy_airlines_backend.Domain;
+using snoopy_airlines_backend.Repositories;
+using SnoopyAirlines.domain;
+using SnoopyAirlines.Domain.View;
+using SnoopyAirlines.Repositories;
+
+namespace snoopy_airlines_backend.Services
+{
+    public class PurchaseOrderService
+    {
+        private readonly PurchaseOrderRepository _purchaseOrderRepository;
+
+        public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository)
+        {
+            _purchaseOrderRepository = purchaseOrderRepository;
+        }
+
+        public Task<PurchaseOrder> CreatePurchaseOrderAsync(PurchaseOrder order, CancellationToken cancellationToken)
+        {
+            return _purchaseOrderRepository.CreatePurchaseOrderAsync(order, cancellationToken);
+        }
+
+        public Task<IReadOnlyCollection<PurchaseOrder>> GetPurchaseOrdersAsync(CancellationToken cancellationToken)
+        {
+            return _purchaseOrderRepository.GetPurchaseOrdersAsync(cancellationToken);
+        }
+    }
+}
