@@ -29,8 +29,8 @@
                     :items="filteredAircrafts"
                     empty-message="No hay aeronaves disponibles"
                     >
-                    <template #cell-actions>
-                        <button @click.stop="">Ver</button>
+                    <template #cell-actions="{ item }">
+                        <button class="primaryButton" @click.stop="$router.push(`/admin/edit-aircraft/${item.id}`)">Editar</button>
                     </template>
                 </AppList>
                 <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>

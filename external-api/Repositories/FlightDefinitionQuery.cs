@@ -4,16 +4,16 @@ namespace SnoopyAirlines.External.Repositories
 {
     public class FlightDefinitionQuery
     {
-        public string? Origin { get; set; }
         public string? Destination { get; set; }
-        public IReadOnlyCollection<FlightDefinitionDepartureWindow> DepartureWindows { get; set; } = [];
+        public IReadOnlyCollection<FlightDefinitionArrivalWindow> ArrivalWindows { get; set; } = [];
         public int? QuantityOfPassengers { get; set; }
     }
 
-    public class FlightDefinitionDepartureWindow
+    public class FlightDefinitionArrivalWindow
     {
-        public FlightFrequency Frequency { get; set; } = new();
-        public TimeOnly EarliestDeparture { get; set; }
-        public TimeOnly LatestDeparture { get; set; }
+        public FlightFrequency SameDayDepartureFrequency { get; set; } = new();
+        public FlightFrequency PreviousDayDepartureFrequency { get; set; } = new();
+        public TimeOnly EarliestArrival { get; set; }
+        public TimeOnly LatestArrival { get; set; }
     }
 }
