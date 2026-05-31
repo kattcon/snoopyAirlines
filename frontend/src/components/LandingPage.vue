@@ -126,7 +126,7 @@
             <div v-if="tripType === 'ida'">
               <h3>Vuelos disponibles</h3>
               <div class="flights-grid">
-                <div class="flight-card" v-for="flight in searchResults" :key="flight.id">
+                <div class="flight-card" v-for="flight in searchResults" :key="flight.id" @click="toggleFlight(flight.id)" style="cursor:pointer">
                   <div class="flight-header">
                     <div class="flight-route">
                       <span class="airport-code">{{ search.origin }}</span>
@@ -147,16 +147,18 @@
                     </div>
                   </div>
                   <div class="flight-prices">
-                    <div class="price-option">
-                      <span class="class-name">Económica</span>
-                      <span class="price">${{ flight.priceEconomyClass }}</span>
-                    </div>
-                    <div class="price-option">
-                      <span class="class-name">Primera Clase</span>
-                      <span class="price">${{ flight.priceFirstClass }}</span>
+                    <div v-if="selectedFlightId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
+                        <span class="class-name">Económica</span>
+                        <span class="price">${{ flight.priceEconomyClass }}</span>
+      
+                      </div>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
+                        <span class="price">${{ flight.priceFirstClass }}</span>
+                      </div>
                     </div>
                   </div>
-                  <button class="btn-select-flight">Seleccionar</button>
                 </div>
               </div>
             </div>
@@ -167,7 +169,7 @@
               <div class="trip-section">
                 <h3>Vuelos de IDA - {{ search.origin }} → {{ search.destination }}</h3>
                 <div v-if="outboundFlights.length > 0" class="flights-grid">
-                  <div class="flight-card" v-for="flight in outboundFlights" :key="'out-' + flight.id">
+                  <div class="flight-card" v-for="flight in outboundFlights" :key="'out-' + flight.id" @click="toggleOutbound(flight.id)" style="cursor:pointer">
                     <div class="flight-header">
                       <div class="flight-route">
                         <span class="airport-code">{{ search.origin }}</span>
@@ -188,16 +190,18 @@
                       </div>
                     </div>
                     <div class="flight-prices">
-                      <div class="price-option">
+                      <div v-if="selectedOutboundId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
+      
                       </div>
-                      <div class="price-option">
-                        <span class="class-name">Primera Clase</span>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
                     </div>
-                    <button class="btn-select-flight">Seleccionar</button>
+                    </div>
                   </div>
                 </div>
                 <p v-else class="no-results">No se encontraron vuelos de ida para esa fecha</p>
@@ -207,7 +211,7 @@
               <div class="trip-section">
                 <h3>Vuelos de VUELTA - {{ search.destination }} → {{ search.origin }}</h3>
                 <div v-if="returnFlights.length > 0" class="flights-grid">
-                  <div class="flight-card" v-for="flight in returnFlights" :key="'ret-' + flight.id">
+                  <div class="flight-card" v-for="flight in returnFlights" :key="'ret-' + flight.id" @click="toggleReturn(flight.id)" style="cursor:pointer">
                     <div class="flight-header">
                       <div class="flight-route">
                         <span class="airport-code">{{ search.destination }}</span>
@@ -228,14 +232,17 @@
                       </div>
                     </div>
                     <div class="flight-prices">
-                      <div class="price-option">
+                      <div v-if="selectedReturnId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
+      
                       </div>
-                      <div class="price-option">
-                        <span class="class-name">Primera Clase</span>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
+                    </div>
                     </div>
                     <button class="btn-select-flight">Seleccionar</button>
                   </div>
@@ -284,16 +291,18 @@
                       </div>
                     </div>
                     <div class="flight-prices">
-                      <div class="price-option">
+                      <div v-if="selectedOutboundId === flight.id" class="seat-options">
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
+      
                       </div>
-                      <div class="price-option">
-                        <span class="class-name">Primera Clase</span>
+                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                        <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
                     </div>
-                    <button class="btn-select-flight">Seleccionar</button>
+                    </div>
                   </div>
                 </div>
 
@@ -378,13 +387,17 @@
 <script>
 
 
-const EXTERNAL_API_BASE = 'http://localhost:5187';  // Puerto del proyecto External
-const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';         // API key
+const BACKEND_API_BASE = 'http://localhost:5235';
+const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';
 
 export default {
   name: 'LandingPage',
   data() {
     return {
+      selectedFlightId: null,
+      selectedOutboundId: null,      // para ida de ida-vuelta
+      selectedReturnId: null,        // para vuelta de ida-vuelta
+      selectedMultiCityIds: [],
       tripType: 'ida-vuelta',
       search: {
         origin: '',
@@ -397,30 +410,8 @@ export default {
           { origin: '', destination: '', departureDate: '' }
         ]
       },
-      originCities: [
-        { code: 'SJO', name: 'San José' },
-        { code: 'LIR', name: 'Liberia' },
-        { code: 'JFK', name: 'Nueva York' },
-        { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MIA', name: 'Miami' },
-        { code: 'YYZ', name: 'Toronto' },
-        { code: 'LHR', name: 'Londres' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'FRA', name: 'Fráncfort' },
-        { code: 'AMS', name: 'Ámsterdam' }
-      ],
-      destinationCities: [
-        { code: 'SJO', name: 'San José' },
-        { code: 'LIR', name: 'Liberia' },
-        { code: 'JFK', name: 'Nueva York' },
-        { code: 'LAX', name: 'Los Ángeles' },
-        { code: 'MIA', name: 'Miami' },
-        { code: 'YYZ', name: 'Toronto' },
-        { code: 'LHR', name: 'Londres' },
-        { code: 'MAD', name: 'Madrid' },
-        { code: 'FRA', name: 'Fráncfort' },
-        { code: 'AMS', name: 'Ámsterdam' }
-      ],
+      originCities: [],
+      destinationCities: [],
       searchResults: [],
       outboundFlights: [],
       returnFlights: [],
@@ -534,7 +525,36 @@ export default {
       ]
     };
   },
+  mounted() {
+    this.loadAirports();
+  },
   methods: {
+    /**
+     * Carga todos los aeropuertos disponibles desde el External API
+     * y los asigna a las listas de origen y destino.
+     */
+    async loadAirports() {
+      try {
+const response = await fetch(`${BACKEND_API_BASE}/airport`);
+        if (!response.ok) {
+          console.error('Error al cargar aeropuertos:', response.statusText);
+          return;
+        }
+
+        const airports = await response.json();
+
+        // Convertir formato API { code, name, city } a formato de la app { code, name }
+        const formattedCities = airports.map(airport => ({
+          code: airport.code,
+          name: airport.name
+        }));
+
+        this.originCities = formattedCities;
+        this.destinationCities = formattedCities;
+      } catch (error) {
+        console.error('Error cargando aeropuertos:', error);
+      }
+    },
     setTripType(type) {
       this.tripType = type;
       if (type === 'multiciudad' && this.search.legs.length < 2) {
@@ -584,18 +604,23 @@ export default {
      *   flightGUID        → id
      *   touristPrice      → priceEconomyClass
      *   firstClassPrice   → priceFirstClass
-     *   duration "hh-mm"  → durationMinutes (int)
+     *   duration "hh:mm" o "hh-mm" → durationMinutes (int)
      *
      * departureTime y arrivalTime ya vienen en formato ISO, no cambian.
      */
     mapFlight(flight) {
-      const [hours, minutes] = flight.duration.split('-').map(Number);
+      const [hours, minutes] = (flight.duration ?? '')
+        .split(/[:-]/)
+        .map(Number);
+      const validHours = Number.isFinite(hours) ? hours : 0;
+      const validMinutes = Number.isFinite(minutes) ? minutes : 0;
+
       return {
         ...flight,
-        id:               flight.flightGUID,
+        id:                flight.flightGUID,
         priceEconomyClass: flight.touristPrice,
         priceFirstClass:   flight.firstClassPrice,
-        durationMinutes:   hours * 60 + minutes,
+        durationMinutes:   validHours * 60 + validMinutes,
       };
     },
 
@@ -604,7 +629,7 @@ export default {
      */
     fetchFlights(origin, destination, date, passengers) {
       const params = this.buildExternalParams(origin, destination, date, passengers);
-      return fetch(`${EXTERNAL_API_BASE}/api/external?${params}`)
+      return fetch(`${BACKEND_API_BASE}/Flight/search?${params}`)
         .then(res => {
           if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
           return res.json();
@@ -714,6 +739,35 @@ export default {
         .finally(() => {
           this.loading = false;
         });
+    },
+
+    toggleFlight(flightId) {
+      this.selectedFlightId = this.selectedFlightId === flightId ? null : flightId;
+    },
+
+    toggleOutbound(flightId) {
+      this.selectedOutboundId = this.selectedOutboundId === flightId ? null : flightId;
+    },
+
+    toggleReturn(flightId) {
+      this.selectedReturnId = this.selectedReturnId === flightId ? null : flightId;
+    },
+
+    toggleMultiCity(flightId) {
+      if (this.selectedMultiCityIds.includes(flightId)) {
+        this.selectedMultiCityIds = this.selectedMultiCityIds.filter(id => id !== flightId);
+      } else {
+        this.selectedMultiCityIds.push(flightId);
+      }
+    },
+
+    selectSeatClass(flight, seatClass) {
+
+      this.$router.push({path: '/booking', query: {
+        flightId: flight.id,
+        seatClass: seatClass,
+        passengersCount: this.search.passengers
+      }})
     }
   }
 };
@@ -1531,5 +1585,21 @@ export default {
 .footer-bottom p {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.9rem;
+}
+
+.seat-option {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  margin: 5px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.seat-option:hover {
+  background: #f0f7ff;
+  border-color: #4a90e2;
 }
 </style>

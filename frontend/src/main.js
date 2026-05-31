@@ -18,6 +18,7 @@ import RegisterAircraft from './views/RegisterAircraft.vue';
 import AircraftsList from './views/AircraftsList.vue';
 import UserInfo from './views/UserInfo.vue';
 import EditAirport from './views/EditAirport.vue';
+import PassengerInfo from './views/PassengerInfo.vue';
 import EditAircraft from './views/EditAircraft.vue';
 
 const router = createRouter({
@@ -26,6 +27,7 @@ const router = createRouter({
         { path: "/", name: "Home", component: LandingPage },
         { path: "/login", name: "Login", component: LoginPage },
         { path: "/register", name: "Register", component: RegisterPage },
+        { path: "/booking", name: "Booking", component: PassengerInfo},
         { path: "/admin", children: 
             [ { path: 'flights', component: InternalLandingPageFlights },
               { path: 'users', component: InternalLandingPageUsers},
