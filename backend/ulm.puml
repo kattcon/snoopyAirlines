@@ -211,6 +211,15 @@ package "Domain" as Domain {
         + CheckedBaggagePriceMultiplier : decimal
     }
 
+    class Flight <<Entity>> {
+        + Guid : Guid
+        + RouteId : int
+        + DepartureAt : DateTime
+        + ArrivalAt : DateTime
+        + Status : string
+        + CreatedAt : DateTime
+    }
+
     class RouteFrequency <<Value Object>> {
         + Monday : bool
         + Tuesday : bool
