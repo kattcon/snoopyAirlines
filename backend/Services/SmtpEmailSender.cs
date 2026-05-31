@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text;
+using System.Net.Mime;
 
 namespace SnoopyAirlines.Services
 {
@@ -32,13 +33,36 @@ namespace SnoopyAirlines.Services
             {
                 From = new MailAddress(fromAddress, fromName),
                 Subject = subject,
-                Body = body,
-                IsBodyHtml = isHtml,
                 SubjectEncoding = Encoding.UTF8,
                 BodyEncoding = Encoding.UTF8
             };
 
             message.To.Add(to);
+
+            if (isHtml)
+            {
+                var htmlView = AlternateView.CreateAlternateViewFromString(body, Encoding.UTF8, MediaTypeNames.Text.Html);
+                var logoPath = Path.Combine(AppContext.BaseDirectory, "frontend", "src","assets", "logoSA.png");
+
+                if (File.Exists(logoPath))
+                {
+                    var logo = new LinkedResource(logoPath, MediaTypeNames.Image.Png)
+                    {
+                        ContentId = "logoSA",
+                        TransferEncoding = TransferEncoding.Base64
+                    };
+
+                    logo.ContentType.Name = "logoSA.png";
+                    htmlView.LinkedResources.Add(logo);
+                }
+
+                message.AlternateViews.Add(htmlView);
+            }
+            else
+            {
+                message.Body = body;
+                message.IsBodyHtml = false;
+            }
 
             using var client = new SmtpClient(host, port)
             {
