@@ -31,8 +31,14 @@ package "Controllers" as Controllers {
     }
 
     class FlightController <<Controller>> {
-        - flightService : FlightService
+        - routeService : RouteService
         + FlightController()
+        + Search()
+    }
+
+    class RouteController <<Controller>> {
+        - routeService : RouteService
+        + RouteController()
         + Get()
         + Post()
     }
@@ -49,7 +55,8 @@ package "Controllers" as Controllers {
 
     AirplaneController -[hidden]right- AirportController
     AirportController -[hidden]right- FlightController
-    FlightController -[hidden]right- UserController
+    FlightController -[hidden]right- RouteController
+    RouteController -[hidden]right- UserController
 }
 
 package "Services" as Services {
@@ -71,12 +78,13 @@ package "Services" as Services {
         + GetAirports()
     }
 
-    class FlightService <<Service>> {
-        - flightRepository : FlightRepository
-        + FlightService()
-        + GetFlights()
-        + SearchFlights()
-        + SaveFlight()
+    class RouteService <<Service>> {
+        - routeRepository : RouteRepository
+        + RouteService()
+        + GetRoutesAsync()
+        + SearchRoutesAsync()
+        + SearchFlightsAsync()
+        + SaveRouteAsync()
     }
 
     class UserService <<Service>> {
@@ -105,8 +113,8 @@ package "Services" as Services {
     }
 
     AirplaneService -[hidden]right- AirportService
-    AirportService -[hidden]right- FlightService
-    FlightService -[hidden]right- UserService
+    AirportService -[hidden]right- RouteService
+    RouteService -[hidden]right- UserService
     UserService -[hidden]right- TokenService
     TokenService -[hidden]right- IEmailSender
 }
@@ -131,12 +139,13 @@ package "Repositories" as Repositories {
         + GetAirports()
     }
 
-    class FlightRepository <<Repository>> {
+    class RouteRepository <<Repository>> {
         - connectionString : string
-        + FlightRepository()
-        + GetAll()
-        + Search()
-        + Save()
+        + RouteRepository()
+        + GetAllAsync()
+        + SearchAsync()
+        + GetRoutesAsync()
+        + SaveAsync()
     }
 
     class UserRepository <<Repository>> {
@@ -152,8 +161,8 @@ package "Repositories" as Repositories {
     }
 
     AirplaneRepository -[hidden]right- AirportRepository
-    AirportRepository -[hidden]right- FlightRepository
-    FlightRepository -[hidden]right- UserRepository
+    AirportRepository -[hidden]right- RouteRepository
+    RouteRepository -[hidden]right- UserRepository
 }
 
 package "Domain" as Domain {
@@ -184,14 +193,14 @@ package "Domain" as Domain {
         + Name : string
     }
 
-    class Flight <<Entity>> {
+    class Route <<Entity>> {
         + Id : int
         + AirplaneId : int
         + DepartureAirportId : int
         + ArrivalAirportId : int
         + DepartureTime : TimeOnly
         + ArrivalTime : TimeOnly
-        + Frequency : FlightFrequency
+        + Frequency : RouteFrequency
         + DurationMinutes : int
         + PriceFirstClass : decimal
         + PriceEconomyClass : decimal
@@ -202,7 +211,7 @@ package "Domain" as Domain {
         + CheckedBaggagePriceMultiplier : decimal
     }
 
-    class FlightFrequency <<Value Object>> {
+    class RouteFrequency <<Value Object>> {
         + Monday : bool
         + Tuesday : bool
         + Wednesday : bool
@@ -299,6 +308,20 @@ package "View DTOs" as ViewDtos {
         + CountryName : string
     }
 
+    class FlightResponse <<DTO>> {
+        + FlightGUID : string
+        + RouteId : int
+        + DepartureTime : DateTime
+        + ArrivalTime : DateTime
+        + Duration : string
+        + TouristPrice : decimal
+        + FirstClassPrice : decimal
+    }
+
+    class FlightsResponse <<DTO>> {
+        + Flights : IReadOnlyCollection<FlightResponse>
+    }
+
     class UserView <<DTO>> {
         + Id : int
         + IdentificationNumber : string
@@ -313,13 +336,14 @@ package "View DTOs" as ViewDtos {
 
 AirplaneController -down-> AirplaneService
 AirportController -down-> AirportService
-FlightController -down-> FlightService
+FlightController -down-> RouteService
+RouteController -down-> RouteService
 UserController -down-> UserService
 UserController -down-> TokenService
 
 AirplaneService -down-> AirplaneRepository
 AirportService -down-> AirportRepository
-FlightService -down-> FlightRepository
+RouteService -down-> RouteRepository
 UserService -down-> UserRepository
 UserService -down-> IEmailSender
 
