@@ -17,7 +17,8 @@ namespace SnoopyAirlines.Services
             string to,
             string subject,
             string body,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool isHtml = false)
         {
             var host = GetRequiredSetting("Email:Host");
             var fromAddress = GetRequiredSetting("Email:FromAddress");
@@ -32,7 +33,7 @@ namespace SnoopyAirlines.Services
                 From = new MailAddress(fromAddress, fromName),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false,
+                IsBodyHtml = isHtml,
                 SubjectEncoding = Encoding.UTF8,
                 BodyEncoding = Encoding.UTF8
             };

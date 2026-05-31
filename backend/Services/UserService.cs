@@ -64,14 +64,15 @@ namespace SnoopyAirlines.Services
             string registrationKey,
             CancellationToken cancellationToken)
         {
-            var registrationUrl = $"snoopyairlines.com/register?key={Uri.EscapeDataString(registrationKey)}";
-            var body = $"Por favor ingrese al siguiente enlace para finalizar su registro: {registrationUrl}";
+            var registrationUrl = $"https://snoopyairlines.com/register?key={Uri.EscapeDataString(registrationKey)}";
+            var htmlBody = RegistrationEmailTemplate.Build(registrationUrl);
 
             return _emailSender.SendAsync(
                 email,
                 "Bienvenido a Snoopy Airlines",
-                body,
-                cancellationToken);
+                htmlBody,
+                cancellationToken,
+                isHtml: true);
         }
 
         public async Task<UserView?> RegisterPendingUserAsync(

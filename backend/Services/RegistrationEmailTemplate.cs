@@ -4,13 +4,13 @@ namespace SnoopyAirlines.Services
 {
     public class RegistrationEmailTemplate
     {
-        private const string ResourceName = "backend.resources.emails.registrationEmail.html";
+        private const string ResourceName = "snoopy_airlines_backend.Resources.Emails.registrationEmail.html";
 
         public static string Build(string registrationUrl)
         {
             var assembly = Assembly.GetExecutingAssembly();
 
-            using var stream = assembly.GetManifestResourceStream(ResourceName);
+            using var stream = assembly.GetManifestResourceStream(ResourceName)
                 ?? throw new InvalidOperationException(
                     $"Email template not found as embedded resource: '{ResourceName}'. " +
                     $"Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
