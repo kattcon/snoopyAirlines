@@ -28,14 +28,14 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddControllers();
-builder.Services.AddScoped(sp => new FlightRepository(builder.Configuration));
+builder.Services.AddScoped(sp => new RouteRepository(builder.Configuration));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     });
-builder.Services.AddScoped<FlightRepository>();
-builder.Services.AddScoped<FlightService>();
+builder.Services.AddScoped<RouteRepository>();
+builder.Services.AddScoped<RouteService>();
 builder.Services.AddScoped(sp => new UserRepository(builder.Configuration));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(sp => new AirportRepository(builder.Configuration));

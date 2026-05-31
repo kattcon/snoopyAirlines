@@ -2,20 +2,21 @@ using System.Text;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.Domain;
+using DomainRoute = SnoopyAirlines.Domain.Route;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class FlightRepository
+    public class RouteRepository
     {
         private readonly string _connectionString;
 
-        public FlightRepository(IConfiguration configuration)
+        public RouteRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<IReadOnlyCollection<Flight>> GetAllAsync(CancellationToken cancellationToken)
+        public async Task<IReadOnlyCollection<DomainRoute>> GetAllAsync(CancellationToken cancellationToken)
         {
             const string sql = """
                 SELECT
@@ -34,22 +35,22 @@ namespace SnoopyAirlines.Repositories
                     weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
                     weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
                     checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
-                FROM flight
+                FROM [route]
                 ORDER BY departure_time;
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            var flights = await connection.QueryAsync<FlightRecord>(
+            var routes = await connection.QueryAsync<RouteRecord>(
                 new CommandDefinition(sql, cancellationToken: cancellationToken));
 
-            return flights.Select(ToFlight).ToList();
+            return routes.Select(ToRoute).ToList();
         }
 
-        public async Task<IReadOnlyCollection<FlightDefinition>> GetFlightDefinitionsAsync(
-            FlightDefinitionQuery flightQuery,
+        public async Task<IReadOnlyCollection<DomainRoute>> GetRoutesAsync(
+            RouteSearchQuery routeQuery,
             CancellationToken cancellationToken = default)
         {
-            flightQuery ??= new FlightDefinitionQuery();
+            routeQuery ??= new RouteSearchQuery();
 
             var sql = new StringBuilder();
             sql.Append("""
@@ -67,9 +68,9 @@ namespace SnoopyAirlines.Repositories
                     arrival_city.name AS ArrivalAirportCity,
                     f.price_economy_class AS PriceEconomyClass,
                     f.price_first_class AS PriceFirstClass,
-                    f.price_carry_on_baggage AS CarryOnPrice,
-                    f.price_checked_baggage AS CheckedPrice
-                FROM flight f
+                    f.price_carry_on_baggage AS PriceCarryOnBaggage,
+                    f.price_checked_baggage AS PriceCheckedBaggage
+                FROM [route] f
                 INNER JOIN airport departure_airport ON f.departure_airport_id = departure_airport.id
                 INNER JOIN city departure_city ON departure_airport.city_id = departure_city.id
                 INNER JOIN airport arrival_airport ON f.arrival_airport_id = arrival_airport.id
@@ -79,21 +80,21 @@ namespace SnoopyAirlines.Repositories
             var where = new List<string>();
             var parameters = new DynamicParameters();
 
-            if (!string.IsNullOrWhiteSpace(flightQuery.Origin))
+            if (!string.IsNullOrWhiteSpace(routeQuery.Origin))
             {
                 where.Add("departure_airport.code = @Origin");
-                parameters.Add("Origin", flightQuery.Origin);
+                parameters.Add("Origin", routeQuery.Origin);
             }
 
-            if (!string.IsNullOrWhiteSpace(flightQuery.Destination))
+            if (!string.IsNullOrWhiteSpace(routeQuery.Destination))
             {
                 where.Add("arrival_airport.code = @Destination");
-                parameters.Add("Destination", flightQuery.Destination);
+                parameters.Add("Destination", routeQuery.Destination);
             }
 
-            if (flightQuery.DepartureWindows.Count > 0)
+            if (routeQuery.DepartureWindows.Count > 0)
             {
-                AddDepartureWindowFilters(where, parameters, flightQuery.DepartureWindows);
+                AddDepartureWindowFilters(where, parameters, routeQuery.DepartureWindows);
             }
 
            if (where.Count > 0)
@@ -105,13 +106,13 @@ namespace SnoopyAirlines.Repositories
             sql.Append(" ORDER BY f.departure_time;");
 
             await using var connection = new SqlConnection(_connectionString);
-            var flights = await connection.QueryAsync<FlightDefinitionRecord>(
+            var routes = await connection.QueryAsync<RouteSearchRecord>(
                 new CommandDefinition(sql.ToString(), parameters, cancellationToken: cancellationToken));
 
-            return flights.Select(ToFlightDefinition).ToList();
+            return routes.Select(ToRoute).ToList();
         }
 
-        public async Task<IReadOnlyCollection<Flight>> SearchAsync(
+        public async Task<IReadOnlyCollection<DomainRoute>> SearchAsync(
             int? departureAirportId,
             int? arrivalAirportId,
             DateOnly? departureDate,
@@ -133,7 +134,7 @@ namespace SnoopyAirlines.Repositories
                     weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
                     weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
                     checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
-                FROM flight
+                FROM [route]
                 WHERE (@DepartureAirportId IS NULL OR departure_airport_id = @DepartureAirportId)
                   AND (@ArrivalAirportId IS NULL OR arrival_airport_id = @ArrivalAirportId)
                   AND (@DepartureDate IS NULL OR CAST(departure_time AS date) = @DepartureDate)
@@ -141,7 +142,7 @@ namespace SnoopyAirlines.Repositories
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            var flights = await connection.QueryAsync<Flight>(
+            var routes = await connection.QueryAsync<DomainRoute>(
                 new CommandDefinition(
                     sql,
                     new
@@ -152,15 +153,15 @@ namespace SnoopyAirlines.Repositories
                     },
                     cancellationToken: cancellationToken));
 
-            return flights.ToList();
+            return routes.ToList();
         }
 
-        public async Task<Flight> SaveAsync(Flight flight, CancellationToken cancellationToken)
+        public async Task<DomainRoute> SaveAsync(DomainRoute route, CancellationToken cancellationToken)
         {
             const string sql = """
-                IF @Id > 0 AND EXISTS (SELECT 1 FROM flight WHERE id = @Id)
+                IF @Id > 0 AND EXISTS (SELECT 1 FROM [route] WHERE id = @Id)
                 BEGIN
-                    UPDATE flight
+                    UPDATE [route]
                     SET
                         airplane_id = @AirplaneId,
                         departure_airport_id = @DepartureAirportId,
@@ -196,7 +197,7 @@ namespace SnoopyAirlines.Repositories
                 END
                 ELSE
                 BEGIN
-                    INSERT INTO flight (
+                    INSERT INTO [route] (
                         airplane_id,
                         departure_airport_id,
                         arrival_airport_id,
@@ -248,58 +249,58 @@ namespace SnoopyAirlines.Repositories
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            var savedFlight = await connection.QuerySingleAsync<FlightRecord>(
-                new CommandDefinition(sql, ToParameters(flight), cancellationToken: cancellationToken));
+            var savedRoute = await connection.QuerySingleAsync<RouteRecord>(
+                new CommandDefinition(sql, ToParameters(route), cancellationToken: cancellationToken));
 
-            return ToFlight(savedFlight);
+            return ToRoute(savedRoute);
         }
 
-        private static Flight ToFlight(FlightRecord flight)
+        private static DomainRoute ToRoute(RouteRecord route)
         {
-            return new Flight
+            return new DomainRoute
             {
-                Id = flight.Id,
-                AirplaneId = flight.AirplaneId,
-                DepartureAirportId = flight.DepartureAirportId,
-                ArrivalAirportId = flight.ArrivalAirportId,
-                DepartureTime = TimeOnly.FromTimeSpan(flight.DepartureTime),
-                ArrivalTime = TimeOnly.FromTimeSpan(flight.ArrivalTime),
-                Frequency = FlightFrequency.FromByte(flight.Frequency),
-                DurationMinutes = flight.DurationMinutes,
-                PriceFirstClass = flight.PriceFirstClass,
-                PriceEconomyClass = flight.PriceEconomyClass,
-                PriceCarryOnBaggage = flight.PriceCarryOnBaggage,
-                PriceCheckedBaggage = flight.PriceCheckedBaggage,
-                WeightLimitCarryOnBaggage = flight.WeightLimitCarryOnBaggage,
-                WeightLimitCheckedBaggage = flight.WeightLimitCheckedBaggage,
-                CheckedBaggagePriceMultiplier = flight.CheckedBaggagePriceMultiplier
+                Id = route.Id,
+                AirplaneId = route.AirplaneId,
+                DepartureAirportId = route.DepartureAirportId,
+                ArrivalAirportId = route.ArrivalAirportId,
+                DepartureTime = TimeOnly.FromTimeSpan(route.DepartureTime),
+                ArrivalTime = TimeOnly.FromTimeSpan(route.ArrivalTime),
+                Frequency = RouteFrequency.FromByte(route.Frequency),
+                DurationMinutes = route.DurationMinutes,
+                PriceFirstClass = route.PriceFirstClass,
+                PriceEconomyClass = route.PriceEconomyClass,
+                PriceCarryOnBaggage = route.PriceCarryOnBaggage,
+                PriceCheckedBaggage = route.PriceCheckedBaggage,
+                WeightLimitCarryOnBaggage = route.WeightLimitCarryOnBaggage,
+                WeightLimitCheckedBaggage = route.WeightLimitCheckedBaggage,
+                CheckedBaggagePriceMultiplier = route.CheckedBaggagePriceMultiplier
             };
         }
 
-        private static FlightDefinition ToFlightDefinition(FlightDefinitionRecord flight)
+        private static DomainRoute ToRoute(RouteSearchRecord route)
         {
-            return new FlightDefinition
+            return new DomainRoute
             {
-                Id = flight.Id,
-                DepartureTime = TimeOnly.FromTimeSpan(flight.DepartureTime),
-                ArrivalTime = TimeOnly.FromTimeSpan(flight.ArrivalTime),
-                Frequency = FlightFrequency.FromByte(flight.Frequency),
-                DurationMinutes = flight.DurationMinutes,
-                PriceEconomyClass = flight.PriceEconomyClass,
-                PriceFirstClass = flight.PriceFirstClass,
-                CarryOnPrice = flight.CarryOnPrice,
-                CheckedPrice = flight.CheckedPrice,
-                DepartureAirport = new FlightDefinitionAirport
+                Id = route.Id,
+                DepartureTime = TimeOnly.FromTimeSpan(route.DepartureTime),
+                ArrivalTime = TimeOnly.FromTimeSpan(route.ArrivalTime),
+                Frequency = RouteFrequency.FromByte(route.Frequency),
+                DurationMinutes = route.DurationMinutes,
+                PriceEconomyClass = route.PriceEconomyClass,
+                PriceFirstClass = route.PriceFirstClass,
+                PriceCarryOnBaggage = route.PriceCarryOnBaggage,
+                PriceCheckedBaggage = route.PriceCheckedBaggage,
+                DepartureAirport = new RouteAirport
                 {
-                    Code = flight.DepartureAirportCode,
-                    Name = flight.DepartureAirportName,
-                    City = flight.DepartureAirportCity
+                    Code = route.DepartureAirportCode,
+                    Name = route.DepartureAirportName,
+                    City = route.DepartureAirportCity
                 },
-                ArrivalAirport = new FlightDefinitionAirport
+                ArrivalAirport = new RouteAirport
                 {
-                    Code = flight.ArrivalAirportCode,
-                    Name = flight.ArrivalAirportName,
-                    City = flight.ArrivalAirportCity
+                    Code = route.ArrivalAirportCode,
+                    Name = route.ArrivalAirportName,
+                    City = route.ArrivalAirportCity
                 }
             };
         }
@@ -307,7 +308,7 @@ namespace SnoopyAirlines.Repositories
         private static void AddDepartureWindowFilters(
             ICollection<string> where,
             DynamicParameters parameters,
-            IReadOnlyCollection<FlightDefinitionDepartureWindow> departureWindows)
+            IReadOnlyCollection<RouteDepartureWindow> departureWindows)
         {
             var conditions = new List<string>();
             var index = 0;
@@ -339,7 +340,7 @@ namespace SnoopyAirlines.Repositories
             }
         }
 
-        private static byte ToByte(FlightFrequency frequency)
+        private static byte ToByte(RouteFrequency frequency)
         {
             byte value = 0;
 
@@ -354,29 +355,29 @@ namespace SnoopyAirlines.Repositories
             return value;
         }
 
-        private static object ToParameters(Flight flight)
+        private static object ToParameters(DomainRoute route)
         {
             return new
             {
-                flight.Id,
-                flight.AirplaneId,
-                flight.DepartureAirportId,
-                flight.ArrivalAirportId,
-                DepartureTime = flight.DepartureTime.ToTimeSpan(),
-                ArrivalTime = flight.ArrivalTime.ToTimeSpan(),
-                Frequency = flight.Frequency.ToByte(),
-                flight.DurationMinutes,
-                flight.PriceFirstClass,
-                flight.PriceEconomyClass,
-                flight.PriceCarryOnBaggage,
-                flight.PriceCheckedBaggage,
-                flight.WeightLimitCarryOnBaggage,
-                flight.WeightLimitCheckedBaggage,
-                flight.CheckedBaggagePriceMultiplier
+                route.Id,
+                route.AirplaneId,
+                route.DepartureAirportId,
+                route.ArrivalAirportId,
+                DepartureTime = route.DepartureTime.ToTimeSpan(),
+                ArrivalTime = route.ArrivalTime.ToTimeSpan(),
+                Frequency = route.Frequency.ToByte(),
+                route.DurationMinutes,
+                route.PriceFirstClass,
+                route.PriceEconomyClass,
+                route.PriceCarryOnBaggage,
+                route.PriceCheckedBaggage,
+                route.WeightLimitCarryOnBaggage,
+                route.WeightLimitCheckedBaggage,
+                route.CheckedBaggagePriceMultiplier
             };
         }
 
-        private class FlightRecord
+        private class RouteRecord
         {
             public int Id { get; set; }
             public int AirplaneId { get; set; }
@@ -395,7 +396,7 @@ namespace SnoopyAirlines.Repositories
             public decimal CheckedBaggagePriceMultiplier { get; set; }
         }
 
-        private class FlightDefinitionRecord
+        private class RouteSearchRecord
         {
             public int Id { get; set; }
             public TimeSpan DepartureTime { get; set; }
@@ -410,8 +411,8 @@ namespace SnoopyAirlines.Repositories
             required public string ArrivalAirportCity { get; set; }
             public decimal PriceEconomyClass { get; set; }
             public decimal PriceFirstClass { get; set; }
-            public decimal CarryOnPrice { get; set; }
-            public decimal CheckedPrice { get; set; }
+            public decimal PriceCarryOnBaggage { get; set; }
+            public decimal PriceCheckedBaggage { get; set; }
         }
     }
 }

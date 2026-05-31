@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using snoopy_airlines_backend.Domain;
 using snoopy_airlines_backend.Services;
@@ -35,7 +35,7 @@ namespace SnoopyAirlines.Controllers
             var order = new PurchaseOrder
             {
 
-                FlightId = purchaseIntake.FlightId,
+                RouteId = purchaseIntake.RouteId,
                 SeatClass = purchaseIntake.SeatClass,
                 Status = "Pending",
 

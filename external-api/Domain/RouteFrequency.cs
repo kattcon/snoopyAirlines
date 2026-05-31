@@ -1,6 +1,6 @@
-namespace SnoopyAirlines.Domain
+namespace SnoopyAirlines.External.Domain
 {
-    public class FlightFrequency
+    public class RouteFrequency
     {
         private const byte MondayMask = 0b0100_0000;
         private const byte TuesdayMask = 0b0010_0000;
@@ -19,11 +19,11 @@ namespace SnoopyAirlines.Domain
         public bool Saturday { get; set; }
         public bool Sunday { get; set; }
 
-        public static FlightFrequency FromByte(byte value)
+        public static RouteFrequency FromByte(byte value)
         {
             value = (byte)(value & ValidDaysMask);
 
-            return new FlightFrequency
+            return new RouteFrequency
             {
                 Monday = (value & MondayMask) != 0,
                 Tuesday = (value & TuesdayMask) != 0,
@@ -33,26 +33,6 @@ namespace SnoopyAirlines.Domain
                 Saturday = (value & SaturdayMask) != 0,
                 Sunday = (value & SundayMask) != 0
             };
-        }
-
-        public byte ToByte()
-        {
-            byte value = 0;
-
-            if (Monday) value |= MondayMask;
-            if (Tuesday) value |= TuesdayMask;
-            if (Wednesday) value |= WednesdayMask;
-            if (Thursday) value |= ThursdayMask;
-            if (Friday) value |= FridayMask;
-            if (Saturday) value |= SaturdayMask;
-            if (Sunday) value |= SundayMask;
-
-            return value;
-        }
-
-        public bool HasAnyDay()
-        {
-            return (ToByte() & ValidDaysMask) != 0;
         }
     }
 }

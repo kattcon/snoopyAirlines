@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.domain;
@@ -24,9 +24,9 @@ namespace snoopy_airlines_backend.Repositories
             try
             {
                 var orderId = await connection.ExecuteScalarAsync<int>("""
-                    INSERT INTO PurchaseOrder(flightId, seatClass, status )
+                    INSERT INTO PurchaseOrder(routeId, seatClass, status )
                     OUTPUT INSERTED.id
-                    VALUES (@FlightId, @SeatClass, @Status);
+                    VALUES (@RouteId, @SeatClass, @Status);
                     """, order, transaction);
 
                 order.Id = orderId;

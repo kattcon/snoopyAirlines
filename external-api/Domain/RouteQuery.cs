@@ -1,6 +1,6 @@
 namespace SnoopyAirlines.External.Domain
 {
-    public class FlightQuery
+    public class RouteQuery
     {
         public string? Destination { get; set; }
         public DateTime? EarliestArrival { get; set; }
