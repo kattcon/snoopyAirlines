@@ -206,6 +206,7 @@ export default {
 
             const purchaseOrderRequest = {
                 routeId: parseInt(this.$route.query.routeId),
+                intendedDate: this.$route.query.intendedDate,
                 seatClass: this.$route.query.seatClass,
                 passengers: this.passengers.map(p => ({
                     ...p,

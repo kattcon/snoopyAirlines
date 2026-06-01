@@ -767,6 +767,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
 
       this.$router.push({path: '/booking', query: {
         routeId: flight.routeId,
+        intendedDate: new Date(flight.departureTime).toISOString().slice(0, 10),
         seatClass: seatClass,
         passengersCount: this.search.passengers
       }})

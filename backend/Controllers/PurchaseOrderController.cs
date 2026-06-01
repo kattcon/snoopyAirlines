@@ -2,10 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using snoopy_airlines_backend.Domain;
 using snoopy_airlines_backend.Services;
-using SnoopyAirlines.domain;
 using SnoopyAirlines.Domain.Intake;
-using SnoopyAirlines.Services;
-using System.Reflection;
 
 namespace SnoopyAirlines.Controllers
 {
@@ -36,8 +33,8 @@ namespace SnoopyAirlines.Controllers
             {
 
                 RouteId = purchaseIntake.RouteId,
+                IntendedDate = purchaseIntake.IntendedDate,
                 SeatClass = purchaseIntake.SeatClass,
-                Status = "Pending",
 
                 Passengers = purchaseIntake.Passengers.Select(passenger => new Passenger
                 {
