@@ -1,6 +1,6 @@
 namespace snoopy_airlines_backend.Domain
 {
-    private class PurchaseOrderDetailRow
+    public class PurchaseOrderDetailRow
     {
         public int PurchaseOrderId { get; set; }
         public string SeatClass { get; set; } = string.Empty;

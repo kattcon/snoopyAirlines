@@ -20,6 +20,7 @@ import UserInfo from './views/UserInfo.vue';
 import EditAirport from './views/EditAirport.vue';
 import PassengerInfo from './views/PassengerInfo.vue';
 import EditAircraft from './views/EditAircraft.vue';
+import EditUser from './views/EditUser.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -43,6 +44,7 @@ const router = createRouter({
               { path: 'user-info', component: UserInfo },
               { path: 'edit-airport/:id', component: EditAirport },
               { path: 'edit-aircraft/:id', component: EditAircraft },
+              { path: 'edit-user/:id', component: EditUser },
             ], name: "Admin", component: InternalLandingPage},
     ],
 });
