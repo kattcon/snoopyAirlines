@@ -218,9 +218,12 @@ export default {
             console.log('Request:', JSON.stringify(purchaseOrderRequest));
             axios.post(`${process.env.VUE_APP_BACKEND_URL}/PurchaseOrder`, purchaseOrderRequest)
             .then((response) => {
-                sessionStorage.setItem('purchaseOrderId', response.data.id);
-                alert("Datos guardados exitosamente");
-                this.$router.push('/payment');
+                const purchaseOrderId = response.data.id ?? response.data.Id;
+                sessionStorage.setItem('purchaseOrderId', purchaseOrderId);
+                this.$router.push({
+                    name: 'PurchaseConfirmation',
+                    params: { purchaseOrderId }
+                });
             })
             .catch((error) => {
                 alert("Error al guardar los datos de los pasajeros");

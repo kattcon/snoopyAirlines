@@ -24,5 +24,10 @@ namespace snoopy_airlines_backend.Services
         {
             return _purchaseOrderRepository.GetPurchaseOrdersAsync(cancellationToken);
         }
+
+        public Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            return _purchaseOrderRepository.GetPurchaseOrderByIdAsync(id, cancellationToken);
+        }
     }
 }

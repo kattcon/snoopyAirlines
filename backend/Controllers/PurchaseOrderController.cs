@@ -25,6 +25,14 @@ namespace SnoopyAirlines.Controllers
             return Ok(orders);
         }
 
+        [HttpGet("{id:int}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<PurchaseOrder>> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            var order = await _purchaseOrderService.GetPurchaseOrderByIdAsync(id, cancellationToken);
+            return order is null ? NotFound() : Ok(order);
+        }
+
         [HttpPost]
         [AllowAnonymous]
         public async Task<ActionResult<PurchaseOrder>> Post([FromBody] PurchaseOrderIntake purchaseIntake, CancellationToken cancellationToken)

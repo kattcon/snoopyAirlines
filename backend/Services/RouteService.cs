@@ -20,6 +20,11 @@ namespace SnoopyAirlines.Services
             return _routeRepository.GetAllAsync(cancellationToken);
         }
 
+        public Task<DomainRoute?> GetRouteByIdAsync(int routeId, CancellationToken cancellationToken)
+        {
+            return _routeRepository.GetByIdAsync(routeId, cancellationToken);
+        }
+
         public Task<IReadOnlyCollection<DomainRoute>> SearchRoutesAsync(
             int? departureAirportId,
             int? arrivalAirportId,

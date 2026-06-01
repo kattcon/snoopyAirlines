@@ -42,6 +42,14 @@ namespace SnoopyAirlines.Controllers
             return Ok(allRoutes);
         }
 
+        [HttpGet("{routeId:int}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<DomainRoute>> GetById(int routeId, CancellationToken cancellationToken)
+        {
+            var route = await _routeService.GetRouteByIdAsync(routeId, cancellationToken);
+            return route is null ? NotFound() : Ok(route);
+        }
+
         [HttpPost]
         public async Task<ActionResult<DomainRoute>> Post(
             DomainRoute route,

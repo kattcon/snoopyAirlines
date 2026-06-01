@@ -20,6 +20,7 @@ import UserInfo from './views/UserInfo.vue';
 import EditAirport from './views/EditAirport.vue';
 import PassengerInfo from './views/PassengerInfo.vue';
 import EditAircraft from './views/EditAircraft.vue';
+import PurchaseConfirmation from './views/PurchaseConfirmation.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -28,6 +29,7 @@ const router = createRouter({
         { path: "/login", name: "Login", component: LoginPage },
         { path: "/register", name: "Register", component: RegisterPage },
         { path: "/booking", name: "Booking", component: PassengerInfo},
+        { path: "/purchase-confirmation/:purchaseOrderId?", name: "PurchaseConfirmation", component: PurchaseConfirmation },
         { path: "/admin", children: 
             [ { path: 'routes', component: InternalLandingPageRoutes },
               { path: 'users', component: InternalLandingPageUsers},
