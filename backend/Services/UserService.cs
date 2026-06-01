@@ -3,6 +3,7 @@ using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using System.Security.Cryptography;
 using SnoopyAirlines.Domain.Intake;
+using SnoopyAirlines.Domain.EmailTemplate;
 using System.Text;
 
 namespace SnoopyAirlines.Services

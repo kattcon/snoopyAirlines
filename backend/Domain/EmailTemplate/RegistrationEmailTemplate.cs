@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace SnoopyAirlines.Services
+namespace SnoopyAirlines.Domain.EmailTemplate
 {
     public class RegistrationEmailTemplate
     {

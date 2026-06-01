@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text;
 using snoopy_airlines_backend.Domain;
 
-namespace SnoopyAirlines.Services
+namespace SnoopyAirlines.Domain.EmailTemplate
 {
     public static class PurchaseOrderEmailTemplate
     {
