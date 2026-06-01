@@ -6,6 +6,7 @@ namespace SnoopyAirlines.Services
             string to,
             string subject,
             string body,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken,
+            bool isHtml = false);
     }
 }

@@ -1,0 +1,151 @@
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmación de Compra - Snoopy Airlines</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+          <tr>
+            <td style="background-color:#1a2b4a;padding:28px 40px;text-align:center;">
+              <table cellpadding="0" cellspacing="0" style="display:inline-table;margin-bottom:16px;">
+                <tr>
+                  <td style="vertical-align:middle;padding-right:12px;">
+                    <img
+                      src="cid:logoSA"
+                      alt="Snoopy Airlines"
+                      width="40"
+                      height="40"
+                      style="display:block;border-radius:8px;"
+                    />
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.3px;">Snoopy Airlines</span>
+                  </td>
+                </tr>
+              </table>
+              <br />
+              <table cellpadding="0" cellspacing="0" style="display:inline-table;margin-bottom:8px;">
+                <tr>
+                  <td style="text-align:center;">
+                    <div style="width:48px;height:48px;border-radius:50%;border:3px solid #ffffff;display:inline-block;text-align:center;line-height:48px;">
+                      <span style="color:#ffffff;font-size:24px;">✓</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <br />
+              <span style="color:#ffffff;font-size:16px;font-weight:600;">¡Compra Confirmada!</span>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:40px 48px 32px 48px;">
+              <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#111827;">
+                Confirmación de Compra
+              </h1>
+              <p style="margin:0 0 28px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                Tu compra ha sido procesada exitosamente. A continuación encontrarás los detalles de tu transacción.
+              </p>
+
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:28px;">
+                <tr>
+                  <td style="background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;text-align:center;">
+                    <p style="margin:0 0 4px 0;font-size:12px;color:#6b7280;">Número de Reserva</p>
+                    <p style="margin:0;font-size:26px;font-weight:700;color:#1a2b4a;">{{PURCHASE_ORDER_ID}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:8px;">
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <span style="font-size:16px;font-weight:700;color:#111827;">💳 Factura</span>
+                  </td>
+                </tr>
+              </table>
+
+              <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:28px;">
+                <!-- Tarifa base -->
+                <tr>
+                  <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;">
+                    <span style="font-size:14px;color:#4b5563;">Tarifa base</span>
+                  </td>
+                  <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;text-align:right;">
+                    <span style="font-size:14px;color:#111827;">₡{{BASE_FARE}} CRC</span>
+                  </td>
+                </tr>
+                <!-- Impuestos -->
+                <tr>
+                  <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;">
+                    <span style="font-size:14px;color:#4b5563;">Impuestos y cargos</span>
+                  </td>
+                  <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;text-align:right;">
+                    <span style="font-size:14px;color:#111827;">₡{{TAXES}} CRC</span>
+                  </td>
+                </tr>
+                <!-- Seguro -->
+                <tr>
+                  <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;">
+                    <span style="font-size:14px;color:#4b5563;">Seguro de viaje</span>
+                  </td>
+                  <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;text-align:right;">
+                    <span style="font-size:14px;color:#111827;">₡{{TRAVEL_INSURANCE}} CRC</span>
+                  </td>
+                </tr>
+                <!-- Total -->
+                <tr>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;">
+                    <span style="font-size:15px;font-weight:700;color:#111827;">Total</span>
+                  </td>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;text-align:right;">
+                    <span style="font-size:15px;font-weight:700;color:#1a2b4a;">₡{{TOTAL}} CRC</span>
+                  </td>
+                </tr>
+                <!-- Detalles de pago -->
+                <tr>
+                  <td colspan="2" style="padding:14px 20px;">
+                    <p style="margin:0 0 4px 0;font-size:13px;color:#4b5563;"><strong>Método de pago:</strong> {{PAYMENT_METHOD}}</p>
+                    <p style="margin:0 0 4px 0;font-size:13px;color:#4b5563;"><strong>Fecha de compra:</strong> {{PURCHASE_DATE}}</p>
+                    <p style="margin:0;font-size:13px;color:#4b5563;"><strong>ID de transacción:</strong> {{TRANSACTION_ID}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Próximos pasos -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;">
+                <tr>
+                  <td style="background-color:#f0fdf4;border-left:4px solid #22c55e;border-radius:4px;padding:14px 16px;">
+                    <p style="margin:0 0 4px 0;font-size:13px;font-weight:600;color:#15803d;">Próximos pasos</p>
+                    <p style="margin:0;font-size:13px;color:#166534;">Recibirás un correo adicional con el itinerario detallado de tu vuelo y la información del pasajero.</p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc;padding:20px 48px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0 0 4px 0;font-size:12px;color:#9ca3af;">
+                Este correo fue generado automáticamente tras completar tu compra.
+              </p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;">
+                © 2026 Snoopy Airlines. Todos los derechos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
