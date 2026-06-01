@@ -45,6 +45,12 @@
                     {{ city.name }} ({{ city.code }})
                   </option>
                 </select>
+                <div v-if="tripType === 'ida'" class="checkbox-field">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="search.includeStopovers" />
+                    Incluir vuelos con escalas
+                  </label>
+                </div>
               </div>
               <div class="search-field">
                 <label>Destino</label>
@@ -73,6 +79,7 @@
                   <option value="5">5 Pasajeros</option>
                 </select>
               </div>
+              
             </div>
             <div v-else class="multicity-section">
               <div class="multicity-legs">
@@ -405,6 +412,7 @@ export default {
         departureDate: '',
         returnDate: '',
         passengers: '1',
+        includeStopovers: false,
         legs: [
           { origin: '', destination: '', departureDate: '' },
           { origin: '', destination: '', departureDate: '' }
@@ -593,6 +601,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         earliestDeparture: `${date}T00:00`,
         latestDeparture:   `${date}T23:59`,
         quantityOfPassengers: passengers,
+        includeStopovers: this.search.includeStopovers ? 'true' : 'false',
         apiKey: EXTERNAL_API_KEY,
       });
     },
@@ -1056,6 +1065,25 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
 .search-select:focus {
   outline: none;
   border-color: #0056b3;
+}
+
+.checkbox-field {
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0056b3;
 }
 
 .btn-search {

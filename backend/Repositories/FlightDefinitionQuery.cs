@@ -8,6 +8,7 @@ namespace SnoopyAirlines.Repositories
         public string? Destination { get; set; }
         public IReadOnlyCollection<FlightDefinitionDepartureWindow> DepartureWindows { get; set; } = Array.Empty<FlightDefinitionDepartureWindow>();
         public int? QuantityOfPassengers { get; set; }
+        public bool IncludeStopovers { get; set; }
     }
 
     public class FlightDefinitionDepartureWindow

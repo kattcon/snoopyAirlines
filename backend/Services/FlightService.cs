@@ -49,6 +49,7 @@ namespace SnoopyAirlines.Services
                 Origin = flightQuery.Origin,
                 Destination = flightQuery.Destination,
                 QuantityOfPassengers = flightQuery.QuantityOfPassengers,
+                IncludeStopovers = flightQuery.IncludeStopovers,
                 DepartureWindows = CreateDepartureWindows(flightQuery)
             };
         }
