@@ -4,6 +4,7 @@ using SnoopyAirlines.domain;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Domain.EmailTemplate;
+using SnoopyAirlines.Services;
 
 namespace snoopy_airlines_backend.Services
 {

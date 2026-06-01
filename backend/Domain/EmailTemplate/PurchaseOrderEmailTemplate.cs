@@ -9,7 +9,7 @@ namespace SnoopyAirlines.Domain.EmailTemplate
         private const string ConfirmationResourceName  = "snoopy_airlines_backend.Resources.Emails.purchaseEmail.html";
         private const string ItineraryResourceName = "snoopy_airlines_backend.Resources.Emails.itineraryEmail.html";
 
-        public static string BuildConfirmation(PurchaseorderEmailData data)
+        public static string BuildConfirmation(PurchaseOrderEmailData data)
         {
             var html = LoadTemplate(ConfirmationResourceName);
 
@@ -24,7 +24,7 @@ namespace SnoopyAirlines.Domain.EmailTemplate
                 .Replace("{{TRANSACTION_ID}}", data.TransactionId);
         }
 
-        public static string BuildItinerary(PurchaseorderEmailData data)
+        public static string BuildItinerary(PurchaseOrderEmailData data)
         {
             var html = LoadTemplate(ItineraryResourceName);
             var passengerHtml = BuildPassengerHtml(data.Passengers);
@@ -42,7 +42,7 @@ namespace SnoopyAirlines.Domain.EmailTemplate
                 .Replace("{{ARRIVAL_TIME}}", data.ArrivalTime.ToString("hh:mm tt"))
                 .Replace("{{SEAT_CLASS}}", data.SeatClass)
                 .Replace("{{AIRPLANE_MODEL}}", data.AirplaneModel)
-                .Replace("{{PASSENGERS_HTML}}", passengersHtml);
+                .Replace("{{PASSENGERS_HTML}}", passengerHtml);
         }
 
         private static string BuildPassengerHtml(IEnumerable<PassengerEmailData> passengers)
