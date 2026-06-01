@@ -13,3 +13,9 @@ export function getRoute(routeId) {
     .get(`${backendUrl}/Route/${encodeURIComponent(routeId)}`)
     .then((response) => response.data);
 }
+
+export function confirmBooking(bookingRequest) {
+  return axios
+    .post(`${backendUrl}/Booking`, bookingRequest)
+    .then((response) => response.data);
+}

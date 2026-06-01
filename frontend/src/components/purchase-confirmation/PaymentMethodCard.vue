@@ -8,52 +8,69 @@
       <span>M&eacute;todo de pago</span>
     </h2>
 
-    <form class="payment-form">
+    <form class="payment-form" @submit.prevent>
+      <label class="field">
+        <span>Correo de confirmaci&oacute;n</span>
+        <input
+          :class="['formInput', { 'field-error': errors.email }]"
+          type="email"
+          autocomplete="email"
+          placeholder="nombre@correo.com"
+          :value="modelValue.email"
+          @input="updateField('email', $event.target.value)"
+        />
+        <small v-if="errors.email" class="error-msg">{{ errors.email }}</small>
+      </label>
+
       <label class="field">
         <span>N&uacute;mero de tarjeta</span>
         <input
-          class="formInput"
+          :class="['formInput', { 'field-error': errors.cardNumber }]"
           inputmode="numeric"
           autocomplete="cc-number"
           placeholder="1234 5678 9012 3456"
           :value="modelValue.cardNumber"
           @input="updateField('cardNumber', $event.target.value)"
         />
+        <small v-if="errors.cardNumber" class="error-msg">{{ errors.cardNumber }}</small>
       </label>
 
       <label class="field">
         <span>Nombre del titular</span>
         <input
-          class="formInput"
+          :class="['formInput', { 'field-error': errors.cardholderName }]"
           autocomplete="cc-name"
           placeholder="Como aparece en la tarjeta"
           :value="modelValue.cardholderName"
           @input="updateField('cardholderName', $event.target.value)"
         />
+        <small v-if="errors.cardholderName" class="error-msg">{{ errors.cardholderName }}</small>
       </label>
 
       <div class="field-grid">
         <label class="field">
           <span>Fecha de expiraci&oacute;n</span>
           <input
-            class="formInput"
+            :class="['formInput', { 'field-error': errors.expirationDate }]"
             autocomplete="cc-exp"
             placeholder="MM/AA"
             :value="modelValue.expirationDate"
             @input="updateField('expirationDate', $event.target.value)"
           />
+          <small v-if="errors.expirationDate" class="error-msg">{{ errors.expirationDate }}</small>
         </label>
 
         <label class="field">
           <span>CVV</span>
           <input
-            class="formInput"
+            :class="['formInput', { 'field-error': errors.cvv }]"
             inputmode="numeric"
             autocomplete="cc-csc"
             placeholder="123"
             :value="modelValue.cvv"
             @input="updateField('cvv', $event.target.value)"
           />
+          <small v-if="errors.cvv" class="error-msg">{{ errors.cvv }}</small>
         </label>
       </div>
     </form>
@@ -75,6 +92,10 @@ export default {
     modelValue: {
       type: Object,
       required: true
+    },
+    errors: {
+      type: Object,
+      default: () => ({})
     }
   },
   emits: ["update:modelValue"],
@@ -138,6 +159,15 @@ export default {
   border: none;
   background: #f0f2f6;
   font-size: var(--smallFontSize);
+}
+
+.field-error {
+  border: 1px solid var(--errorColor);
+}
+
+.error-msg {
+  color: var(--errorColor);
+  font-size: var(--extraSmallFontSize);
 }
 
 .field-grid {

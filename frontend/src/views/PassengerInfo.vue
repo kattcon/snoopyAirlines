@@ -220,6 +220,8 @@ export default {
             .then((response) => {
                 const purchaseOrderId = response.data.id ?? response.data.Id;
                 sessionStorage.setItem('purchaseOrderId', purchaseOrderId);
+                sessionStorage.setItem('bookingHolderEmail', this.holder.email);
+                sessionStorage.setItem('bookingHolderName', `${this.holder.firstName} ${this.holder.lastName}`.trim());
                 this.$router.push({
                     name: 'PurchaseConfirmation',
                     params: { purchaseOrderId }

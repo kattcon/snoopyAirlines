@@ -47,6 +47,8 @@ builder.Services.AddScoped<AirplaneRepository>();
 builder.Services.AddScoped<AirplaneService>();
 builder.Services.AddScoped<PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderService>();
+builder.Services.AddScoped<BookingRepository>();
+builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<ConsoleEmailSender>();
 builder.Services.AddScoped<IEmailSender>(serviceProvider =>

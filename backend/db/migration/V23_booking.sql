@@ -34,10 +34,8 @@ CREATE TABLE dbo.booking (
     CONSTRAINT ck_booking_status CHECK (status IN ('confirmed', 'cancelled', 'refunded')),
     CONSTRAINT ck_booking_total_amount CHECK (total_amount >= 0),
     CONSTRAINT ck_booking_email CHECK (
-        REGEXP_LIKE(
-            email,
-            '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
-        )
+        email NOT LIKE '% %'
+        AND email LIKE '%_@_%._%'
     ),
     CONSTRAINT ck_booking_card_last_four CHECK (
         card_last_four IS NULL

@@ -28,10 +28,18 @@
         <div class="confirmation-main">
           <FlightDetailsCard :details="flightDetails" />
           <PassengerListCard :passengers="passengers" />
-          <PaymentMethodCard v-model="paymentDetails" />
+          <PaymentMethodCard v-model="paymentDetails" :errors="paymentErrors" />
         </div>
 
-        <PurchaseSummaryCard :items="summaryItems" :total="summaryTotal" />
+        <PurchaseSummaryCard
+          :items="summaryItems"
+          :total="summaryTotal"
+          :disabled="confirmDisabled"
+          :loading="bookingSubmitting"
+          :success-message="bookingSuccessMessage"
+          :error-message="bookingError"
+          @confirm="confirmPurchase"
+        />
       </section>
     </main>
   </div>
@@ -43,7 +51,7 @@ import FlightDetailsCard from "../components/purchase-confirmation/FlightDetails
 import PassengerListCard from "../components/purchase-confirmation/PassengerListCard.vue";
 import PaymentMethodCard from "../components/purchase-confirmation/PaymentMethodCard.vue";
 import PurchaseSummaryCard from "../components/purchase-confirmation/PurchaseSummaryCard.vue";
-import { getPurchaseOrder, getRoute } from "../services/purchaseConfirmationService";
+import { confirmBooking, getPurchaseOrder, getRoute } from "../services/purchaseConfirmationService";
 
 export default {
   name: "PurchaseConfirmation",
@@ -60,9 +68,14 @@ export default {
       error: "",
       purchaseOrder: null,
       route: null,
+      booking: null,
+      bookingSubmitting: false,
+      bookingError: "",
+      paymentErrors: {},
       paymentDetails: {
+        email: sessionStorage.getItem("bookingHolderEmail") || "",
         cardNumber: "",
-        cardholderName: "",
+        cardholderName: sessionStorage.getItem("bookingHolderName") || "",
         expirationDate: "",
         cvv: ""
       }
@@ -142,7 +155,23 @@ export default {
       return this.unitFlightPrice * this.passengers.length;
     },
     summaryTotal() {
+      const bookedTotal = Number(this.fieldValue(this.booking, "totalAmount", "TotalAmount"));
+      if (Number.isFinite(bookedTotal)) {
+        return this.formatCurrency(bookedTotal);
+      }
+
       return this.placeholder("total_compra");
+    },
+    confirmDisabled() {
+      return this.loading || Boolean(this.error) || !this.purchaseOrder || Boolean(this.booking);
+    },
+    bookingSuccessMessage() {
+      if (!this.booking) return "";
+
+      const confirmationCode = this.fieldValue(this.booking, "confirmationCode", "ConfirmationCode");
+      return confirmationCode
+        ? `Compra confirmada. Codigo de reserva: ${confirmationCode}.`
+        : "Compra confirmada.";
     }
   },
   mounted() {
@@ -177,6 +206,88 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async confirmPurchase() {
+      this.bookingError = "";
+
+      if (!this.validatePayment()) {
+        return;
+      }
+
+      this.bookingSubmitting = true;
+
+      try {
+        const booking = await confirmBooking({
+          purchaseOrderId: Number(this.purchaseOrderId),
+          email: this.paymentDetails.email.trim(),
+          cardBrand: this.cardBrand(this.paymentDetails.cardNumber),
+          cardLastFour: this.cardLastFour(this.paymentDetails.cardNumber),
+          cardHolderName: this.paymentDetails.cardholderName.trim()
+        });
+
+        this.booking = booking;
+        sessionStorage.removeItem("bookingHolderEmail");
+        sessionStorage.removeItem("bookingHolderName");
+      } catch (bookingError) {
+        console.error("Error confirmando la compra:", bookingError);
+        this.bookingError = this.backendErrorMessage(bookingError);
+      } finally {
+        this.bookingSubmitting = false;
+      }
+    },
+    validatePayment() {
+      const errors = {};
+      const cardDigits = this.cardDigits(this.paymentDetails.cardNumber);
+      const email = this.paymentDetails.email.trim();
+      const cardholderName = this.paymentDetails.cardholderName.trim();
+      const expirationDate = this.paymentDetails.expirationDate.trim();
+      const cvv = this.paymentDetails.cvv.trim();
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.email = "Ingrese un correo valido";
+      }
+
+      if (cardDigits.length < 12 || cardDigits.length > 19) {
+        errors.cardNumber = "Ingrese un numero de tarjeta valido";
+      }
+
+      if (!cardholderName) {
+        errors.cardholderName = "Ingrese el nombre del titular";
+      }
+
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expirationDate)) {
+        errors.expirationDate = "Use el formato MM/AA";
+      }
+
+      if (!/^\d{3,4}$/.test(cvv)) {
+        errors.cvv = "Ingrese un CVV valido";
+      }
+
+      this.paymentErrors = errors;
+      return Object.keys(errors).length === 0;
+    },
+    cardDigits(cardNumber) {
+      return String(cardNumber || "").replace(/\D/g, "");
+    },
+    cardLastFour(cardNumber) {
+      return this.cardDigits(cardNumber).slice(-4);
+    },
+    cardBrand(cardNumber) {
+      const digits = this.cardDigits(cardNumber);
+
+      if (digits.startsWith("4")) return "Visa";
+      if (/^5[1-5]/.test(digits) || /^2(2[2-9]|[3-6]\d|7[01]|720)/.test(digits)) return "Mastercard";
+      if (/^3[47]/.test(digits)) return "American Express";
+      if (digits.startsWith("6")) return "Discover";
+
+      return "Unknown";
+    },
+    backendErrorMessage(error) {
+      return (
+        error?.response?.data?.message ||
+        error?.response?.data?.Message ||
+        "No se pudo confirmar la compra."
+      );
     },
     fieldValue(source, camelCaseKey, pascalCaseKey) {
       return source?.[camelCaseKey] ?? source?.[pascalCaseKey];

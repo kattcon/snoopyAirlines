@@ -14,12 +14,15 @@
       <strong>{{ total }}</strong>
     </div>
 
-    <button type="button" class="primaryButton finish-button" disabled>
+    <p v-if="successMessage" class="summary-message success">{{ successMessage }}</p>
+    <p v-if="errorMessage" class="summary-message error">{{ errorMessage }}</p>
+
+    <button type="button" class="primaryButton finish-button" :disabled="disabled || loading" @click="$emit('confirm')">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="10"></circle>
         <path d="m9 12 2 2 4-4"></path>
       </svg>
-      <span>Finalizar compra</span>
+      <span>{{ loading ? 'Confirmando...' : 'Confirmar compra' }}</span>
     </button>
   </aside>
 </template>
@@ -35,8 +38,25 @@ export default {
     total: {
       type: String,
       required: true
+    },
+    disabled: {
+      type: Boolean,
+      default: false
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    successMessage: {
+      type: String,
+      default: ""
+    },
+    errorMessage: {
+      type: String,
+      default: ""
     }
-  }
+  },
+  emits: ["confirm"]
 };
 </script>
 
@@ -97,6 +117,24 @@ export default {
   font-weight: var(--mediumFontWeight);
 }
 
+.summary-message {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: var(--defaultBorderRadius);
+  font-size: var(--smallFontSize);
+  line-height: 1.4;
+}
+
+.summary-message.success {
+  background: #edf8f1;
+  color: #166534;
+}
+
+.summary-message.error {
+  background: #fff1f1;
+  color: var(--errorColor);
+}
+
 .finish-button {
   width: 100%;
   min-height: 42px;
@@ -106,6 +144,10 @@ export default {
   gap: 8px;
   border-radius: var(--smallBorderRadius);
   background: #8c8f99;
+}
+
+.finish-button:not(:disabled) {
+  background: var(--primaryButtonBackgroundColor);
 }
 
 .finish-button svg {
