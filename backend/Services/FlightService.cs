@@ -315,12 +315,20 @@ namespace SnoopyAirlines.Services
                                     Name = first.DepartureAirport.Name,
                                     City = first.DepartureAirport.City
                                 },
-                                    ArrivalAirport = new AirportResponse
+                                ArrivalAirport = new AirportResponse
                                 {
                                     Code = second.ArrivalAirport.Code,
                                     Name = second.ArrivalAirport.Name,
                                     City = second.ArrivalAirport.City
                                 },
+                                HasStopover = true,
+                                StopoverAirport = new AirportResponse
+                                {
+                                    Code = first.ArrivalAirport.Code,
+                                    Name = first.ArrivalAirport.Name,
+                                    City = first.ArrivalAirport.City
+                                },
+                                StopoverDuration = FormatDuration(connectionMinutes),
                                 TouristPrice = first.PriceEconomyClass + second.PriceEconomyClass,
                                 FirstClassPrice = first.PriceFirstClass + second.PriceFirstClass,
                                 CarryOnPrice = first.CarryOnPrice + second.CarryOnPrice,

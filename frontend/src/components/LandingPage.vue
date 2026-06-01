@@ -152,6 +152,24 @@
                     <div class="flight-date">
                       {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
                     </div>
+                    <div v-if="flight.stopoverAirport" class="flight-stopover-info">
+                      <div class="stopover-row">
+                        <span class="stopover-label">Escala:</span>
+                        <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
+                      </div>
+                      <div class="stopover-row">
+                        <span class="stopover-label">Duración escala:</span>
+                        <span>{{ flight.stopoverDuration }}</span>
+                      </div>
+                      <div class="stopover-row">
+                        <span class="stopover-label">Salida primer tramo:</span>
+                        <span>{{ flight.departureTime.substring(11, 16) }}</span>
+                      </div>
+                      <div class="stopover-row">
+                        <span class="stopover-label">Llegada tramo final:</span>
+                        <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
+                      </div>
+                    </div>
                   </div>
                   <div class="flight-prices">
                     <div v-if="selectedFlightId === flight.id" class="seat-options">
@@ -195,6 +213,24 @@
                       <div class="flight-date">
                         {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
                       </div>
+                      <div v-if="flight.stopoverAirport" class="flight-stopover-info">
+                        <div class="stopover-row">
+                          <span class="stopover-label">Escala:</span>
+                          <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Duración escala:</span>
+                          <span>{{ flight.stopoverDuration }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Salida primer tramo:</span>
+                          <span>{{ flight.departureTime.substring(11, 16) }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Llegada tramo final:</span>
+                          <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
+                        </div>
+                      </div>
                     </div>
                     <div class="flight-prices">
                       <div v-if="selectedOutboundId === flight.id" class="seat-options">
@@ -236,6 +272,24 @@
                       </div>
                       <div class="flight-date">
                         {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+                      </div>
+                      <div v-if="flight.stopoverAirport" class="flight-stopover-info">
+                        <div class="stopover-row">
+                          <span class="stopover-label">Escala:</span>
+                          <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Duración escala:</span>
+                          <span>{{ flight.stopoverDuration }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Salida primer tramo:</span>
+                          <span>{{ flight.departureTime.substring(11, 16) }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Llegada tramo final:</span>
+                          <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
+                        </div>
                       </div>
                     </div>
                     <div class="flight-prices">
@@ -1197,23 +1251,30 @@ input[type="checkbox"] {
   font-weight: normal;
 }
 
-.flight-date {
-  font-size: 0.9rem;
-  color: #666;
-  text-align: center;
+.flight-stopover-info {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f5f9ff;
+  border-radius: 10px;
+  border: 1px solid #dce8f9;
 }
 
-.flight-prices {
-  margin-bottom: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
+.stopover-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.stopover-label {
+  font-weight: 600;
+  color: #0056b3;
 }
 
 .price-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
   padding: 8px 0;
 }
 
