@@ -51,7 +51,7 @@ namespace SnoopyAirlines.Repositories
 
         // Verifica si ya existe un aeropuerto con el código IATA dado.
         // COUNT(1) devuelve 0 si no existe, o un número mayor si existe.
-        public async Task<bool> AirportCodeExistsAsync(string code, CancellationToken cancellationToken)
+        public virtual async Task<bool> AirportCodeExistsAsync(string code, CancellationToken cancellationToken)
         {
             const string sql = "SELECT COUNT(1) FROM airport WHERE code = @Code;";
 
@@ -65,7 +65,7 @@ namespace SnoopyAirlines.Repositories
         // Inserta un nuevo aeropuerto y devuelve el registro completo tal como quedó en la BD,
         // incluyendo el Id generado automáticamente por IDENTITY.
         // OUTPUT INSERTED permite obtener la fila insertada en una sola operación.
-        public async Task<Airport> CreateAirportAsync(Airport airport, CancellationToken cancellationToken)
+        public virtual async Task<Airport> CreateAirportAsync(Airport airport, CancellationToken cancellationToken)
         {
             const string sql = """
                 INSERT INTO airport (name, code, city_id)
@@ -123,7 +123,7 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
         }
 
-        public async Task<bool> UpdateAirportNameAsync(int id, string name, CancellationToken cancellationToken)
+        public virtual async Task<bool> UpdateAirportNameAsync(int id, string name, CancellationToken cancellationToken)
         {
             const string sql = "UPDATE airport SET name = @Name WHERE id = @Id;";
 
