@@ -236,8 +236,8 @@ namespace SnoopyAirlines.Services
             FlightQuery flightQuery,
             CancellationToken cancellationToken)
         {
-            const int MinConnectionMinutes = 45;
-            const int MaxConnectionMinutes = 360;
+            const int MinStopoverMinutes = 60;     // 1 hora
+            const int MaxStopoverMinutes = 720;    // 12 horas
 
             var firstLegQuery = new FlightDefinitionQuery
             {
@@ -295,7 +295,7 @@ namespace SnoopyAirlines.Services
                                 : secondDate.AddDays(1).Add(second.ArrivalTime.ToTimeSpan());
 
                             var connectionMinutes = (int)(dep2 - arr1).TotalMinutes;
-                            if (connectionMinutes < MinConnectionMinutes || connectionMinutes > MaxConnectionMinutes)
+                            if (connectionMinutes < MinStopoverMinutes || connectionMinutes > MaxStopoverMinutes)
                                 continue;
 
                             if (dep2 < earliestDeparture || dep2 > latestDeparture)
