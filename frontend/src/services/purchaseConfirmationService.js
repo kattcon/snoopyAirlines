@@ -19,3 +19,9 @@ export function confirmBooking(bookingRequest) {
     .post(`${backendUrl}/Booking`, bookingRequest)
     .then((response) => response.data);
 }
+
+export function getBooking(bookingGuid) {
+  return axios
+    .get(`${backendUrl}/Booking/${encodeURIComponent(bookingGuid)}`)
+    .then((response) => response.data);
+}

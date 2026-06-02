@@ -18,6 +18,11 @@ namespace SnoopyAirlines.Services
             return _bookingRepository.BookAsync(normalizedRequest, cancellationToken);
         }
 
+        public Task<Booking?> GetByGuidAsync(Guid bookingGuid, CancellationToken cancellationToken)
+        {
+            return _bookingRepository.GetByGuidAsync(bookingGuid, cancellationToken);
+        }
+
         private static BookingRequest NormalizeAndValidate(BookingRequest bookingRequest)
         {
             if (bookingRequest.PurchaseOrderId <= 0)
