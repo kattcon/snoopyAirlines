@@ -4,7 +4,7 @@ import App from "./App.vue";
 import { createRouter, createWebHistory } from "vue-router";
 import LoginPage from "./components/LoginPage.vue";
 import InternalLandingPage from './components/InternalLandingPage.vue';
-import InternalLandingPageFlights from './views/InternalLandingPageFlights.vue';
+import InternalLandingPageRoutes from './views/InternalLandingPageRoutes.vue';
 import InternalLandingPageReports from './views/InternalLandingPageReports.vue';
 import InternalLandingPageUsers from './views/InternalLandingPageUsers.vue';
 import UsersList from './views/UsersList.vue';
@@ -12,7 +12,7 @@ import LandingPage from "./components/LandingPage.vue";
 import RegisterPage from "./components/RegisterPage.vue";
 import AirportsList from "./views/AirportsList.vue";
 import RegisterAirport from "./views/RegisterAirport.vue";
-import RegisterFlight from "./views/RegisterFlight.vue";
+import RegisterRoute from "./views/RegisterRoute.vue";
 import RegisterUser from "./views/RegisterUser.vue";
 import RegisterAircraft from './views/RegisterAircraft.vue';
 import AircraftsList from './views/AircraftsList.vue';
@@ -20,6 +20,7 @@ import UserInfo from './views/UserInfo.vue';
 import EditAirport from './views/EditAirport.vue';
 import PassengerInfo from './views/PassengerInfo.vue';
 import EditAircraft from './views/EditAircraft.vue';
+import PurchaseConfirmation from './views/PurchaseConfirmation.vue';
 import EditUser from './views/EditUser.vue';
 
 const router = createRouter({
@@ -29,15 +30,16 @@ const router = createRouter({
         { path: "/login", name: "Login", component: LoginPage },
         { path: "/register", name: "Register", component: RegisterPage },
         { path: "/booking", name: "Booking", component: PassengerInfo},
+        { path: "/purchase-confirmation/:purchaseOrderId?", name: "PurchaseConfirmation", component: PurchaseConfirmation },
         { path: "/admin", children: 
-            [ { path: 'flights', component: InternalLandingPageFlights },
+            [ { path: 'routes', component: InternalLandingPageRoutes },
               { path: 'users', component: InternalLandingPageUsers},
               { path: 'reports', component: InternalLandingPageReports},
               { path: 'airports', component: AirportsList },
               { path: 'register-airport', component: RegisterAirport },
-              { path: 'register-flight', component: RegisterFlight },
+              { path: 'register-route', component: RegisterRoute },
               { path: 'register-user', component: RegisterUser },
-              { path: 'consult-flights', component: RegisterFlight },
+              { path: 'consult-routes', component: RegisterRoute },
               { path: 'list-users', component: UsersList },
               { path: 'register-aircraft', component: RegisterAircraft },
               { path: 'list-aircrafts', component: AircraftsList },

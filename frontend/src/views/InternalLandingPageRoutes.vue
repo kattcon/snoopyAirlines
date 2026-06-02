@@ -1,13 +1,13 @@
 <template>
     <div class="subsection-header">
-        <h3 class="subsection-header-title">Administrar Vuelos</h3>
-        <h6 class="subsection-header-subtitle">Gestiona aeronaves, aeropuertos, rutas y vuelos</h6>
+        <h3 class="subsection-header-title">Administrar Rutas</h3>
+        <h6 class="subsection-header-subtitle">Gestiona aeronaves, aeropuertos y rutas</h6>
     </div>
     <div class="container">
         <div class="section-div">
             <h4 class="main-text-section">Aeronaves</h4>
             <p class="subtext-aeronave">Mira y registra una nueva aeronave en el sistema</p>
-            <router-link to="/admin/list-aircrafts" class="router-button">Ir a Aeronaves</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <router-link to="/admin/list-aircrafts" class="router-button">Ir a Aeronaves</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
         </div>
         <div class="section-div">
             <h4 class="main-text-section">Aeropuertos</h4>
@@ -15,9 +15,9 @@
             <router-link to="/admin/airports" class="router-button">Ir a Aeropuertos</router-link>
         </div>
         <div class="section-div">
-            <h4 class="main-text-section">Vuelos</h4>
-            <p class="subtext-aeronave">Mira y registra un nuevo vuelo</p>
-            <router-link to="/admin/consult-flights" class="router-button">Ir a Vuelos</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Vuelos-->
+            <h4 class="main-text-section">Rutas</h4>
+            <p class="subtext-aeronave">Mira y registra un nuevo ruta</p>
+            <router-link to="/admin/consult-routes" class="router-button">Ir a Rutas</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
         </div>
     </div>
 

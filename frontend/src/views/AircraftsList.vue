@@ -2,7 +2,7 @@
     <div class="aircrafts-page">
 
         <div class="page-top-bar">
-            <button class="btn-volver-aircrafts" @click="$router.push('/admin/flights')">Volver</button>
+            <button class="btn-volver-aircrafts" @click="$router.push('/admin/routes')">Volver</button>
         </div>
 
         <div class="page-header">

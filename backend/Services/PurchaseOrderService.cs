@@ -4,6 +4,7 @@ using SnoopyAirlines.domain;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Domain.EmailTemplate;
+using Microsoft.AspNetCore.Identity;
 using SnoopyAirlines.Services;
 
 namespace snoopy_airlines_backend.Services
@@ -29,6 +30,12 @@ namespace snoopy_airlines_backend.Services
             return _purchaseOrderRepository.GetPurchaseOrdersAsync(cancellationToken);
         }
 
+
+        public Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            return _purchaseOrderRepository.GetPurchaseOrderByIdAsync(id, cancellationToken);
+        }
+      
         public async Task SendPurchaseEmailAsync(
             string recipientEmail,
             int purchaseOrderId,

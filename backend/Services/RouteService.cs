@@ -1,74 +1,80 @@
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
+using DomainRoute = SnoopyAirlines.Domain.Route;
 
 namespace SnoopyAirlines.Services
 {
-    public class FlightService
+    public class RouteService
     {
         private static readonly Guid FlightGuidNamespace = new("9e991ddc-7c58-4e29-a379-503fc594c1e2");
-        private readonly FlightRepository _flightRepository;
+        private readonly RouteRepository _routeRepository;
 
-        public FlightService(FlightRepository flightRepository)
+        public RouteService(RouteRepository routeRepository)
         {
-            _flightRepository = flightRepository;
+            _routeRepository = routeRepository;
         }
 
-        public Task<IReadOnlyCollection<Flight>> GetFlightsAsync(CancellationToken cancellationToken)
+        public Task<IReadOnlyCollection<DomainRoute>> GetRoutesAsync(CancellationToken cancellationToken)
         {
-            return _flightRepository.GetAllAsync(cancellationToken);
+            return _routeRepository.GetAllAsync(cancellationToken);
         }
 
-        public Task<IReadOnlyCollection<Flight>> SearchFlightsAsync(
+        public Task<DomainRoute?> GetRouteByIdAsync(int routeId, CancellationToken cancellationToken)
+        {
+            return _routeRepository.GetByIdAsync(routeId, cancellationToken);
+        }
+
+        public Task<IReadOnlyCollection<DomainRoute>> SearchRoutesAsync(
             int? departureAirportId,
             int? arrivalAirportId,
             DateOnly? departureDate,
             CancellationToken cancellationToken)
         {
-            return _flightRepository.SearchAsync(departureAirportId, arrivalAirportId, departureDate, cancellationToken);
+            return _routeRepository.SearchAsync(departureAirportId, arrivalAirportId, departureDate, cancellationToken);
         }
 
         public async Task<IReadOnlyCollection<FlightResponse>> SearchFlightsAsync(
-            FlightQuery flightQuery,
+            RouteQuery routeQuery,
             CancellationToken cancellationToken)
         {
-            var repositoryQuery = ToFlightDefinitionQuery(flightQuery);
-            var flightDefinitions = await _flightRepository.GetFlightDefinitionsAsync(repositoryQuery, cancellationToken);
-            return CreateFlights(flightDefinitions, flightQuery);
+            var repositoryQuery = ToRouteSearchQuery(routeQuery);
+            var routes = await _routeRepository.GetRoutesAsync(repositoryQuery, cancellationToken);
+            return CreateFlights(routes, routeQuery);
         }
 
-        public Task<Flight> SaveFlightAsync(Flight flight, CancellationToken cancellationToken)
+        public Task<DomainRoute> SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken)
         {
-            return _flightRepository.SaveAsync(flight, cancellationToken);
+            return _routeRepository.SaveAsync(route, cancellationToken);
         }
 
-        private static FlightDefinitionQuery ToFlightDefinitionQuery(FlightQuery flightQuery)
+        private static RouteSearchQuery ToRouteSearchQuery(RouteQuery routeQuery)
         {
-            return new FlightDefinitionQuery
+            return new RouteSearchQuery
             {
-                Origin = flightQuery.Origin,
-                Destination = flightQuery.Destination,
-                QuantityOfPassengers = flightQuery.QuantityOfPassengers,
-                DepartureWindows = CreateDepartureWindows(flightQuery)
+                Origin = routeQuery.Origin,
+                Destination = routeQuery.Destination,
+                QuantityOfPassengers = routeQuery.QuantityOfPassengers,
+                DepartureWindows = CreateDepartureWindows(routeQuery)
             };
         }
 
-        private static IReadOnlyCollection<FlightDefinitionDepartureWindow> CreateDepartureWindows(FlightQuery flightQuery)
+        private static IReadOnlyCollection<RouteDepartureWindow> CreateDepartureWindows(RouteQuery routeQuery)
         {
-            if (flightQuery.EarliestDeparture is null || flightQuery.LatestDeparture is null)
+            if (routeQuery.EarliestDeparture is null || routeQuery.LatestDeparture is null)
             {
-                return Array.Empty<FlightDefinitionDepartureWindow>();
+                return Array.Empty<RouteDepartureWindow>();
             }
 
-            var earliestDeparture = flightQuery.EarliestDeparture.Value;
-            var latestDeparture = flightQuery.LatestDeparture.Value;
-            var windows = new List<FlightDefinitionDepartureWindow>();
+            var earliestDeparture = routeQuery.EarliestDeparture.Value;
+            var latestDeparture = routeQuery.LatestDeparture.Value;
+            var windows = new List<RouteDepartureWindow>();
             var currentDate = earliestDeparture.Date;
             var endDate = latestDeparture.Date;
 
             while (currentDate <= endDate)
             {
-                windows.Add(new FlightDefinitionDepartureWindow
+                windows.Add(new RouteDepartureWindow
                 {
                     Frequency = CreateFrequency(currentDate.DayOfWeek),
                     EarliestDeparture = currentDate == earliestDeparture.Date
@@ -86,37 +92,37 @@ namespace SnoopyAirlines.Services
         }
 
         private static IReadOnlyCollection<FlightResponse> CreateFlights(
-            IReadOnlyCollection<FlightDefinition> flightDefinitions,
-            FlightQuery flightQuery)
+            IReadOnlyCollection<DomainRoute> routes,
+            RouteQuery routeQuery)
         {
-            if (flightQuery.EarliestDeparture is null || flightQuery.LatestDeparture is null)
+            if (routeQuery.EarliestDeparture is null || routeQuery.LatestDeparture is null)
             {
                 return Array.Empty<FlightResponse>();
             }
 
             var flights = new List<FlightResponse>();
-            var earliestDeparture = flightQuery.EarliestDeparture.Value;
-            var latestDeparture = flightQuery.LatestDeparture.Value;
+            var earliestDeparture = routeQuery.EarliestDeparture.Value;
+            var latestDeparture = routeQuery.LatestDeparture.Value;
             var currentDate = earliestDeparture.Date;
             var endDate = latestDeparture.Date;
 
             while (currentDate <= endDate)
             {
-                foreach (var definition in flightDefinitions)
+                foreach (var route in routes)
                 {
-                    if (!OccursOn(definition.Frequency, currentDate.DayOfWeek))
+                    if (!OccursOn(route.Frequency, currentDate.DayOfWeek))
                     {
                         continue;
                     }
 
-                    var departureTime = currentDate.Add(definition.DepartureTime.ToTimeSpan());
+                    var departureTime = currentDate.Add(route.DepartureTime.ToTimeSpan());
 
                     if (departureTime < earliestDeparture || departureTime > latestDeparture)
                     {
                         continue;
                     }
 
-                    flights.Add(CreateFlightResponse(definition, departureTime));
+                    flights.Add(CreateFlightResponse(route, departureTime));
                 }
 
                 currentDate = currentDate.AddDays(1);
@@ -128,38 +134,39 @@ namespace SnoopyAirlines.Services
                 .ToList();
         }
 
-        private static FlightResponse CreateFlightResponse(FlightDefinition definition, DateTime departureTime)
+        private static FlightResponse CreateFlightResponse(DomainRoute route, DateTime departureTime)
         {
-            var arrivalDate = definition.ArrivalTime >= definition.DepartureTime
+            var arrivalDate = route.ArrivalTime >= route.DepartureTime
                 ? departureTime.Date
                 : departureTime.Date.AddDays(1);
 
             return new FlightResponse
             {
-                FlightGUID = CreateFlightGuid(definition.Id, departureTime.Date),
+                FlightGUID = CreateFlightGuid(route.Id, departureTime.Date),
+                RouteId = route.Id,
                 DepartureTime = departureTime,
-                ArrivalTime = arrivalDate.Add(definition.ArrivalTime.ToTimeSpan()),
-                Duration = FormatDuration(definition.DurationMinutes),
+                ArrivalTime = arrivalDate.Add(route.ArrivalTime.ToTimeSpan()),
+                Duration = FormatDuration(route.DurationMinutes),
                 DepartureAirport = new AirportResponse
                 {
-                    Code = definition.DepartureAirport.Code,
-                    Name = definition.DepartureAirport.Name,
-                    City = definition.DepartureAirport.City
+                    Code = route.DepartureAirport!.Code,
+                    Name = route.DepartureAirport.Name,
+                    City = route.DepartureAirport.City
                 },
                 ArrivalAirport = new AirportResponse
                 {
-                    Code = definition.ArrivalAirport.Code,
-                    Name = definition.ArrivalAirport.Name,
-                    City = definition.ArrivalAirport.City
+                    Code = route.ArrivalAirport!.Code,
+                    Name = route.ArrivalAirport.Name,
+                    City = route.ArrivalAirport.City
                 },
-                TouristPrice = definition.PriceEconomyClass,
-                FirstClassPrice = definition.PriceFirstClass,
-                CarryOnPrice = definition.CarryOnPrice,
-                CheckedPrice = definition.CheckedPrice
+                TouristPrice = route.PriceEconomyClass,
+                FirstClassPrice = route.PriceFirstClass,
+                CarryOnPrice = route.PriceCarryOnBaggage,
+                CheckedPrice = route.PriceCheckedBaggage
             };
         }
 
-        private static bool OccursOn(FlightFrequency frequency, DayOfWeek dayOfWeek)
+        private static bool OccursOn(RouteFrequency frequency, DayOfWeek dayOfWeek)
         {
             return dayOfWeek switch
             {
@@ -174,9 +181,9 @@ namespace SnoopyAirlines.Services
             };
         }
 
-        private static FlightFrequency CreateFrequency(DayOfWeek dayOfWeek)
+        private static RouteFrequency CreateFrequency(DayOfWeek dayOfWeek)
         {
-            return new FlightFrequency
+            return new RouteFrequency
             {
                 Monday = dayOfWeek == DayOfWeek.Monday,
                 Tuesday = dayOfWeek == DayOfWeek.Tuesday,
@@ -188,10 +195,10 @@ namespace SnoopyAirlines.Services
             };
         }
 
-        private static string CreateFlightGuid(int flightDefinitionId, DateTime departureDate)
+        private static string CreateFlightGuid(int routeId, DateTime departureDate)
         {
             var bytes = FlightGuidNamespace.ToByteArray();
-            var idBytes = BitConverter.GetBytes(flightDefinitionId);
+            var idBytes = BitConverter.GetBytes(routeId);
             var dateNumber = departureDate.Year * 10000 + departureDate.Month * 100 + departureDate.Day;
             var dateBytes = BitConverter.GetBytes(dateNumber);
 

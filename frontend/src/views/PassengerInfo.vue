@@ -205,7 +205,8 @@ export default {
             }
 
             const purchaseOrderRequest = {
-                flightId: parseInt(this.$route.query.flightId),
+                routeId: parseInt(this.$route.query.routeId),
+                intendedDate: this.$route.query.intendedDate,
                 seatClass: this.$route.query.seatClass,
                 passengers: this.passengers.map(p => ({
                     ...p,
@@ -217,9 +218,14 @@ export default {
             console.log('Request:', JSON.stringify(purchaseOrderRequest));
             axios.post(`${process.env.VUE_APP_BACKEND_URL}/PurchaseOrder`, purchaseOrderRequest)
             .then((response) => {
-                sessionStorage.setItem('purchaseOrderId', response.data.id);
-                alert("Datos guardados exitosamente");
-                this.$router.push('/payment');
+                const purchaseOrderId = response.data.id ?? response.data.Id;
+                sessionStorage.setItem('purchaseOrderId', purchaseOrderId);
+                sessionStorage.setItem('bookingHolderEmail', this.holder.email);
+                sessionStorage.setItem('bookingHolderName', `${this.holder.firstName} ${this.holder.lastName}`.trim());
+                this.$router.push({
+                    name: 'PurchaseConfirmation',
+                    params: { purchaseOrderId }
+                });
             })
             .catch((error) => {
                 alert("Error al guardar los datos de los pasajeros");

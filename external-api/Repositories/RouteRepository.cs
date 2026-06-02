@@ -2,24 +2,25 @@ using System.Text;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.External.Domain;
+using DomainRoute = SnoopyAirlines.External.Domain.Route;
 
 namespace SnoopyAirlines.External.Repositories
 {
-    public class FlightRepository
+    public class RouteRepository
     {
         private readonly string _connectionString;
 
-        public FlightRepository(IConfiguration configuration)
+        public RouteRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<IReadOnlyCollection<FlightDefinition>> GetFlightDefinitions(
-            FlightDefinitionQuery? flightQuery,
+        public async Task<IReadOnlyCollection<DomainRoute>> GetRoutes(
+            RouteSearchQuery? routeQuery,
             CancellationToken cancellationToken = default)
         {
-            flightQuery ??= new FlightDefinitionQuery();
+            routeQuery ??= new RouteSearchQuery();
 
             var sql = new StringBuilder("""
                 SELECT
@@ -38,7 +39,7 @@ namespace SnoopyAirlines.External.Repositories
                     f.price_first_class AS FirstClassPrice,
                     f.price_carry_on_baggage AS CarryOnPrice,
                     f.price_checked_baggage AS CheckedPrice
-                FROM flight f
+                FROM [route] f
                 INNER JOIN airplane plane ON f.airplane_id = plane.id
                 INNER JOIN airport departure_airport ON f.departure_airport_id = departure_airport.id
                 INNER JOIN city departure_city ON departure_airport.city_id = departure_city.id
@@ -50,21 +51,21 @@ namespace SnoopyAirlines.External.Repositories
             var where = new List<string>();
             var parameters = new DynamicParameters();
 
-            if (!string.IsNullOrWhiteSpace(flightQuery.Destination))
+            if (!string.IsNullOrWhiteSpace(routeQuery.Destination))
             {
                 where.Add("arrival_airport.code = @Destination");
-                parameters.Add("Destination", flightQuery.Destination);
+                parameters.Add("Destination", routeQuery.Destination);
             }
 
-            if (flightQuery.QuantityOfPassengers.HasValue)
+            if (routeQuery.QuantityOfPassengers.HasValue)
             {
                 where.Add("((plane.tourist_rows * plane.tourist_columns) + (plane.firstClass_rows * plane.firstClass_columns)) >= @QuantityOfPassengers");
-                parameters.Add("QuantityOfPassengers", flightQuery.QuantityOfPassengers.Value);
+                parameters.Add("QuantityOfPassengers", routeQuery.QuantityOfPassengers.Value);
             }
 
-            if (flightQuery.ArrivalWindows.Count > 0)
+            if (routeQuery.ArrivalWindows.Count > 0)
             {
-                AddArrivalWindowFilters(where, parameters, flightQuery.ArrivalWindows);
+                AddArrivalWindowFilters(where, parameters, routeQuery.ArrivalWindows);
             }
 
             if (where.Count > 0)
@@ -75,44 +76,44 @@ namespace SnoopyAirlines.External.Repositories
             sql.AppendLine("ORDER BY f.arrival_time, f.departure_time;");
 
             await using var connection = new SqlConnection(_connectionString);
-            var flights = await connection.QueryAsync<FlightRecord>(
+            var routes = await connection.QueryAsync<RouteRecord>(
                 new CommandDefinition(sql.ToString(), parameters, cancellationToken: cancellationToken));
 
-            return flights.Select(ToFlightDefinition).ToList();
+            return routes.Select(ToRoute).ToList();
         }
 
-        private static FlightDefinition ToFlightDefinition(FlightRecord flight)
+        private static DomainRoute ToRoute(RouteRecord route)
         {
-            return new FlightDefinition
+            return new DomainRoute
             {
-                Id = flight.Id,
-                DepartureTime = TimeOnly.FromTimeSpan(flight.DepartureTime),
-                ArrivalTime = TimeOnly.FromTimeSpan(flight.ArrivalTime),
-                Frequency = FlightFrequency.FromByte(flight.Frequency),
-                DurationMinutes = flight.DurationMinutes,
+                Id = route.Id,
+                DepartureTime = TimeOnly.FromTimeSpan(route.DepartureTime),
+                ArrivalTime = TimeOnly.FromTimeSpan(route.ArrivalTime),
+                Frequency = RouteFrequency.FromByte(route.Frequency),
+                DurationMinutes = route.DurationMinutes,
                 DepartureAirport = new Airport
                 {
-                    Code = flight.DepartureAirportCode,
-                    Name = flight.DepartureAirportName,
-                    City = flight.DepartureAirportCity
+                    Code = route.DepartureAirportCode,
+                    Name = route.DepartureAirportName,
+                    City = route.DepartureAirportCity
                 },
                 ArrivalAirport = new Airport
                 {
-                    Code = flight.ArrivalAirportCode,
-                    Name = flight.ArrivalAirportName,
-                    City = flight.ArrivalAirportCity
+                    Code = route.ArrivalAirportCode,
+                    Name = route.ArrivalAirportName,
+                    City = route.ArrivalAirportCity
                 },
-                TouristPrice = flight.TouristPrice,
-                FirstClassPrice = flight.FirstClassPrice,
-                CarryOnPrice = flight.CarryOnPrice,
-                CheckedPrice = flight.CheckedPrice
+                TouristPrice = route.TouristPrice,
+                FirstClassPrice = route.FirstClassPrice,
+                CarryOnPrice = route.CarryOnPrice,
+                CheckedPrice = route.CheckedPrice
             };
         }
 
         private static void AddArrivalWindowFilters(
             ICollection<string> where,
             DynamicParameters parameters,
-            IReadOnlyCollection<FlightDefinitionArrivalWindow> arrivalWindows)
+            IReadOnlyCollection<RouteArrivalWindow> arrivalWindows)
         {
             var conditions = new List<string>();
             var index = 0;
@@ -159,7 +160,7 @@ namespace SnoopyAirlines.External.Repositories
             }
         }
 
-        private static byte ToByte(FlightFrequency frequency)
+        private static byte ToByte(RouteFrequency frequency)
         {
             byte value = 0;
 
@@ -174,7 +175,7 @@ namespace SnoopyAirlines.External.Repositories
             return value;
         }
 
-        private class FlightRecord
+        private class RouteRecord
         {
             public int Id { get; set; }
             public TimeSpan DepartureTime { get; set; }

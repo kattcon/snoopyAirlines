@@ -27,11 +27,15 @@ builder.Services.AddCors(options =>
 });
 
 // Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddScoped(sp => new RouteRepository(builder.Configuration));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     });
+builder.Services.AddScoped<RouteRepository>();
+builder.Services.AddScoped<RouteService>();
 builder.Services.AddScoped(sp => new FlightRepository(builder.Configuration));
 builder.Services.AddScoped<FlightRepository>();
 builder.Services.AddScoped<FlightService>();
@@ -46,6 +50,8 @@ builder.Services.AddScoped<AirplaneRepository>();
 builder.Services.AddScoped<AirplaneService>();
 builder.Services.AddScoped<PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderService>();
+builder.Services.AddScoped<BookingRepository>();
+builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<ConsoleEmailSender>();
 builder.Services.AddScoped<IEmailSender>(serviceProvider =>

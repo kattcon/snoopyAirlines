@@ -2,17 +2,17 @@ using SnoopyAirlines.Domain;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class FlightDefinitionQuery
+    public class RouteSearchQuery
     {
         public string? Origin { get; set; }
         public string? Destination { get; set; }
-        public IReadOnlyCollection<FlightDefinitionDepartureWindow> DepartureWindows { get; set; } = Array.Empty<FlightDefinitionDepartureWindow>();
+        public IReadOnlyCollection<RouteDepartureWindow> DepartureWindows { get; set; } = Array.Empty<RouteDepartureWindow>();
         public int? QuantityOfPassengers { get; set; }
     }
 
-    public class FlightDefinitionDepartureWindow
+    public class RouteDepartureWindow
     {
-        public FlightFrequency Frequency { get; set; } = new();
+        public RouteFrequency Frequency { get; set; } = new();
         public TimeOnly EarliestDeparture { get; set; }
         public TimeOnly LatestDeparture { get; set; }
     }
