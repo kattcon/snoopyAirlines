@@ -20,6 +20,7 @@ namespace SnoopyAirlines.Services
                 "Email queued for console delivery.\nTo: {To}\nSubject: {Subject}\nIsHtml: {IsHtml}\nBody:\n{Body}",
                 to,
                 subject,
+                isHtml,
                 body);
 
             return Task.CompletedTask;

@@ -4,29 +4,13 @@ using snoopy_airlines_backend.Domain;
 
 namespace SnoopyAirlines.Domain.EmailTemplate
 {
-    public static class PurchaseOrderEmailTemplate
+    public static class BookingItineraryEmail
     {
-        private const string ConfirmationResourceName  = "snoopy_airlines_backend.Resources.Emails.purchaseEmail.html";
-        private const string ItineraryResourceName = "snoopy_airlines_backend.Resources.Emails.itineraryEmail.html";
+        private const string ResourceName = "snoopy_airlines_backend.Resources.Emails.itineraryEmail.html";
 
-        public static string BuildConfirmation(PurchaseOrderEmailData data)
+        public static string Build(PurchaseOrderEmailData data)
         {
-            var html = LoadTemplate(ConfirmationResourceName);
-
-            return html
-                .Replace("{{PURCHASE_ORDER_ID}}", data.PurchaseOrderId.ToString())
-                .Replace("{{BASE_FARE}}", data.BaseFare)
-                .Replace("{{TAXES}}", data.Taxes)
-                .Replace("{{TRAVEL_INSURANCE}}", data.TravelInsurance)
-                .Replace("{{TOTAL}}", data.Total)
-                .Replace("{{PAYMENT_METHOD}}", data.PaymentMethod)
-                .Replace("{{PURCHASE_DATE}}", data.PurchaseDate)
-                .Replace("{{TRANSACTION_ID}}", data.TransactionId);
-        }
-
-        public static string BuildItinerary(PurchaseOrderEmailData data)
-        {
-            var html = LoadTemplate(ItineraryResourceName);
+            var html = LoadTemplate(ResourceName);
             var passengerHtml = BuildPassengerHtml(data.Passengers);
 
             return html
@@ -59,7 +43,7 @@ namespace SnoopyAirlines.Domain.EmailTemplate
                           <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">{passenger.FirstName} {passenger.LastName}</p>
                         </td>
                         <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;border-left:1px solid #e5e7eb;" width="50%">
-                          <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">Género</p>
+                          <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">Genero</p>
                           <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">{passenger.Gender}</p>
                         </td>
                       </tr>
