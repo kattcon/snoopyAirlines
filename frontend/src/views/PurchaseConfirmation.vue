@@ -228,6 +228,10 @@ export default {
         this.booking = booking;
         sessionStorage.removeItem("bookingHolderEmail");
         sessionStorage.removeItem("bookingHolderName");
+        this.$router.push({
+          name: "OrderConfirmation",
+          params: { bookingGuid: this.fieldValue(booking, "guid", "Guid") }
+        });
       } catch (bookingError) {
         console.error("Error confirmando la compra:", bookingError);
         this.bookingError = this.backendErrorMessage(bookingError);
@@ -329,9 +333,9 @@ export default {
       const amount = Number(value);
       if (!Number.isFinite(amount)) return this.placeholder("monto_vuelos");
 
-      return new Intl.NumberFormat("es-ES", {
+      return new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "EUR",
+        currency: "USD",
         minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
         maximumFractionDigits: 2
       }).format(amount);

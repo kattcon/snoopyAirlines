@@ -17,6 +17,14 @@ namespace SnoopyAirlines.Controllers
             _bookingService = bookingService;
         }
 
+        [HttpGet("{bookingGuid:guid}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<Booking>> GetByGuid(Guid bookingGuid, CancellationToken cancellationToken)
+        {
+            var booking = await _bookingService.GetByGuidAsync(bookingGuid, cancellationToken);
+            return booking is null ? NotFound() : Ok(booking);
+        }
+
         [HttpPost]
         [AllowAnonymous]
         public async Task<ActionResult<Booking>> Post(BookingIntake bookingIntake, CancellationToken cancellationToken)
