@@ -5,9 +5,9 @@ namespace snoopy_airlines_backend.Services
 {
     public class PurchaseOrderService
     {
-        private readonly PurchaseOrderRepository _purchaseOrderRepository;
+        private readonly IPurchaseOrderRepository _purchaseOrderRepository;
 
-        public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository)
+        public PurchaseOrderService(IPurchaseOrderRepository purchaseOrderRepository)
         {
             _purchaseOrderRepository = purchaseOrderRepository;
         }

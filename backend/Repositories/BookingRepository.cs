@@ -5,7 +5,7 @@ using SnoopyAirlines.Domain;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class BookingRepository
+    public class BookingRepository : IBookingRepository
     {
         private readonly string _connectionString;
 
