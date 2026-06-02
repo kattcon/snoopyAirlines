@@ -15,7 +15,7 @@ namespace SnoopyAirlines.Repositories
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<IReadOnlyCollection<Flight>> GetAllAsync(CancellationToken cancellationToken)
+        public virtual async Task<IReadOnlyCollection<Flight>> GetAllAsync(CancellationToken cancellationToken)
         {
             const string sql = """
                 SELECT
@@ -45,7 +45,7 @@ namespace SnoopyAirlines.Repositories
             return flights.Select(ToFlight).ToList();
         }
 
-        public async Task<IReadOnlyCollection<FlightDefinition>> GetFlightDefinitionsAsync(
+        public virtual async Task<IReadOnlyCollection<FlightDefinition>> GetFlightDefinitionsAsync(
             FlightDefinitionQuery flightQuery,
             CancellationToken cancellationToken = default)
         {
