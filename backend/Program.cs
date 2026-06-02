@@ -36,9 +36,6 @@ builder.Services.AddControllers()
     });
 builder.Services.AddScoped<RouteRepository>();
 builder.Services.AddScoped<RouteService>();
-builder.Services.AddScoped(sp => new FlightRepository(builder.Configuration));
-builder.Services.AddScoped<FlightRepository>();
-builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped(sp => new UserRepository(builder.Configuration));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(sp => new AirportRepository(builder.Configuration));
