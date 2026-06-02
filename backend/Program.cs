@@ -41,7 +41,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(sp => new AirportRepository(builder.Configuration));
 builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<AirportRepository>();
+builder.Services.AddScoped<IAirportRepository, AirportRepository>();
 builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<AirplaneRepository>();
 builder.Services.AddScoped<AirplaneService>();
