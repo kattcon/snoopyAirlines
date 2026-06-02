@@ -367,7 +367,24 @@ function cancelPasswordChange() {
 }
 
 function extractErrorMessage(error) {
-  return error.response?.data?.message ?? error.response?.data?.Message ?? null;
+  const data = error.response?.data
+
+  if (data?.errors?.length > 0) {
+    return data.errors.map(e => translatePasswordError(e.message)).join(', ')
+  }
+
+  return data?.message ?? data?.Message ?? null
+}
+
+function translatePasswordError(message) {
+  const translations = {
+    'Password must be at least 8 characters long.': 'La contraseña debe tener al menos 8 caracteres.',
+    'Password must include at least one uppercase letter.': 'La contraseña debe incluir al menos una letra mayúscula.',
+    'Password must include at least one lowercase letter.': 'La contraseña debe incluir al menos una letra minúscula.',
+    'Password must include at least one number.': 'La contraseña debe incluir al menos un número.',
+    'Password must include at least one special symbol (!#$%&@).': 'La contraseña debe incluir al menos un símbolo especial (!#$%&@).'
+  }
+  return translations[message] ?? message
 }
 
 function cancelEdit() {
