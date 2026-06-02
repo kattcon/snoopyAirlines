@@ -44,6 +44,16 @@
             {{ item.pending ? 'Pendiente' : 'Activo' }}
           </span>
         </template>
+
+        <template #cell-actions="{ item }">
+          <button
+            v-if="!item.pending"
+            class="btn-edit"
+            @click.stop="$router.push(`/admin/edit-user/${item.id}`)"
+          >
+            Editar
+          </button>
+        </template>
       </AppList>
 
       <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
@@ -73,7 +83,8 @@ export default {
         { key: "fullName", label: "Nombre completo" },
         { key: "email", label: "Correo electrónico" },
         { key: "type", label: "Rol" },
-        { key: "pending", label: "Estado" }
+        { key: "pending", label: "Estado" },
+        { key: "actions", label: "" }
       ]
     };
   },
@@ -261,5 +272,20 @@ export default {
   font-weight: bold;
   margin-top: 12px;
   text-align: center;
+}
+
+.btn-edit {
+  background-color: #1a2b4a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-edit:hover {
+  background-color: #2c3e6b;
 }
 </style>

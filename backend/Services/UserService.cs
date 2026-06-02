@@ -250,5 +250,8 @@ namespace SnoopyAirlines.Services
 
             return true;
         }
+
+        public Task<UserView?> AdminUpdateUserAsync(int id, AdminUserUpdateIntake intake, CancellationToken cancellationToken)
+            => _userRepository.AdminUpdateAsync(id, intake, cancellationToken);
     }
 }

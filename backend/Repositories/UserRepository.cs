@@ -506,5 +506,51 @@ namespace SnoopyAirlines.Repositories
             await connection.ExecuteAsync(
                 new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
         }
+        public async Task<UserView?> AdminUpdateAsync(int id, AdminUserUpdateIntake intake, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                UPDATE dbo.[user]
+                SET
+                    first_name = @FirstName,
+                    last_name_one = @LastNameOne,
+                    last_name_two = @LastNameTwo,
+                    identification_number = @IdentificationNumber,
+                    type = @TypeCode
+                OUTPUT
+                    INSERTED.id AS Id,
+                    INSERTED.identification_number AS IdentificationNumber,
+                    INSERTED.email AS Email,
+                    INSERTED.first_name AS FirstName,
+                    INSERTED.last_name_one AS LastNameOne,
+                    INSERTED.last_name_two AS LastNameTwo,
+                    CASE INSERTED.type
+                        WHEN 'AD' THEN CAST(0 AS INT)
+                        WHEN 'OP' THEN CAST(1 AS INT)
+                    END AS Type,
+                    CAST(0 AS BIT) AS Pending
+                WHERE id = @Id;
+                """;
+
+            var typeCode = intake.Type.ToUpper() switch
+            {
+                "AD" => "AD",
+                "OP" => "OP",
+                _ => throw new ArgumentException($"Invalid user type: {intake.Type}.", nameof(intake))
+            };
+
+            var parameters = new
+            {
+                Id = id,
+                intake.FirstName,
+                intake.LastNameOne,
+                intake.LastNameTwo,
+                intake.IdentificationNumber,
+                TypeCode = typeCode
+            };
+
+            await using var connection = new SqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<UserView>(
+                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+        }
     }
 }
