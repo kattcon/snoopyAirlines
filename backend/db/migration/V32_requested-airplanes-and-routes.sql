@@ -9,10 +9,28 @@ DELETE FROM dbo.PurchaseOrder;
 DELETE FROM dbo.[route];
 DELETE FROM dbo.airplane;
 
-DBCC CHECKIDENT (N'dbo.Passenger', RESEED, 0);
-DBCC CHECKIDENT (N'dbo.PurchaseOrder', RESEED, 0);
-DBCC CHECKIDENT (N'dbo.airplane', RESEED, 0);
-DBCC CHECKIDENT (N'dbo.[route]', RESEED, 0);
+
+DECLARE @next_seed INT;
+
+SELECT @next_seed = CASE WHEN last_value IS NULL THEN 1 ELSE 0 END
+FROM sys.identity_columns
+WHERE object_id = OBJECT_ID(N'dbo.Passenger');
+DBCC CHECKIDENT (N'dbo.Passenger', RESEED, @next_seed);
+
+SELECT @next_seed = CASE WHEN last_value IS NULL THEN 1 ELSE 0 END
+FROM sys.identity_columns
+WHERE object_id = OBJECT_ID(N'dbo.PurchaseOrder');
+DBCC CHECKIDENT (N'dbo.PurchaseOrder', RESEED, @next_seed);
+
+SELECT @next_seed = CASE WHEN last_value IS NULL THEN 1 ELSE 0 END
+FROM sys.identity_columns
+WHERE object_id = OBJECT_ID(N'dbo.airplane');
+DBCC CHECKIDENT (N'dbo.airplane', RESEED, @next_seed);
+
+SELECT @next_seed = CASE WHEN last_value IS NULL THEN 1 ELSE 0 END
+FROM sys.identity_columns
+WHERE object_id = OBJECT_ID(N'dbo.[route]');
+DBCC CHECKIDENT (N'dbo.[route]', RESEED, @next_seed);
 
 -- Existing V15 seed already includes SJO, MAD, FRA, and AMS. Add the route-required
 -- airport codes that are missing from the existing seed before inserting routes.
