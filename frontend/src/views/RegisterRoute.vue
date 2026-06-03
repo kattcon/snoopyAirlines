@@ -248,15 +248,6 @@ export default {
         valid = false;
       }
 
-      if (
-        this.route.departureTime &&
-        this.route.arrivalTime &&
-        this.timeToMinutes(this.route.arrivalTime) <= this.timeToMinutes(this.route.departureTime)
-      ) {
-        this.errors.arrivalTime = "Debe ser posterior a la salida";
-        valid = false;
-      }
-
       return valid;
     },
     validateRequired(fieldName) {
@@ -287,10 +278,6 @@ export default {
       }
 
       return true;
-    },
-    timeToMinutes(time) {
-      const [hours, minutes] = time.split(":").map(Number);
-      return hours * 60 + minutes;
     },
     validatePositiveInteger(fieldName) {
       if (!this.validateRequired(fieldName)) return false;

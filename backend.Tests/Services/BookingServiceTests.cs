@@ -1,6 +1,5 @@
 using Moq;
 using snoopy_airlines_backend.Domain;
-using snoopy_airlines_backend.Repositories;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
@@ -11,7 +10,6 @@ namespace backend.Tests.Services
     public class BookingServiceTests
     {
         private readonly Mock<IBookingRepository> _bookingRepository = new();
-        private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepository = new();
         private readonly Mock<IEmailSender> _emailSender = new();
 
         public BookingServiceTests()
@@ -38,7 +36,7 @@ namespace backend.Tests.Services
                 .Callback<BookingRequest, CancellationToken>((request, _) => capturedRequest = request)
                 .ReturnsAsync(booking);
 
-            SetupPurchaseOrderDetails(booking.PurchaseOrderId);
+            SetupBookingItineraryDetails(booking.Guid, booking.PurchaseOrderId);
             var service = CreateService();
 
             var request = new BookingRequest
@@ -71,7 +69,7 @@ namespace backend.Tests.Services
             var sentMessages = new List<(string To, string Subject, string Body, bool IsHtml)>();
 
             SetupBooking(booking);
-            SetupPurchaseOrderDetails(booking.PurchaseOrderId);
+            SetupBookingItineraryDetails(booking.Guid, booking.PurchaseOrderId);
 
             _emailSender
                 .Setup(s => s.SendAsync(
@@ -123,8 +121,8 @@ namespace backend.Tests.Services
             _bookingRepository.Verify(
                 r => r.BookAsync(It.IsAny<BookingRequest>(), It.IsAny<CancellationToken>()),
                 Times.Never);
-            _purchaseOrderRepository.Verify(
-                r => r.GetPurchaseOrderDetailsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            _bookingRepository.Verify(
+                r => r.GetBookingItineraryDetailsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
                 Times.Never);
             _emailSender.Verify(
                 s => s.SendAsync(
@@ -143,7 +141,7 @@ namespace backend.Tests.Services
             var booking = CreateBooking();
 
             SetupBooking(booking);
-            SetupMissingPurchaseOrderDetails(booking.PurchaseOrderId);
+            SetupMissingBookingItineraryDetails(booking.Guid);
 
             var service = CreateService();
 
@@ -151,7 +149,7 @@ namespace backend.Tests.Services
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 service.BookAsync(CreateValidRequest(booking.PurchaseOrderId), CancellationToken.None));
 
-            Assert.Equal($"Purchase order {booking.PurchaseOrderId} not found.", exception.Message);
+            Assert.Equal($"Booking {booking.Guid} not found.", exception.Message);
             _emailSender.Verify(
                 s => s.SendAsync(
                     It.IsAny<string>(),
@@ -166,7 +164,6 @@ namespace backend.Tests.Services
         {
             return new BookingService(
                 _bookingRepository.Object,
-                _purchaseOrderRepository.Object,
                 _emailSender.Object);
         }
 
@@ -177,17 +174,17 @@ namespace backend.Tests.Services
                 .ReturnsAsync(booking);
         }
 
-        private void SetupPurchaseOrderDetails(int purchaseOrderId)
+        private void SetupBookingItineraryDetails(Guid bookingGuid, int purchaseOrderId)
         {
-            _purchaseOrderRepository
-                .Setup(r => r.GetPurchaseOrderDetailsAsync(purchaseOrderId, It.IsAny<CancellationToken>()))
+            _bookingRepository
+                .Setup(r => r.GetBookingItineraryDetailsAsync(bookingGuid, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CreatePurchaseOrderEmailData(purchaseOrderId));
         }
 
-        private void SetupMissingPurchaseOrderDetails(int purchaseOrderId)
+        private void SetupMissingBookingItineraryDetails(Guid bookingGuid)
         {
-            _purchaseOrderRepository
-                .Setup(r => r.GetPurchaseOrderDetailsAsync(purchaseOrderId, It.IsAny<CancellationToken>()))
+            _bookingRepository
+                .Setup(r => r.GetBookingItineraryDetailsAsync(bookingGuid, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((PurchaseOrderEmailData?)null);
         }
 
@@ -239,15 +236,14 @@ namespace backend.Tests.Services
             {
                 PurchaseOrderId = purchaseOrderId,
                 SeatClass = "Economy",
-                DepartureTime = new DateTime(2026, 6, 15, 8, 0, 0),
-                ArrivalTime = new DateTime(2026, 6, 15, 12, 30, 0),
+                DepartureAt = new DateTime(2026, 6, 15, 8, 0, 0),
+                ArrivalAt = new DateTime(2026, 6, 15, 12, 30, 0),
                 DepartureAirportName = "Juan Santamaria International Airport",
                 DepartureAirportCode = "SJO",
                 DepartureCityName = "San Jose",
                 ArrivalAirportName = "Los Angeles International Airport",
                 ArrivalAirportCode = "LAX",
                 ArrivalCityName = "Los Angeles",
-                AirplaneModel = "Boeing 737",
                 Passengers =
                 [
                     new PassengerEmailData

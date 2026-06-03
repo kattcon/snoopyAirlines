@@ -175,8 +175,8 @@ export default {
                 birthMonth: '',
                 birthYear: '',
                 nationality: '',
-                CarryOnLuggage: '',
-                checkedLuggage: '',
+                CarryOnLuggage: 0,
+                checkedLuggage: 0,
             })),
             holder: {
                 firstName: '',
@@ -217,8 +217,8 @@ export default {
                 gender: !passenger.gender,
                 nationality: !passenger.nationality,
                 birthdate: !(passenger.birthDay || passenger.birthMonth || passenger.birthYear),
-                CarryOnLuggage: !passenger.CarryOnLuggage,
-                checkedLuggage: !passenger.checkedLuggage,
+                CarryOnLuggage: this.isMissingLuggageValue(passenger.CarryOnLuggage),
+                checkedLuggage: this.isMissingLuggageValue(passenger.checkedLuggage),
             }));
 
             this.errors.holder = {
@@ -268,6 +268,9 @@ export default {
                 alert(this.backendErrorMessage(error));
                 console.error(error);
             });
+        },
+        isMissingLuggageValue(value) {
+            return value === '' || value === null || value === undefined || Number.isNaN(value);
         },
         backendErrorMessage(error) {
             return (

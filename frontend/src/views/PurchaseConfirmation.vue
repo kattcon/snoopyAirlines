@@ -130,7 +130,14 @@ export default {
           value: this.formatCurrency(this.flightSubtotal)
         },
         {
-          label: `Equipaje facturado (${this.checkedLuggageCountLabel})`,
+          label: `Equipaje de mano (${this.carryOnLuggageCountLabel})`,
+          value: this.currencyOrPlaceholder(
+            this.carryOnLuggageTotalAmount,
+            "equipaje_mano_total"
+          )
+        },
+        {
+          label: `Equipaje documentado (${this.checkedLuggageCountLabel})`,
           value: this.currencyOrPlaceholder(
             this.checkedLuggageTotalAmount,
             "equipaje_facturado_total"
@@ -182,6 +189,46 @@ export default {
 
       return this.checkedLuggageCount * this.checkedLuggageUnitPrice;
     },
+    carryOnLuggageCountLabel() {
+      return this.carryOnLuggageCount === null
+        ? this.placeholder("equipaje_mano_total")
+        : String(this.carryOnLuggageCount);
+    },
+    carryOnLuggageCount() {
+      return this.passengerLuggageTotal([
+        "carryOnLuggage",
+        "CarryOnLuggage",
+        "handLuggage",
+        "HandLuggage"
+      ]);
+    },
+    carryOnLuggageUnitPrice() {
+      if (this.routeDetails.length === 0) return null;
+
+      const total = this.routeDetails.reduce((sum, routeDetail) => {
+        const route = routeDetail.route || {};
+        const price = Number(this.firstFieldValue(route, [
+          "priceCarryOnBaggage",
+          "PriceCarryOnBaggage",
+          "carryOnPrice",
+          "CarryOnPrice"
+        ]));
+
+        return Number.isFinite(price) ? sum + price : Number.NaN;
+      }, 0);
+
+      return Number.isFinite(total) ? total : null;
+    },
+    carryOnLuggageTotalAmount() {
+      if (
+        !Number.isFinite(this.carryOnLuggageCount) ||
+        !Number.isFinite(this.carryOnLuggageUnitPrice)
+      ) {
+        return null;
+      }
+
+      return this.carryOnLuggageCount * this.carryOnLuggageUnitPrice;
+    },
     unitFlightPrice() {
       if (this.routeDetails.length === 0) return null;
 
@@ -210,9 +257,14 @@ export default {
 
       if (
         Number.isFinite(this.flightSubtotal) &&
+        Number.isFinite(this.carryOnLuggageTotalAmount) &&
         Number.isFinite(this.checkedLuggageTotalAmount)
       ) {
-        return this.formatCurrency(this.flightSubtotal + this.checkedLuggageTotalAmount);
+        return this.formatCurrency(
+          this.flightSubtotal
+            + this.carryOnLuggageTotalAmount
+            + this.checkedLuggageTotalAmount
+        );
       }
 
       return this.placeholder("total_compra");
