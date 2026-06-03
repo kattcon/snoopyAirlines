@@ -21,37 +21,11 @@ namespace SnoopyAirlines.Controllers
             "O"
         ];
 
-        private readonly FlightService _flightService;
+        private readonly RouteService _routeService;
 
-        public FlightController(FlightService flightService)
+        public FlightController(RouteService routeService)
         {
-            _flightService = flightService;
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<Flight>>> Get(
-            [FromQuery] int? departureAirportId,
-            [FromQuery] int? arrivalAirportId,
-            [FromQuery] DateOnly? departureDate,
-            CancellationToken cancellationToken)
-        {
-            // Si hay parámetros de búsqueda, usa la búsqueda filtrada
-            if (departureAirportId.HasValue || arrivalAirportId.HasValue || departureDate.HasValue)
-            {
-                var flights = await _flightService.SearchFlightsAsync(
-                    departureAirportId,
-                    arrivalAirportId,
-                    departureDate,
-                    cancellationToken);
-
-                return Ok(flights);
-            }
-
-            // Si no hay filtros, devuelve todos
-            var allFlights = await _flightService.GetFlightsAsync(cancellationToken);
-
-            return Ok(allFlights);
+            _routeService = routeService;
         }
 
         [HttpGet("search")]
@@ -73,7 +47,7 @@ namespace SnoopyAirlines.Controllers
                 latestDeparture,
                 quantityOfPassengers,
                 includeStopovers,
-                out var flightQuery,
+                out var routeQuery,
                 out var errors))
             {
                 return BadRequest(new
@@ -83,27 +57,12 @@ namespace SnoopyAirlines.Controllers
                 });
             }
 
-            var flights = await _flightService.SearchFlightsAsync(flightQuery, cancellationToken);
+            var flights = await _routeService.SearchFlightsAsync(routeQuery, cancellationToken);
 
             return Ok(new FlightsResponse
             {
                 Flights = flights
             });
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<Flight>> Post(
-            Flight flight,
-            CancellationToken cancellationToken)
-        {
-            if (flight.Frequency is null || !flight.Frequency.HasAnyDay())
-            {
-                return BadRequest(new { frequency = "At least one day must be selected." });
-            }
-
-            var savedFlight = await _flightService.SaveFlightAsync(flight, cancellationToken);
-
-            return CreatedAtAction(nameof(Get), savedFlight);
         }
 
         private static bool TryCreateFlightQuery(
@@ -113,10 +72,10 @@ namespace SnoopyAirlines.Controllers
             string? latestDeparture,
             string? quantityOfPassengers,
             string? includeStopovers,
-            out FlightQuery flightQuery,
+            out RouteQuery routeQuery,
             out IReadOnlyCollection<ValidationError> errors)
         {
-            flightQuery = null!;
+            routeQuery = null!;
             var validationErrors = new List<ValidationError>();
 
             ValidateAirportCode(nameof(origin), origin, validationErrors);
@@ -172,7 +131,7 @@ namespace SnoopyAirlines.Controllers
                 return false;
             }
 
-            flightQuery = new FlightQuery
+            routeQuery = new RouteQuery
             {
                 Origin = origin?.Trim().ToUpperInvariant(),
                 Destination = detination?.Trim().ToUpperInvariant(),

@@ -14,8 +14,8 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddScoped<FlightRepository>();
-builder.Services.AddScoped<FlightService>();
+builder.Services.AddScoped<RouteRepository>();
+builder.Services.AddScoped<RouteService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddEndpointsApiExplorer();

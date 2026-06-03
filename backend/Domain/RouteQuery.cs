@@ -1,6 +1,6 @@
 namespace SnoopyAirlines.Domain
 {
-    public class FlightQuery
+    public class RouteQuery
     {
         public string? Origin { get; set; }
         public string? Destination { get; set; }

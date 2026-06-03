@@ -664,7 +664,8 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
      * Normaliza un vuelo del External API al shape que usa el template.
      *
      * Mapeo de campos:
-     *   flightGUID        → id
+     *   flightGUID       → id
+     *   routeId          → booking routeId
      *   touristPrice      → priceEconomyClass
      *   firstClassPrice   → priceFirstClass
      *   duration "hh:mm" o "hh-mm" → durationMinutes (int)
@@ -681,6 +682,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
       return {
         ...flight,
         id:                flight.flightGUID,
+        routeId:           flight.routeId,
         priceEconomyClass: flight.touristPrice,
         priceFirstClass:   flight.firstClassPrice,
         durationMinutes:   validHours * 60 + validMinutes,
@@ -697,7 +699,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
           if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
           return res.json();
         })
-        .then(data => data.flights.map(this.mapFlight));
+        .then(data => (data.flights ?? data.Flights ?? []).map(this.mapFlight));
     },
 
     searchFlights() {
@@ -827,7 +829,8 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
     selectSeatClass(flight, seatClass) {
 
       this.$router.push({path: '/booking', query: {
-        flightId: flight.id,
+        routeId: flight.routeId,
+        intendedDate: new Date(flight.departureTime).toISOString().slice(0, 10),
         seatClass: seatClass,
         passengersCount: this.search.passengers
       }})

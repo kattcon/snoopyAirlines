@@ -3,6 +3,7 @@ namespace SnoopyAirlines.Domain.View
     public class FlightResponse
     {
         required public string FlightGUID { get; set; }
+        public int RouteId { get; set; }
         public DateTime DepartureTime { get; set; }
         public DateTime ArrivalTime { get; set; }
         required public string Duration { get; set; }

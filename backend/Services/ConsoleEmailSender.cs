@@ -13,12 +13,14 @@ namespace SnoopyAirlines.Services
             string to,
             string subject,
             string body,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool isHtml = false)
         {
             _logger.LogInformation(
-                "Email queued for console delivery.\nTo: {To}\nSubject: {Subject}\nBody:\n{Body}",
+                "Email queued for console delivery.\nTo: {To}\nSubject: {Subject}\nIsHtml: {IsHtml}\nBody:\n{Body}",
                 to,
                 subject,
+                isHtml,
                 body);
 
             return Task.CompletedTask;
