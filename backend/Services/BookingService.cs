@@ -14,11 +14,9 @@ namespace SnoopyAirlines.Services
 
         public BookingService(
             IBookingRepository bookingRepository,
-            IBookingRepository purchaseOrderRepository,
             IEmailSender emailSender)
         {
             _bookingRepository = bookingRepository;
-            _bookingRepository = purchaseOrderRepository;
             _emailSender = emailSender;
         }
 
