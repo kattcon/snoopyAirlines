@@ -4,6 +4,7 @@ namespace SnoopyAirlines.Domain.View
     {
         required public string FlightGUID { get; set; }
         public int RouteId { get; set; }
+        public IReadOnlyCollection<FlightRouteResponse> Routes { get; set; } = Array.Empty<FlightRouteResponse>();
         public DateTime DepartureTime { get; set; }
         public DateTime ArrivalTime { get; set; }
         required public string Duration { get; set; }
@@ -16,6 +17,13 @@ namespace SnoopyAirlines.Domain.View
         public decimal FirstClassPrice { get; set; }
         public decimal CarryOnPrice { get; set; }
         public decimal CheckedPrice { get; set; }
+    }
+
+    public class FlightRouteResponse
+    {
+        public int SequenceNumber { get; set; }
+        public int RouteId { get; set; }
+        public DateOnly IntendedDate { get; set; }
     }
 
     public class AirportResponse

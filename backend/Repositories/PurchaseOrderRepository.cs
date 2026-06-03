@@ -22,13 +22,24 @@ namespace snoopy_airlines_backend.Repositories
 
             try
             {
+                await EnsureRoutesExistAsync(connection, transaction, order.Routes, cancellationToken);
+
                 var orderId = await connection.ExecuteScalarAsync<int>("""
-                    INSERT INTO PurchaseOrder(routeId, intendedDate, seatClass)
+                    INSERT INTO PurchaseOrder(seatClass)
                     OUTPUT INSERTED.id
-                    VALUES (@RouteId, @IntendedDate, @SeatClass);
-                    """, ToParameters(order), transaction);
+                    VALUES (@SeatClass);
+                    """, new { order.SeatClass }, transaction);
 
                 order.Id = orderId;
+
+                foreach (var route in order.Routes.OrderBy(route => route.SequenceNumber))
+                {
+                    route.PurchaseOrderId = order.Id;
+                    await connection.ExecuteAsync("""
+                        INSERT INTO dbo.PurchaseOrderRoute(PurchaseOrderId, SequenceNumber, RouteId, IntendedDate)
+                        VALUES (@PurchaseOrderId, @SequenceNumber, @RouteId, @IntendedDate);
+                        """, ToParameters(route), transaction);
+                }
 
                 foreach (var passenger in order.Passengers)
                 {
@@ -52,20 +63,69 @@ namespace snoopy_airlines_backend.Repositories
 
         }
 
+        private static async Task EnsureRoutesExistAsync(
+            SqlConnection connection,
+            SqlTransaction transaction,
+            IReadOnlyCollection<PurchaseOrderRoute> routes,
+            CancellationToken cancellationToken)
+        {
+            var routeIds = routes
+                .Select(route => route.RouteId)
+                .Distinct()
+                .ToArray();
+
+            var existingRouteIds = await connection.QueryAsync<int>(
+                new CommandDefinition("""
+                    SELECT id
+                    FROM dbo.[route] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id IN @RouteIds;
+                    """,
+                    new { RouteIds = routeIds },
+                    transaction,
+                    cancellationToken: cancellationToken));
+
+            var missingRouteIds = routeIds.Except(existingRouteIds).ToArray();
+            if (missingRouteIds.Length > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Route(s) not found: {string.Join(", ", missingRouteIds)}.");
+            }
+        }
+
         public async Task<IReadOnlyCollection<PurchaseOrder>> GetPurchaseOrdersAsync(CancellationToken cancellationToken)
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
-            var orders = await connection.QueryAsync<PurchaseOrderRecord>("""
+            using var results = await connection.QueryMultipleAsync(
+                new CommandDefinition("""
                 SELECT
                     id AS Id,
-                    routeId AS RouteId,
-                    intendedDate AS IntendedDate,
                     seatClass AS SeatClass
                 FROM PurchaseOrder
-                """);
+                ORDER BY id;
 
-            return orders.Select(ToPurchaseOrder).ToList().AsReadOnly();
+                SELECT
+                    PurchaseOrderId AS PurchaseOrderId,
+                    SequenceNumber AS SequenceNumber,
+                    RouteId AS RouteId,
+                    IntendedDate AS IntendedDate
+                FROM dbo.PurchaseOrderRoute
+                ORDER BY PurchaseOrderId, SequenceNumber;
+                """, cancellationToken: cancellationToken));
+
+            var orders = (await results.ReadAsync<PurchaseOrderRecord>()).Select(ToPurchaseOrder).ToList();
+            var orderLookup = orders.ToDictionary(order => order.Id);
+            var routeRecords = await results.ReadAsync<PurchaseOrderRouteRecord>();
+
+            foreach (var routeRecord in routeRecords)
+            {
+                if (orderLookup.TryGetValue(routeRecord.PurchaseOrderId, out var order))
+                {
+                    order.Routes.Add(ToPurchaseOrderRoute(routeRecord));
+                }
+            }
+
+            return orders.AsReadOnly();
         }
 
         public async Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken)
@@ -73,11 +133,18 @@ namespace snoopy_airlines_backend.Repositories
             const string sql = """
                 SELECT
                     id AS Id,
-                    routeId AS RouteId,
-                    intendedDate AS IntendedDate,
                     seatClass AS SeatClass
                 FROM PurchaseOrder
                 WHERE id = @Id;
+
+                SELECT
+                    PurchaseOrderId AS PurchaseOrderId,
+                    SequenceNumber AS SequenceNumber,
+                    RouteId AS RouteId,
+                    IntendedDate AS IntendedDate
+                FROM dbo.PurchaseOrderRoute
+                WHERE PurchaseOrderId = @Id
+                ORDER BY SequenceNumber;
 
                 SELECT
                     id AS Id,
@@ -108,19 +175,23 @@ namespace snoopy_airlines_backend.Repositories
             }
 
             var order = ToPurchaseOrder(orderRecord);
+            var routes = await results.ReadAsync<PurchaseOrderRouteRecord>();
+            order.Routes = routes.Select(ToPurchaseOrderRoute).ToList();
+
             var passengers = await results.ReadAsync<Passenger>();
             order.Passengers = passengers.ToList();
 
             return order;
         }
 
-        private static object ToParameters(PurchaseOrder order)
+        private static object ToParameters(PurchaseOrderRoute route)
         {
             return new
             {
-                order.RouteId,
-                IntendedDate = order.IntendedDate?.ToDateTime(TimeOnly.MinValue),
-                order.SeatClass
+                route.PurchaseOrderId,
+                route.SequenceNumber,
+                route.RouteId,
+                IntendedDate = route.IntendedDate?.ToDateTime(TimeOnly.MinValue)
             };
         }
 
@@ -129,18 +200,33 @@ namespace snoopy_airlines_backend.Repositories
             return new PurchaseOrder
             {
                 Id = order.Id,
-                RouteId = order.RouteId,
-                IntendedDate = order.IntendedDate.HasValue ? DateOnly.FromDateTime(order.IntendedDate.Value) : null,
                 SeatClass = order.SeatClass
+            };
+        }
+
+        private static PurchaseOrderRoute ToPurchaseOrderRoute(PurchaseOrderRouteRecord route)
+        {
+            return new PurchaseOrderRoute
+            {
+                PurchaseOrderId = route.PurchaseOrderId,
+                SequenceNumber = route.SequenceNumber,
+                RouteId = route.RouteId,
+                IntendedDate = route.IntendedDate.HasValue ? DateOnly.FromDateTime(route.IntendedDate.Value) : null
             };
         }
 
         private class PurchaseOrderRecord
         {
             public int Id { get; set; }
+            public string SeatClass { get; set; } = string.Empty;
+        }
+
+        private class PurchaseOrderRouteRecord
+        {
+            public int PurchaseOrderId { get; set; }
+            public int SequenceNumber { get; set; }
             public int RouteId { get; set; }
             public DateTime? IntendedDate { get; set; }
-            required public string SeatClass { get; set; }
         }
 
         public async Task<PurchaseOrderEmailData?> GetPurchaseOrderDetailsAsync(
