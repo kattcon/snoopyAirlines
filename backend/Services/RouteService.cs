@@ -38,25 +38,22 @@ namespace SnoopyAirlines.Services
             RouteQuery routeQuery,
             CancellationToken cancellationToken)
         {
-            var repositoryQuery = ToFlightDefinitionQuery(flightQuery);
-            var flightDefinitions = await _flightRepository.GetFlightDefinitionsAsync(repositoryQuery, cancellationToken);
-            var directFlights = CreateFlights(flightDefinitions, flightQuery);
+            var repositoryQuery = ToRouteSearchQuery(routeQuery);
+            var routes = await _routeRepository.GetRoutesAsync(repositoryQuery, cancellationToken);
+            var directFlights = CreateFlights(routes, routeQuery);
 
-            if (!flightQuery.IncludeStopovers)
+            if (!routeQuery.IncludeStopovers)
             {
                 return directFlights;
             }
 
-            var connectingFlights = await CreateConnectingFlightsAsync(flightQuery, cancellationToken);
+            var connectingFlights = await CreateConnectingFlightsAsync(routeQuery, cancellationToken);
 
             return directFlights
                 .Concat(connectingFlights)
                 .OrderBy(f => f.DepartureTime)
                 .ThenBy(f => f.FlightGUID, StringComparer.Ordinal)
                 .ToList();
-            var repositoryQuery = ToRouteSearchQuery(routeQuery);
-            var routes = await _routeRepository.GetRoutesAsync(repositoryQuery, cancellationToken);
-            return CreateFlights(routes, routeQuery);
         }
 
         public Task<DomainRoute> SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken)
@@ -68,14 +65,10 @@ namespace SnoopyAirlines.Services
         {
             return new RouteSearchQuery
             {
-                Origin = flightQuery.Origin,
-                Destination = flightQuery.Destination,
-                QuantityOfPassengers = flightQuery.QuantityOfPassengers,
-                IncludeStopovers = flightQuery.IncludeStopovers,
-                DepartureWindows = CreateDepartureWindows(flightQuery)
                 Origin = routeQuery.Origin,
                 Destination = routeQuery.Destination,
                 QuantityOfPassengers = routeQuery.QuantityOfPassengers,
+                IncludeStopovers = routeQuery.IncludeStopovers,
                 DepartureWindows = CreateDepartureWindows(routeQuery)
             };
         }
@@ -247,34 +240,34 @@ namespace SnoopyAirlines.Services
         }
 
         private async Task<IReadOnlyCollection<FlightResponse>> CreateConnectingFlightsAsync(
-            FlightQuery flightQuery,
+            RouteQuery routeQuery,
             CancellationToken cancellationToken)
         {
             const int MinStopoverMinutes = 60;     // 1 hora
             const int MaxStopoverMinutes = 720;    // 12 horas
 
-            var firstLegQuery = new FlightDefinitionQuery
+            var firstLegQuery = new RouteSearchQuery
             {
-                Origin = flightQuery.Origin
+                Origin = routeQuery.Origin
             };
 
-            var secondLegQuery = new FlightDefinitionQuery
+            var secondLegQuery = new RouteSearchQuery
             {
-                Destination = flightQuery.Destination
+                Destination = routeQuery.Destination
             };
 
-            var firstDefs = await _flightRepository.GetFlightDefinitionsAsync(firstLegQuery, cancellationToken);
-            var secondDefs = await _flightRepository.GetFlightDefinitionsAsync(secondLegQuery, cancellationToken);
+            var firstDefs = await _routeRepository.GetRoutesAsync(firstLegQuery, cancellationToken);
+            var secondDefs = await _routeRepository.GetRoutesAsync(secondLegQuery, cancellationToken);
 
             var results = new List<FlightResponse>();
 
-            if (flightQuery.EarliestDeparture is null || flightQuery.LatestDeparture is null)
+            if (routeQuery.EarliestDeparture is null || routeQuery.LatestDeparture is null)
             {
                 return results;
             }
 
-            var earliestDeparture = flightQuery.EarliestDeparture.Value;
-            var latestDeparture = flightQuery.LatestDeparture.Value;
+            var earliestDeparture = routeQuery.EarliestDeparture.Value;
+            var latestDeparture = routeQuery.LatestDeparture.Value;
             var currentDate = earliestDeparture.Date;
             var endDate = latestDeparture.Date;
 
@@ -345,8 +338,8 @@ namespace SnoopyAirlines.Services
                                 StopoverDuration = FormatDuration(connectionMinutes),
                                 TouristPrice = first.PriceEconomyClass + second.PriceEconomyClass,
                                 FirstClassPrice = first.PriceFirstClass + second.PriceFirstClass,
-                                CarryOnPrice = first.CarryOnPrice + second.CarryOnPrice,
-                                CheckedPrice = first.CheckedPrice + second.CheckedPrice
+                                CarryOnPrice = first.PriceCarryOnBaggage + second.PriceCarryOnBaggage,
+                                CheckedPrice = first.PriceCheckedBaggage + second.PriceCheckedBaggage
                             });
                         }
                     }
