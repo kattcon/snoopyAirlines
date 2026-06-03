@@ -233,9 +233,16 @@ export default {
                 });
             })
             .catch((error) => {
-                alert("Error al guardar los datos de los pasajeros");
+                alert(this.backendErrorMessage(error));
                 console.error(error);
             });
+        },
+        backendErrorMessage(error) {
+            return (
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
+                "Error al guardar los datos de los pasajeros"
+            );
         },
         bookingRoutes() {
             const rawRoutes = Array.isArray(this.$route.query.routes)

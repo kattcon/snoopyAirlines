@@ -62,6 +62,10 @@ namespace SnoopyAirlines.Controllers
             {
                 return BadRequest(new { Message = exception.Message });
             }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(new { Message = exception.Message });
+            }
         }
 
         private static IEnumerable<PurchaseOrderRoute> CreateRoutes(PurchaseOrderIntake purchaseIntake)

@@ -39,7 +39,11 @@
           </div>
         </section>
 
-        <FlightDetailsCard :details="flightDetails" />
+        <FlightDetailsCard
+          v-for="details in flightDetailsList"
+          :key="details.sequenceNumber"
+          :details="details"
+        />
         <PassengerListCard :passengers="passengers" :show-luggage="false" />
 
         <section class="important-card contentCard">
@@ -93,7 +97,7 @@ export default {
       error: "",
       booking: null,
       purchaseOrder: null,
-      route: null
+      routeDetails: []
     };
   },
   computed: {
@@ -109,8 +113,8 @@ export default {
     bookingEmail() {
       return this.fieldValue(this.booking, "email", "Email") || this.placeholder("email");
     },
-    intendedDate() {
-      return this.fieldValue(this.purchaseOrder, "intendedDate", "IntendedDate");
+    purchaseRoutes() {
+      return this.fieldValue(this.purchaseOrder, "routes", "Routes") || [];
     },
     passengers() {
       return this.fieldValue(this.purchaseOrder, "passengers", "Passengers") || [];
@@ -121,28 +125,9 @@ export default {
     totalPaid() {
       return this.formatCurrency(this.fieldValue(this.booking, "totalAmount", "TotalAmount"));
     },
-    flightDetails() {
-      const departureAirport = this.airport("departureAirport", "DepartureAirport");
-      const arrivalAirport = this.airport("arrivalAirport", "ArrivalAirport");
-
-      return {
-        flightLabel: `Snoopy Airlines - ${this.placeholder("numero_vuelo")}`,
-        dateLabel: this.formatDate(this.intendedDate),
-        departureTime: this.formatTime(this.fieldValue(this.route, "departureTime", "DepartureTime"), "hora_salida"),
-        arrivalTime: this.formatTime(this.fieldValue(this.route, "arrivalTime", "ArrivalTime"), "hora_llegada"),
-        durationLabel: this.formatDuration(this.fieldValue(this.route, "durationMinutes", "DurationMinutes")),
-        departureCode: this.fieldValue(departureAirport, "code", "Code") || this.placeholder("origen"),
-        departureCity: this.fieldValue(departureAirport, "city", "City") || this.placeholder("ciudad_salida"),
-        arrivalCode: this.fieldValue(arrivalAirport, "code", "Code") || this.placeholder("destino"),
-        arrivalCity: this.fieldValue(arrivalAirport, "city", "City") || this.placeholder("ciudad_llegada"),
-        seatClassLabel: this.seatClassLabel(this.seatClass),
-        extraFields: [
-          {
-            label: "Total pagado",
-            value: this.totalPaid
-          }
-        ]
-      };
+    flightDetailsList() {
+      return this.routeDetails.map((routeDetail, index) =>
+        this.toFlightDetails(routeDetail, index === 0));
     }
   },
   mounted() {
@@ -164,11 +149,7 @@ export default {
 
         const purchaseOrder = await getPurchaseOrder(this.fieldValue(booking, "purchaseOrderId", "PurchaseOrderId"));
         this.purchaseOrder = purchaseOrder;
-
-        const routeId = this.fieldValue(purchaseOrder, "routeId", "RouteId");
-        if (routeId) {
-          this.route = await getRoute(routeId);
-        }
+        this.routeDetails = await this.loadRouteDetails(this.purchaseRoutes);
       } catch (loadError) {
         console.error("Error cargando la confirmacion de reserva:", loadError);
         this.error = "No se pudo cargar la confirmacion de reserva.";
@@ -179,8 +160,58 @@ export default {
     fieldValue(source, camelCaseKey, pascalCaseKey) {
       return source?.[camelCaseKey] ?? source?.[pascalCaseKey];
     },
-    airport(camelCaseKey, pascalCaseKey) {
-      return this.fieldValue(this.route, camelCaseKey, pascalCaseKey) || {};
+    async loadRouteDetails(routes) {
+      if (!Array.isArray(routes) || routes.length === 0) {
+        throw new Error("Purchase order does not have routes.");
+      }
+
+      return Promise.all(
+        routes
+          .slice()
+          .sort((left, right) => this.sequenceNumber(left) - this.sequenceNumber(right))
+          .map(async (routeLeg, index) => ({
+            routeLeg,
+            sequenceNumber: this.sequenceNumber(routeLeg) || index + 1,
+            route: await getRoute(this.routeId(routeLeg))
+          }))
+      );
+    },
+    toFlightDetails(routeDetail, includeTotalPaid) {
+      const route = routeDetail.route;
+      const routeLeg = routeDetail.routeLeg;
+      const departureAirport = this.fieldValue(route, "departureAirport", "DepartureAirport") || {};
+      const arrivalAirport = this.fieldValue(route, "arrivalAirport", "ArrivalAirport") || {};
+
+      return {
+        sequenceNumber: routeDetail.sequenceNumber,
+        flightLabel: `Tramo ${routeDetail.sequenceNumber}`,
+        dateLabel: this.formatDate(this.intendedDate(routeLeg)),
+        departureTime: this.formatTime(this.fieldValue(route, "departureTime", "DepartureTime"), "hora_salida"),
+        arrivalTime: this.formatTime(this.fieldValue(route, "arrivalTime", "ArrivalTime"), "hora_llegada"),
+        durationLabel: this.formatDuration(this.fieldValue(route, "durationMinutes", "DurationMinutes")),
+        departureCode: this.fieldValue(departureAirport, "code", "Code") || this.placeholder("origen"),
+        departureCity: this.fieldValue(departureAirport, "city", "City") || this.placeholder("ciudad_salida"),
+        arrivalCode: this.fieldValue(arrivalAirport, "code", "Code") || this.placeholder("destino"),
+        arrivalCity: this.fieldValue(arrivalAirport, "city", "City") || this.placeholder("ciudad_llegada"),
+        seatClassLabel: this.seatClassLabel(this.seatClass),
+        extraFields: includeTotalPaid
+          ? [
+              {
+                label: "Total pagado",
+                value: this.totalPaid
+              }
+            ]
+          : []
+      };
+    },
+    sequenceNumber(routeLeg) {
+      return Number(this.fieldValue(routeLeg, "sequenceNumber", "SequenceNumber"));
+    },
+    routeId(routeLeg) {
+      return Number(this.fieldValue(routeLeg, "routeId", "RouteId"));
+    },
+    intendedDate(routeLeg) {
+      return this.fieldValue(routeLeg, "intendedDate", "IntendedDate");
     },
     placeholder(key) {
       return `{{${key}}}`;

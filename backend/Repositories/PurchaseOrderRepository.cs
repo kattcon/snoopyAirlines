@@ -22,6 +22,8 @@ namespace snoopy_airlines_backend.Repositories
 
             try
             {
+                await EnsureRoutesExistAsync(connection, transaction, order.Routes, cancellationToken);
+
                 var orderId = await connection.ExecuteScalarAsync<int>("""
                     INSERT INTO PurchaseOrder(seatClass)
                     OUTPUT INSERTED.id
@@ -59,6 +61,35 @@ namespace snoopy_airlines_backend.Repositories
                 throw;
             }
 
+        }
+
+        private static async Task EnsureRoutesExistAsync(
+            SqlConnection connection,
+            SqlTransaction transaction,
+            IReadOnlyCollection<PurchaseOrderRoute> routes,
+            CancellationToken cancellationToken)
+        {
+            var routeIds = routes
+                .Select(route => route.RouteId)
+                .Distinct()
+                .ToArray();
+
+            var existingRouteIds = await connection.QueryAsync<int>(
+                new CommandDefinition("""
+                    SELECT id
+                    FROM dbo.[route] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id IN @RouteIds;
+                    """,
+                    new { RouteIds = routeIds },
+                    transaction,
+                    cancellationToken: cancellationToken));
+
+            var missingRouteIds = routeIds.Except(existingRouteIds).ToArray();
+            if (missingRouteIds.Length > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Route(s) not found: {string.Join(", ", missingRouteIds)}.");
+            }
         }
 
         public async Task<IReadOnlyCollection<PurchaseOrder>> GetPurchaseOrdersAsync(CancellationToken cancellationToken)
