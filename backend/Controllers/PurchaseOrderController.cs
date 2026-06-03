@@ -1,11 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using snoopy_airlines_backend.Domain;
 using snoopy_airlines_backend.Services;
-using SnoopyAirlines.domain;
 using SnoopyAirlines.Domain.Intake;
-using SnoopyAirlines.Services;
-using System.Reflection;
 
 namespace SnoopyAirlines.Controllers
 {
@@ -28,6 +25,14 @@ namespace SnoopyAirlines.Controllers
             return Ok(orders);
         }
 
+        [HttpGet("{id:int}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<PurchaseOrder>> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            var order = await _purchaseOrderService.GetPurchaseOrderByIdAsync(id, cancellationToken);
+            return order is null ? NotFound() : Ok(order);
+        }
+
         [HttpPost]
         [AllowAnonymous]
         public async Task<ActionResult<PurchaseOrder>> Post([FromBody] PurchaseOrderIntake purchaseIntake, CancellationToken cancellationToken)
@@ -35,9 +40,9 @@ namespace SnoopyAirlines.Controllers
             var order = new PurchaseOrder
             {
 
-                FlightId = purchaseIntake.FlightId,
+                RouteId = purchaseIntake.RouteId,
+                IntendedDate = purchaseIntake.IntendedDate,
                 SeatClass = purchaseIntake.SeatClass,
-                Status = "Pending",
 
                 Passengers = purchaseIntake.Passengers.Select(passenger => new Passenger
                 {

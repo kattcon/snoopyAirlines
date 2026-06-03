@@ -6,7 +6,7 @@
         </div>
         <div class="layout-body">   
             <aside class="left-menu">
-                <router-link to="/admin/flights" class="left-menu-options">Administrar Vuelos</router-link>
+                <router-link to="/admin/routes" class="left-menu-options">Administrar Rutas</router-link>
                 <router-link to="/admin/users" class="left-menu-options">Administrar Usuarios</router-link>
                 <router-link to="/admin/reports" class="left-menu-options">Reportes</router-link>
                 <router-link to="/admin/user-info" class="left-menu-options">Mi Usuario</router-link>

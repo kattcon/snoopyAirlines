@@ -1,11 +1,10 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using snoopy_airlines_backend.Domain;
-using SnoopyAirlines.domain;
 
 namespace snoopy_airlines_backend.Repositories
 {
-    public class PurchaseOrderRepository
+    public class PurchaseOrderRepository : IPurchaseOrderRepository
     {
         private readonly string _connectionString;
         public PurchaseOrderRepository(IConfiguration configuration)
@@ -24,17 +23,17 @@ namespace snoopy_airlines_backend.Repositories
             try
             {
                 var orderId = await connection.ExecuteScalarAsync<int>("""
-                    INSERT INTO PurchaseOrder(flightId, seatClass, status )
+                    INSERT INTO PurchaseOrder(routeId, intendedDate, seatClass)
                     OUTPUT INSERTED.id
-                    VALUES (@FlightId, @SeatClass, @Status);
-                    """, order, transaction);
+                    VALUES (@RouteId, @IntendedDate, @SeatClass);
+                    """, ToParameters(order), transaction);
 
                 order.Id = orderId;
 
                 foreach (var passenger in order.Passengers)
                 {
-                    var passengerId = passenger.PurchaseOrderId = order.Id;
-                    await connection.ExecuteScalarAsync<int>("""
+                    passenger.PurchaseOrderId = order.Id;
+                    var passengerId = await connection.ExecuteScalarAsync<int>("""
                         INSERT INTO Passenger(purchaseOrderId, gender, FirstName, LastName, birthDay, birthMonth, birthYear, nationality)
                         OUTPUT INSERTED.id
                         VALUES (@PurchaseOrderId, @Gender, @FirstName, @LastName, @BirthDay, @BirthMonth, @BirthYear, @Nationality);
@@ -57,10 +56,136 @@ namespace snoopy_airlines_backend.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
-            var order = await connection.QueryAsync<PurchaseOrder>("""
-                SELECT * FROM PurchaseOrder
+            var orders = await connection.QueryAsync<PurchaseOrderRecord>("""
+                SELECT
+                    id AS Id,
+                    routeId AS RouteId,
+                    intendedDate AS IntendedDate,
+                    seatClass AS SeatClass
+                FROM PurchaseOrder
                 """);
-            return order.ToList().AsReadOnly();
+
+            return orders.Select(ToPurchaseOrder).ToList().AsReadOnly();
         }
+
+        public async Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    id AS Id,
+                    routeId AS RouteId,
+                    intendedDate AS IntendedDate,
+                    seatClass AS SeatClass
+                FROM PurchaseOrder
+                WHERE id = @Id;
+
+                SELECT
+                    id AS Id,
+                    purchaseOrderId AS PurchaseOrderId,
+                    gender AS Gender,
+                    firstName AS FirstName,
+                    lastName AS LastName,
+                    birthDay AS BirthDay,
+                    birthMonth AS BirthMonth,
+                    birthYear AS BirthYear,
+                    nationality AS Nationality
+                FROM Passenger
+                WHERE purchaseOrderId = @Id
+                ORDER BY id;
+                """;
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            using var results = await connection.QueryMultipleAsync(
+                new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+
+            var orderRecord = await results.ReadSingleOrDefaultAsync<PurchaseOrderRecord>();
+            if (orderRecord is null)
+            {
+                return null;
+            }
+
+            var order = ToPurchaseOrder(orderRecord);
+            var passengers = await results.ReadAsync<Passenger>();
+            order.Passengers = passengers.ToList();
+
+            return order;
+        }
+
+        private static object ToParameters(PurchaseOrder order)
+        {
+            return new
+            {
+                order.RouteId,
+                IntendedDate = order.IntendedDate?.ToDateTime(TimeOnly.MinValue),
+                order.SeatClass
+            };
+        }
+
+        private static PurchaseOrder ToPurchaseOrder(PurchaseOrderRecord order)
+        {
+            return new PurchaseOrder
+            {
+                Id = order.Id,
+                RouteId = order.RouteId,
+                IntendedDate = order.IntendedDate.HasValue ? DateOnly.FromDateTime(order.IntendedDate.Value) : null,
+                SeatClass = order.SeatClass
+            };
+        }
+
+        private class PurchaseOrderRecord
+        {
+            public int Id { get; set; }
+            public int RouteId { get; set; }
+            public DateTime? IntendedDate { get; set; }
+            required public string SeatClass { get; set; }
+        }
+
+        public async Task<PurchaseOrderEmailData?> GetPurchaseOrderDetailsAsync(
+            int purchaseOrderId,
+            CancellationToken cancellationToken)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var rows = await connection.QueryAsync<PurchaseOrderDetailRow>("""
+                SELECT * FROM GetPurchaseOrderDetails(@PurchaseOrderId)
+                """, new { PurchaseOrderId = purchaseOrderId });
+            
+            var list = rows.ToList();
+
+            if (list.Count == 0)
+            {
+                return null;
+            }
+
+            var first = list[0];
+
+            return new PurchaseOrderEmailData
+            {
+                PurchaseOrderId  = first.PurchaseOrderId,
+                SeatClass = first.SeatClass,
+                DepartureTime = first.DepartureTime,
+                ArrivalTime = first.ArrivalTime,
+                DepartureAirportName = first.DepartureAirportName,
+                DepartureAirportCode = first.DepartureAirportCode,
+                DepartureCityName = first.DepartureCityName,
+                ArrivalAirportName = first.ArrivalAirportName,
+                ArrivalAirportCode = first.ArrivalAirportCode,
+                ArrivalCityName = first.ArrivalCityName,
+                AirplaneModel = first.AirplaneModel,
+                Passengers = list.Select(r => new PassengerEmailData
+                {
+                    FirstName = r.FirstName,
+                    LastName = r.LastName,
+                    Gender = r.Gender,
+                    Nationality = r.Nationality,
+                    BirthDay = r.BirthDay,
+                    BirthMonth = r.BirthMonth,
+                    BirthYear = r.BirthYear
+                }).ToList(),
+            };
+        }
+
     }
 }

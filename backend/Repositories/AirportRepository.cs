@@ -5,7 +5,7 @@ using SnoopyAirlines.Domain.View;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class AirportRepository
+    public class AirportRepository : IAirportRepository
     {
         // Cadena de conexión a la base de datos, leída desde appsettings.json
         private readonly string _connectionString;

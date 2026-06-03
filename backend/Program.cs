@@ -28,25 +28,30 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddControllers();
-builder.Services.AddScoped(sp => new FlightRepository(builder.Configuration));
+builder.Services.AddScoped(sp => new RouteRepository(builder.Configuration));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     });
-builder.Services.AddScoped<FlightRepository>();
-builder.Services.AddScoped<FlightService>();
+builder.Services.AddScoped<RouteRepository>();
+builder.Services.AddScoped<RouteService>();
 builder.Services.AddScoped(sp => new UserRepository(builder.Configuration));
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(sp => new AirportRepository(builder.Configuration));
 builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<AirportRepository>();
+builder.Services.AddScoped<IAirportRepository, AirportRepository>();
 builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<AirplaneRepository>();
 builder.Services.AddScoped<AirplaneService>();
+builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderService>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<BookingRepository>();
+builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<ConsoleEmailSender>();
 builder.Services.AddScoped<IEmailSender>(serviceProvider =>
@@ -124,9 +129,12 @@ if (!app.Environment.IsProduction())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseCors(MyAllowSpecificOrigins);
+
+if (app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 

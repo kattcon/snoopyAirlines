@@ -20,14 +20,14 @@ namespace SnoopyAirlines.External.Controllers
             "O"
         ];
 
-        private readonly FlightService _flightService;
+        private readonly RouteService _routeService;
         private readonly UserService _userService;
 
         public FlightController(
-            FlightService flightService,
+            RouteService routeService,
             UserService userService)
         {
-            _flightService = flightService;
+            _routeService = routeService;
             _userService = userService;
         }
 
@@ -52,12 +52,12 @@ namespace SnoopyAirlines.External.Controllers
                 return Unauthorized();
             }
 
-            if (!TryCreateFlightQuery(
+            if (!TryCreateRouteQuery(
                 detination,
                 earliestArrival,
                 latestArrival,
                 quantityOfPassengers,
-                out var flightQuery,
+                out var routeQuery,
                 out var errors))
             {
                 return BadRequest(new ValidationErrorResponse
@@ -67,20 +67,20 @@ namespace SnoopyAirlines.External.Controllers
                 });
             }
 
-            var response = await _flightService.Get(flightQuery, cancellationToken);
+            var response = await _routeService.Get(routeQuery, cancellationToken);
 
             return Ok(response);
         }
 
-        private static bool TryCreateFlightQuery(
+        private static bool TryCreateRouteQuery(
             string? detination,
             string? earliestArrival,
             string? latestArrival,
             string? quantityOfPassengers,
-            out FlightQuery flightQuery,
+            out RouteQuery routeQuery,
             out IReadOnlyCollection<ValidationError> errors)
         {
-            flightQuery = null!;
+            routeQuery = null!;
             var validationErrors = new List<ValidationError>();
 
             ValidateAirportCode("detination", detination, validationErrors);
@@ -137,7 +137,7 @@ namespace SnoopyAirlines.External.Controllers
                 return false;
             }
 
-            flightQuery = new FlightQuery
+            routeQuery = new RouteQuery
             {
                 Destination = detination!.Trim().ToUpperInvariant(),
                 EarliestArrival = parsedEarliestArrival,
