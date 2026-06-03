@@ -1,4 +1,4 @@
 ALTER TABLE dbo.Passenger
 ADD 
-HandLuggage INT NOT NULL,
+CarryOnLuggage INT NOT NULL,
 CheckedLuggage INT NOT NULL

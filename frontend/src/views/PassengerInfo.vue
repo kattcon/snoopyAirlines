@@ -92,14 +92,14 @@
                         <label>Cantidad de equipaje de mano</label>
                         <input
                             type="number"
-                            v-model.number="passenger.handLuggage"
+                            v-model.number="passenger.CarryOnLuggage"
                             min="0"
                             max="10"
-                            :class="{'input-error': errors[index]?.handLuggage}"
+                            :class="{'input-error': errors[index]?.CarryOnLuggage}"
                             @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
                             placeholder="0"
                         />
-                        <span class="error-msg" v-if="errors[index]?.handLuggage">❗ Obligatorio</span>
+                        <span class="error-msg" v-if="errors[index]?.CarryOnLuggage">❗ Obligatorio</span>
                     </div>
                     <div class="form-field">
                         <label>Cantidad de equipaje documentado</label>
@@ -175,7 +175,7 @@ export default {
                 birthMonth: '',
                 birthYear: '',
                 nationality: '',
-                handLuggage: '',
+                CarryOnLuggage: '',
                 checkedLuggage: '',
             })),
             holder: {
@@ -217,7 +217,7 @@ export default {
                 gender: !passenger.gender,
                 nationality: !passenger.nationality,
                 birthdate: !(passenger.birthDay || passenger.birthMonth || passenger.birthYear),
-                handLuggage: !passenger.handLuggage,
+                CarryOnLuggage: !passenger.CarryOnLuggage,
                 checkedLuggage: !passenger.checkedLuggage,
             }));
 
@@ -228,7 +228,7 @@ export default {
             };
 
             const hasErrorsPassenger = this.errors.some(error => error.firstName ||
-            error.lastName || error.gender || error.nationality || error.birthdate || error.handLuggage || error.checkedLuggage);
+            error.lastName || error.gender || error.nationality || error.birthdate || error.CarryOnLuggage || error.checkedLuggage);
             const hasErrorsHolder = this.errors.holder.firstName || this.errors.holder.lastName || this.errors.holder.email;
             if(hasErrorsPassenger || hasErrorsHolder){
                 return;
@@ -248,7 +248,7 @@ export default {
                     birthDay: String(p.birthDay),
                     birthMonth: String(p.birthMonth),
                     birthYear: String(p.birthYear),
-                    handLuggage: String(p.handLuggage),
+                    CarryOnLuggage: String(p.CarryOnLuggage),
                     checkedLuggage: String(p.checkedLuggage),
                 }))
             };
