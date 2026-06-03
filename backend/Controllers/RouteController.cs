@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using SnoopyAirlines.Services;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
@@ -60,9 +61,16 @@ namespace SnoopyAirlines.Controllers
                 return BadRequest(new { frequency = "At least one day must be selected." });
             }
 
-            var savedRoute = await _routeService.SaveRouteAsync(route, cancellationToken);
+            try
+            {
+                await _routeService.SaveRouteAsync(route, cancellationToken);
+                return CreatedAtAction(nameof(Get), null);
 
-            return CreatedAtAction(nameof(Get), savedRoute);
+            }
+            catch (SqlException exception)
+            {
+                return BadRequest(new { Message = exception.Message });
+            }
         }
     }
 }

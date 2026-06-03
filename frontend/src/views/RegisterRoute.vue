@@ -405,7 +405,11 @@ export default {
         })
         .catch((error) => {
           if (error.response && error.response.status === 400) {
-            alert("Datos inválidos: " + JSON.stringify(error.response.data));
+            if(error.response.data.message){
+              alert(error.response.data.message);
+            }else {
+              alert("Datos inválidos: " + JSON.stringify(error.response.data));
+            }            
           } else {
             alert("Error al registrar la ruta");
           }
