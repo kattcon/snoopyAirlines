@@ -217,8 +217,8 @@ export default {
                 gender: !passenger.gender,
                 nationality: !passenger.nationality,
                 birthdate: !(passenger.birthDay || passenger.birthMonth || passenger.birthYear),
-                CarryOnLuggage: !passenger.CarryOnLuggage,
-                checkedLuggage: !passenger.checkedLuggage,
+                CarryOnLuggage: passenger.CarryOnLuggage === null || passenger.CarryOnLuggage === undefined || passenger.CarryOnLuggage === '',
+                checkedLuggage: passenger.checkedLuggage === null || passenger.checkedLuggage === undefined || passenger.checkedLuggage === '',
             }));
 
             this.errors.holder = {
