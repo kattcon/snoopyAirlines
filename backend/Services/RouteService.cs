@@ -8,9 +8,9 @@ namespace SnoopyAirlines.Services
     public class RouteService
     {
         private static readonly Guid FlightGuidNamespace = new("9e991ddc-7c58-4e29-a379-503fc594c1e2");
-        private readonly RouteRepository _routeRepository;
+        private readonly IRouteRepository _routeRepository;
 
-        public RouteService(RouteRepository routeRepository)
+        public RouteService(IRouteRepository routeRepository)
         {
             _routeRepository = routeRepository;
         }

@@ -6,7 +6,7 @@ using DomainRoute = SnoopyAirlines.Domain.Route;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class RouteRepository
+    public class RouteRepository : IRouteRepository
     {
         private readonly string _connectionString;
 
