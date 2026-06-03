@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using snoopy_airlines_backend.Domain;
 
@@ -226,52 +226,5 @@ namespace snoopy_airlines_backend.Repositories
             public int RouteId { get; set; }
             public DateTime? IntendedDate { get; set; }
         }
-
-        public async Task<PurchaseOrderEmailData?> GetPurchaseOrderDetailsAsync(
-            int purchaseOrderId,
-            CancellationToken cancellationToken)
-        {
-            using var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken);
-
-            var rows = await connection.QueryAsync<PurchaseOrderDetailRow>("""
-                SELECT * FROM GetPurchaseOrderDetails(@PurchaseOrderId)
-                """, new { PurchaseOrderId = purchaseOrderId });
-            
-            var list = rows.ToList();
-
-            if (list.Count == 0)
-            {
-                return null;
-            }
-
-            var first = list[0];
-
-            return new PurchaseOrderEmailData
-            {
-                PurchaseOrderId  = first.PurchaseOrderId,
-                SeatClass = first.SeatClass,
-                DepartureTime = first.DepartureTime,
-                ArrivalTime = first.ArrivalTime,
-                DepartureAirportName = first.DepartureAirportName,
-                DepartureAirportCode = first.DepartureAirportCode,
-                DepartureCityName = first.DepartureCityName,
-                ArrivalAirportName = first.ArrivalAirportName,
-                ArrivalAirportCode = first.ArrivalAirportCode,
-                ArrivalCityName = first.ArrivalCityName,
-                AirplaneModel = first.AirplaneModel,
-                Passengers = list.Select(r => new PassengerEmailData
-                {
-                    FirstName = r.FirstName,
-                    LastName = r.LastName,
-                    Gender = r.Gender,
-                    Nationality = r.Nationality,
-                    BirthDay = r.BirthDay,
-                    BirthMonth = r.BirthMonth,
-                    BirthYear = r.BirthYear
-                }).ToList(),
-            };
-        }
-
     }
 }
