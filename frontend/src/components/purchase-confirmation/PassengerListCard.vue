@@ -26,7 +26,7 @@
               <path d="M9 20v2"></path>
               <path d="M15 20v2"></path>
             </svg>
-            Equipaje de mano: {{ placeholder("equipaje_mano") }}
+            Equipaje de mano: {{ luggageLabel(passenger, "carryOnLuggageLabel", "CarryOnLuggageLabel", "equipaje_mano") }}
           </span>
           <span>
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -35,7 +35,7 @@
               <path d="M9 20v2"></path>
               <path d="M15 20v2"></path>
             </svg>
-            Maletas facturadas: {{ placeholder("maletas_facturadas") }}
+            Maletas facturadas: {{ luggageLabel(passenger, "checkedLuggageLabel", "CheckedLuggageLabel", "maletas_facturadas") }}
           </span>
         </div>
       </article>
@@ -70,6 +70,10 @@ export default {
       const month = this.fieldValue(passenger, "birthMonth", "BirthMonth");
       const year = this.fieldValue(passenger, "birthYear", "BirthYear");
       return [day, month, year].filter(Boolean).join("/") || this.placeholder("fecha_nacimiento");
+    },
+    luggageLabel(passenger, camelCaseKey, pascalCaseKey, placeholderKey) {
+      const value = this.fieldValue(passenger, camelCaseKey, pascalCaseKey);
+      return value === "" ? this.placeholder(placeholderKey) : value;
     },
     placeholder(key) {
       return `{{${key}}}`;
