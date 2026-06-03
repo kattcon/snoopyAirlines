@@ -31,5 +31,14 @@ namespace snoopy_airlines_backend.Domain
         public int LayoverCount { get; set; }
 
         public List<PassengerEmailData> Passengers { get; set; } = [];
+
+        // Campos calculados, se llenan en ApplyBookingDetails
+        public string BaseFare { get; set; } = string.Empty;
+        public string Taxes { get; set; } = string.Empty;
+        public string TravelInsurance { get; set; } = string.Empty;
+        public string Total { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string PurchaseDate { get; set; } = string.Empty;
+        public string TransactionId { get; set; } = string.Empty;
     }
 }

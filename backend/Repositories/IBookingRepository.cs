@@ -1,4 +1,5 @@
 using SnoopyAirlines.Domain;
+using snoopy_airlines_backend.Domain;
 
 namespace SnoopyAirlines.Repositories
 {

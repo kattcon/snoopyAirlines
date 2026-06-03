@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.Domain;
+using snoopy_airlines_backend.Domain;
 
 namespace SnoopyAirlines.Repositories
 {
