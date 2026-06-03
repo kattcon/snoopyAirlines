@@ -18,7 +18,7 @@
           Fecha de nacimiento: {{ birthDate(passenger) }} &middot; {{ fieldValue(passenger, "nationality", "Nationality") }}
         </span>
 
-        <div class="luggage-row">
+        <div v-if="showLuggage" class="luggage-row">
           <span>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <rect x="6" y="7" width="12" height="13" rx="2"></rect>
@@ -50,6 +50,10 @@ export default {
     passengers: {
       type: Array,
       required: true
+    },
+    showLuggage: {
+      type: Boolean,
+      default: true
     }
   },
   methods: {

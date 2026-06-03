@@ -4,7 +4,7 @@ using snoopy_airlines_backend.Domain;
 
 namespace snoopy_airlines_backend.Repositories
 {
-    public class PurchaseOrderRepository
+    public class PurchaseOrderRepository : IPurchaseOrderRepository
     {
         private readonly string _connectionString;
         public PurchaseOrderRepository(IConfiguration configuration)

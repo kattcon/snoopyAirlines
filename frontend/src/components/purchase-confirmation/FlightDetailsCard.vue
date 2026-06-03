@@ -39,9 +39,15 @@
       </div>
     </div>
 
-    <div class="seat-class-row">
-      <span>Clase:</span>
-      <strong>{{ details.seatClassLabel }}</strong>
+    <div :class="['seat-class-row', { 'has-extra-fields': extraFields.length > 0 }]">
+      <div class="detail-field">
+        <span>Clase</span>
+        <strong>{{ details.seatClassLabel }}</strong>
+      </div>
+      <div v-for="field in extraFields" :key="field.label" class="detail-field">
+        <span>{{ field.label }}</span>
+        <strong>{{ field.value }}</strong>
+      </div>
     </div>
   </section>
 </template>
@@ -53,6 +59,11 @@ export default {
     details: {
       type: Object,
       required: true
+    }
+  },
+  computed: {
+    extraFields() {
+      return this.details.extraFields || [];
     }
   }
 };
@@ -168,10 +179,10 @@ export default {
 }
 
 .seat-class-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  min-height: 48px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  min-height: 64px;
   padding: 0 16px;
   border-radius: var(--defaultBorderRadius);
   background: #f0f2f6;
@@ -179,7 +190,23 @@ export default {
   font-size: var(--smallFontSize);
 }
 
-.seat-class-row strong {
+.seat-class-row.has-extra-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: transparent;
+  padding: 0;
+}
+
+.detail-field {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 0 16px;
+  border-radius: var(--defaultBorderRadius);
+  background: #f0f2f6;
+}
+
+.detail-field strong {
   color: #111827;
 }
 

@@ -21,6 +21,7 @@ import EditAirport from './views/EditAirport.vue';
 import PassengerInfo from './views/PassengerInfo.vue';
 import EditAircraft from './views/EditAircraft.vue';
 import PurchaseConfirmation from './views/PurchaseConfirmation.vue';
+import OrderConfirmation from './views/OrderConfirmation.vue';
 import EditUser from './views/EditUser.vue';
 
 const router = createRouter({
@@ -31,6 +32,7 @@ const router = createRouter({
         { path: "/register", name: "Register", component: RegisterPage },
         { path: "/booking", name: "Booking", component: PassengerInfo},
         { path: "/purchase-confirmation/:purchaseOrderId?", name: "PurchaseConfirmation", component: PurchaseConfirmation },
+        { path: "/order-confirmation/:bookingGuid?", name: "OrderConfirmation", component: OrderConfirmation },
         { path: "/admin", children: 
             [ { path: 'routes', component: InternalLandingPageRoutes },
               { path: 'users', component: InternalLandingPageUsers},

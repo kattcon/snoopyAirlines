@@ -1,21 +1,121 @@
+using System.Globalization;
+using snoopy_airlines_backend.Domain;
+using snoopy_airlines_backend.Repositories;
 using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.EmailTemplate;
 using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Services
 {
     public class BookingService
     {
-        private readonly BookingRepository _bookingRepository;
+        private readonly IBookingRepository _bookingRepository;
+        private readonly IPurchaseOrderRepository _purchaseOrderRepository;
+        private readonly IEmailSender _emailSender;
 
-        public BookingService(BookingRepository bookingRepository)
+        public BookingService(
+            IBookingRepository bookingRepository,
+            IPurchaseOrderRepository purchaseOrderRepository,
+            IEmailSender emailSender)
         {
             _bookingRepository = bookingRepository;
+            _purchaseOrderRepository = purchaseOrderRepository;
+            _emailSender = emailSender;
         }
 
-        public Task<Booking> BookAsync(BookingRequest bookingRequest, CancellationToken cancellationToken)
+        public async Task<Booking> BookAsync(
+            BookingRequest bookingRequest,
+            CancellationToken cancellationToken)
         {
             var normalizedRequest = NormalizeAndValidate(bookingRequest);
-            return _bookingRepository.BookAsync(normalizedRequest, cancellationToken);
+            var booking = await _bookingRepository.BookAsync(normalizedRequest, cancellationToken);
+
+            await SendBookingConfirmationEmailAsync(booking, cancellationToken);
+
+            return booking;
+        }
+
+        public Task<Booking?> GetByGuidAsync(Guid bookingGuid, CancellationToken cancellationToken)
+        {
+            return _bookingRepository.GetByGuidAsync(bookingGuid, cancellationToken);
+        }
+
+        private async Task SendBookingConfirmationEmailAsync(
+            Booking booking,
+            CancellationToken cancellationToken)
+        {
+            var data = await GetPurchaseOrderEmailDataAsync(
+                booking.PurchaseOrderId,
+                cancellationToken);
+
+            ApplyBookingDetails(data, booking);
+
+            var confirmationHtml = BookingConfirmationEmail.Build(data);
+            var itineraryHtml = BookingItineraryEmail.Build(data);
+
+            await _emailSender.SendAsync(
+                booking.Email,
+                "Confirmación de reserva - Snoopy Airlines",
+                confirmationHtml,
+                cancellationToken,
+                isHtml: true);
+
+            await _emailSender.SendAsync(
+                booking.Email,
+                "Itinerario de viaje - Snoopy Airlines",
+                itineraryHtml,
+                cancellationToken,
+                isHtml: true);
+        }
+
+        private async Task<PurchaseOrderEmailData> GetPurchaseOrderEmailDataAsync(
+            int purchaseOrderId,
+            CancellationToken cancellationToken)
+        {
+            var data = await _purchaseOrderRepository.GetPurchaseOrderDetailsAsync(
+                purchaseOrderId,
+                cancellationToken);
+
+            return data ?? throw new InvalidOperationException(
+                $"Purchase order {purchaseOrderId} not found.");
+        }
+
+        private static void ApplyBookingDetails(
+            PurchaseOrderEmailData data,
+            Booking booking)
+        {
+            data.BaseFare = FormatMoney(booking.TotalAmount);
+            data.Taxes = FormatMoney(0);
+            data.TravelInsurance = FormatMoney(0);
+            data.Total = FormatMoney(booking.TotalAmount);
+            data.PaymentMethod = FormatPaymentMethod(booking);
+            data.PurchaseDate = FormatPurchaseDate(booking);
+            data.TransactionId = booking.Guid.ToString();
+        }
+
+        private static string FormatMoney(decimal amount)
+        {
+            return amount.ToString("N2", CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatPaymentMethod(Booking booking)
+        {
+            if (string.IsNullOrWhiteSpace(booking.CardBrand)
+                || string.IsNullOrWhiteSpace(booking.CardLastFour))
+            {
+                return "{{PAYMENT_METHOD}}";
+            }
+
+            return $"{booking.CardBrand} terminada en {booking.CardLastFour}";
+        }
+
+        private static string FormatPurchaseDate(Booking booking)
+        {
+            var purchaseDate = booking.ConfirmedAt == default
+                ? booking.CreatedAt
+                : booking.ConfirmedAt;
+
+            return purchaseDate.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
         }
 
         private static BookingRequest NormalizeAndValidate(BookingRequest bookingRequest)

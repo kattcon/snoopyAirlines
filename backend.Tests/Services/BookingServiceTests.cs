@@ -1,0 +1,260 @@
+using Moq;
+using snoopy_airlines_backend.Domain;
+using snoopy_airlines_backend.Repositories;
+using SnoopyAirlines.Domain;
+using SnoopyAirlines.Repositories;
+using SnoopyAirlines.Services;
+using Xunit;
+
+namespace backend.Tests.Services
+{
+    public class BookingServiceTests
+    {
+        private readonly Mock<IBookingRepository> _bookingRepository = new();
+        private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepository = new();
+        private readonly Mock<IEmailSender> _emailSender = new();
+
+        public BookingServiceTests()
+        {
+            _emailSender
+                .Setup(s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<bool>()))
+                .Returns(Task.CompletedTask);
+        }
+
+        [Fact]
+        public async Task BookAsync_NormalizesRequestAndReturnsBooking()
+        {
+            // Arrange
+            var booking = CreateBooking();
+            BookingRequest? capturedRequest = null;
+
+            _bookingRepository
+                .Setup(r => r.BookAsync(It.IsAny<BookingRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<BookingRequest, CancellationToken>((request, _) => capturedRequest = request)
+                .ReturnsAsync(booking);
+
+            SetupPurchaseOrderDetails(booking.PurchaseOrderId);
+            var service = CreateService();
+
+            var request = new BookingRequest
+            {
+                PurchaseOrderId = booking.PurchaseOrderId,
+                Email = "  traveler@example.com  ",
+                CardBrand = "  Visa  ",
+                CardLastFour = "  4242  ",
+                CardHolderName = "  Jane Doe  "
+            };
+
+            // Act
+            var result = await service.BookAsync(request, CancellationToken.None);
+
+            // Assert
+            Assert.Same(booking, result);
+            Assert.NotNull(capturedRequest);
+            Assert.Equal(booking.PurchaseOrderId, capturedRequest!.PurchaseOrderId);
+            Assert.Equal("traveler@example.com", capturedRequest.Email);
+            Assert.Equal("Visa", capturedRequest.CardBrand);
+            Assert.Equal("4242", capturedRequest.CardLastFour);
+            Assert.Equal("Jane Doe", capturedRequest.CardHolderName);
+        }
+
+        [Fact]
+        public async Task BookAsync_SendsConfirmationAndItineraryEmails()
+        {
+            // Arrange
+            var booking = CreateBooking(totalAmount: 1234.50m);
+            var sentMessages = new List<(string To, string Subject, string Body, bool IsHtml)>();
+
+            SetupBooking(booking);
+            SetupPurchaseOrderDetails(booking.PurchaseOrderId);
+
+            _emailSender
+                .Setup(s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<bool>()))
+                .Callback<string, string, string, CancellationToken, bool>(
+                    (to, subject, body, _, isHtml) => sentMessages.Add((to, subject, body, isHtml)))
+                .Returns(Task.CompletedTask);
+
+            var service = CreateService();
+
+            // Act
+            await service.BookAsync(CreateValidRequest(booking.PurchaseOrderId), CancellationToken.None);
+
+            // Assert
+            Assert.Equal(2, sentMessages.Count);
+            Assert.All(sentMessages, message =>
+            {
+                Assert.Equal(booking.Email, message.To);
+                Assert.True(message.IsHtml);
+            });
+
+            Assert.Contains(sentMessages, message =>
+                message.Subject.Contains("reserva")
+                && message.Body.Contains("1,234.50")
+                && message.Body.Contains(booking.Guid.ToString()));
+
+            Assert.Contains(sentMessages, message =>
+                message.Subject == "Itinerario de viaje - Snoopy Airlines"
+                && message.Body.Contains("San Jose")
+                && message.Body.Contains("Jane Doe"));
+        }
+
+        [Fact]
+        public async Task BookAsync_InvalidCardLastFourThrowsArgumentException()
+        {
+            // Arrange
+            var service = CreateService();
+            var request = CreateValidRequest();
+            request.CardLastFour = "12A4";
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.BookAsync(request, CancellationToken.None));
+
+            _bookingRepository.Verify(
+                r => r.BookAsync(It.IsAny<BookingRequest>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _purchaseOrderRepository.Verify(
+                r => r.GetPurchaseOrderDetailsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _emailSender.Verify(
+                s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task BookAsync_WhenPurchaseOrderDetailsMissingThrowsInvalidOperationException()
+        {
+            // Arrange
+            var booking = CreateBooking();
+
+            SetupBooking(booking);
+            SetupMissingPurchaseOrderDetails(booking.PurchaseOrderId);
+
+            var service = CreateService();
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.BookAsync(CreateValidRequest(booking.PurchaseOrderId), CancellationToken.None));
+
+            Assert.Equal($"Purchase order {booking.PurchaseOrderId} not found.", exception.Message);
+            _emailSender.Verify(
+                s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        private BookingService CreateService()
+        {
+            return new BookingService(
+                _bookingRepository.Object,
+                _purchaseOrderRepository.Object,
+                _emailSender.Object);
+        }
+
+        private void SetupBooking(Booking booking)
+        {
+            _bookingRepository
+                .Setup(r => r.BookAsync(It.IsAny<BookingRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(booking);
+        }
+
+        private void SetupPurchaseOrderDetails(int purchaseOrderId)
+        {
+            _purchaseOrderRepository
+                .Setup(r => r.GetPurchaseOrderDetailsAsync(purchaseOrderId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreatePurchaseOrderEmailData(purchaseOrderId));
+        }
+
+        private void SetupMissingPurchaseOrderDetails(int purchaseOrderId)
+        {
+            _purchaseOrderRepository
+                .Setup(r => r.GetPurchaseOrderDetailsAsync(purchaseOrderId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((PurchaseOrderEmailData?)null);
+        }
+
+        private static BookingRequest CreateValidRequest(int purchaseOrderId = 42)
+        {
+            return new BookingRequest
+            {
+                PurchaseOrderId = purchaseOrderId,
+                Email = "traveler@example.com",
+                CardBrand = "Visa",
+                CardLastFour = "4242",
+                CardHolderName = "Jane Doe"
+            };
+        }
+
+        private static Booking CreateBooking(
+            int purchaseOrderId = 42,
+            string email = "traveler@example.com",
+            decimal totalAmount = 250m)
+        {
+            return new Booking
+            {
+                Guid = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                PurchaseOrderId = purchaseOrderId,
+                FlightGuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+                ConfirmationCode = "SA-123456",
+                Email = email,
+                Status = "Confirmed",
+                TotalAmount = totalAmount,
+                CardBrand = "Visa",
+                CardLastFour = "4242",
+                CardHolderName = "Jane Doe",
+                CreatedAt = new DateTime(2026, 5, 20, 13, 15, 0),
+                ConfirmedAt = new DateTime(2026, 5, 20, 14, 30, 0)
+            };
+        }
+
+        private static PurchaseOrderEmailData CreatePurchaseOrderEmailData(int purchaseOrderId)
+        {
+            return new PurchaseOrderEmailData
+            {
+                PurchaseOrderId = purchaseOrderId,
+                SeatClass = "Economy",
+                DepartureTime = new DateTime(2026, 6, 15, 8, 0, 0),
+                ArrivalTime = new DateTime(2026, 6, 15, 12, 30, 0),
+                DepartureAirportName = "Juan Santamaria International Airport",
+                DepartureAirportCode = "SJO",
+                DepartureCityName = "San Jose",
+                ArrivalAirportName = "Los Angeles International Airport",
+                ArrivalAirportCode = "LAX",
+                ArrivalCityName = "Los Angeles",
+                AirplaneModel = "Boeing 737",
+                Passengers =
+                [
+                    new PassengerEmailData
+                    {
+                        FirstName = "Jane",
+                        LastName = "Doe",
+                        Gender = "Female",
+                        Nationality = "Costa Rican",
+                        BirthDay = "15",
+                        BirthMonth = "March",
+                        BirthYear = "1990"
+                    }
+                ]
+            };
+        }
+
+    }
+}
