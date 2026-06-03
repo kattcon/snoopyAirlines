@@ -7,5 +7,6 @@ namespace SnoopyAirlines.Domain
         public DateTime? EarliestDeparture { get; set; }
         public DateTime? LatestDeparture { get; set; }
         public int? QuantityOfPassengers { get; set; }
+        public bool IncludeStopovers { get; set; }
     }
 }

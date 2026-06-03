@@ -45,6 +45,12 @@
                     {{ city.name }} ({{ city.code }})
                   </option>
                 </select>
+                <div v-if="tripType === 'ida'" class="checkbox-field">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="search.includeStopovers" />
+                    Incluir vuelos con escalas
+                  </label>
+                </div>
               </div>
               <div class="search-field">
                 <label>Destino</label>
@@ -73,6 +79,7 @@
                   <option value="5">5 Pasajeros</option>
                 </select>
               </div>
+              
             </div>
             <div v-else class="multicity-section">
               <div class="multicity-legs">
@@ -145,6 +152,24 @@
                     <div class="flight-date">
                       {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
                     </div>
+                    <div v-if="flight.stopoverAirport" class="flight-stopover-info">
+                      <div class="stopover-row">
+                        <span class="stopover-label">Escala:</span>
+                        <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
+                      </div>
+                      <div class="stopover-row">
+                        <span class="stopover-label">Duración escala:</span>
+                        <span>{{ flight.stopoverDuration }}</span>
+                      </div>
+                      <div class="stopover-row">
+                        <span class="stopover-label">Salida primer tramo:</span>
+                        <span>{{ flight.departureTime.substring(11, 16) }}</span>
+                      </div>
+                      <div class="stopover-row">
+                        <span class="stopover-label">Llegada tramo final:</span>
+                        <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
+                      </div>
+                    </div>
                   </div>
                   <div class="flight-prices">
                     <div v-if="selectedFlightId === flight.id" class="seat-options">
@@ -188,6 +213,24 @@
                       <div class="flight-date">
                         {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
                       </div>
+                      <div v-if="flight.stopoverAirport" class="flight-stopover-info">
+                        <div class="stopover-row">
+                          <span class="stopover-label">Escala:</span>
+                          <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Duración escala:</span>
+                          <span>{{ flight.stopoverDuration }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Salida primer tramo:</span>
+                          <span>{{ flight.departureTime.substring(11, 16) }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Llegada tramo final:</span>
+                          <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
+                        </div>
+                      </div>
                     </div>
                     <div class="flight-prices">
                       <div v-if="selectedOutboundId === flight.id" class="seat-options">
@@ -229,6 +272,24 @@
                       </div>
                       <div class="flight-date">
                         {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+                      </div>
+                      <div v-if="flight.stopoverAirport" class="flight-stopover-info">
+                        <div class="stopover-row">
+                          <span class="stopover-label">Escala:</span>
+                          <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Duración escala:</span>
+                          <span>{{ flight.stopoverDuration }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Salida primer tramo:</span>
+                          <span>{{ flight.departureTime.substring(11, 16) }}</span>
+                        </div>
+                        <div class="stopover-row">
+                          <span class="stopover-label">Llegada tramo final:</span>
+                          <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
+                        </div>
                       </div>
                     </div>
                     <div class="flight-prices">
@@ -405,6 +466,7 @@ export default {
         departureDate: '',
         returnDate: '',
         passengers: '1',
+        includeStopovers: false,
         legs: [
           { origin: '', destination: '', departureDate: '' },
           { origin: '', destination: '', departureDate: '' }
@@ -593,6 +655,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         earliestDeparture: `${date}T00:00`,
         latestDeparture:   `${date}T23:59`,
         quantityOfPassengers: passengers,
+        includeStopovers: this.search.includeStopovers ? 'true' : 'false',
         apiKey: EXTERNAL_API_KEY,
       });
     },
@@ -1061,6 +1124,25 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
   border-color: #0056b3;
 }
 
+.checkbox-field {
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0056b3;
+}
+
 .btn-search {
   padding: 16px 40px;
   background: #0056b3;
@@ -1172,23 +1254,30 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
   font-weight: normal;
 }
 
-.flight-date {
-  font-size: 0.9rem;
-  color: #666;
-  text-align: center;
+.flight-stopover-info {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f5f9ff;
+  border-radius: 10px;
+  border: 1px solid #dce8f9;
 }
 
-.flight-prices {
-  margin-bottom: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
+.stopover-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.stopover-label {
+  font-weight: 600;
+  color: #0056b3;
 }
 
 .price-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
   padding: 8px 0;
 }
 

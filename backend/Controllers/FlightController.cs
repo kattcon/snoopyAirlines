@@ -36,6 +36,7 @@ namespace SnoopyAirlines.Controllers
             [FromQuery] string? earliestDeparture,
             [FromQuery] string? latestDeparture,
             [FromQuery] string? quantityOfPassengers,
+            [FromQuery] string? includeStopovers,
             [FromQuery] string? apiKey,
             CancellationToken cancellationToken)
         {
@@ -45,6 +46,7 @@ namespace SnoopyAirlines.Controllers
                 earliestDeparture,
                 latestDeparture,
                 quantityOfPassengers,
+                includeStopovers,
                 out var routeQuery,
                 out var errors))
             {
@@ -69,6 +71,7 @@ namespace SnoopyAirlines.Controllers
             string? earliestDeparture,
             string? latestDeparture,
             string? quantityOfPassengers,
+            string? includeStopovers,
             out RouteQuery routeQuery,
             out IReadOnlyCollection<ValidationError> errors)
         {
@@ -111,6 +114,17 @@ namespace SnoopyAirlines.Controllers
                 });
             }
 
+            var parsedIncludeStopovers = false;
+            if (!string.IsNullOrWhiteSpace(includeStopovers)
+                && !bool.TryParse(includeStopovers, out parsedIncludeStopovers))
+            {
+                validationErrors.Add(new ValidationError
+                {
+                    Field = nameof(includeStopovers),
+                    Message = "includeStopovers must be a boolean value."
+                });
+            }
+
             if (validationErrors.Count > 0)
             {
                 errors = validationErrors;
@@ -123,7 +137,8 @@ namespace SnoopyAirlines.Controllers
                 Destination = detination?.Trim().ToUpperInvariant(),
                 EarliestDeparture = parsedEarliestDeparture,
                 LatestDeparture = parsedLatestDeparture,
-                QuantityOfPassengers = parsedQuantityOfPassengers
+                QuantityOfPassengers = parsedQuantityOfPassengers,
+                IncludeStopovers = parsedIncludeStopovers
             };
 
             errors = Array.Empty<ValidationError>();

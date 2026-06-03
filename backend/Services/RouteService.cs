@@ -40,7 +40,20 @@ namespace SnoopyAirlines.Services
         {
             var repositoryQuery = ToRouteSearchQuery(routeQuery);
             var routes = await _routeRepository.GetRoutesAsync(repositoryQuery, cancellationToken);
-            return CreateFlights(routes, routeQuery);
+            var directFlights = CreateFlights(routes, routeQuery);
+
+            if (!routeQuery.IncludeStopovers)
+            {
+                return directFlights;
+            }
+
+            var connectingFlights = await CreateConnectingFlightsAsync(routeQuery, cancellationToken);
+
+            return directFlights
+                .Concat(connectingFlights)
+                .OrderBy(f => f.DepartureTime)
+                .ThenBy(f => f.FlightGUID, StringComparer.Ordinal)
+                .ToList();
         }
 
         public Task<DomainRoute> SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken)
@@ -55,6 +68,7 @@ namespace SnoopyAirlines.Services
                 Origin = routeQuery.Origin,
                 Destination = routeQuery.Destination,
                 QuantityOfPassengers = routeQuery.QuantityOfPassengers,
+                IncludeStopovers = routeQuery.IncludeStopovers,
                 DepartureWindows = CreateDepartureWindows(routeQuery)
             };
         }
@@ -206,6 +220,135 @@ namespace SnoopyAirlines.Services
             Array.Copy(dateBytes, 0, bytes, bytes.Length - dateBytes.Length, dateBytes.Length);
 
             return new Guid(bytes).ToString();
+        }
+
+        private static string CreateConnectingFlightGuid(int firstDefinitionId, int secondDefinitionId, DateTime departureDate)
+        {
+            var bytes = FlightGuidNamespace.ToByteArray();
+            var idBytes1 = BitConverter.GetBytes(firstDefinitionId);
+            var idBytes2 = BitConverter.GetBytes(secondDefinitionId);
+            var dateNumber = departureDate.Year * 10000 + departureDate.Month * 100 + departureDate.Day;
+            var dateBytes = BitConverter.GetBytes(dateNumber);
+
+            // copy both ids and date into namespace bytes to create a unique GUID
+            var offset = bytes.Length - idBytes1.Length - idBytes2.Length - dateBytes.Length;
+            Array.Copy(idBytes1, 0, bytes, offset, idBytes1.Length);
+            Array.Copy(idBytes2, 0, bytes, offset + idBytes1.Length, idBytes2.Length);
+            Array.Copy(dateBytes, 0, bytes, bytes.Length - dateBytes.Length, dateBytes.Length);
+
+            return new Guid(bytes).ToString();
+        }
+
+        private async Task<IReadOnlyCollection<FlightResponse>> CreateConnectingFlightsAsync(
+            RouteQuery routeQuery,
+            CancellationToken cancellationToken)
+        {
+            const int MinStopoverMinutes = 60;     // 1 hora
+            const int MaxStopoverMinutes = 720;    // 12 horas
+
+            var firstLegQuery = new RouteSearchQuery
+            {
+                Origin = routeQuery.Origin
+            };
+
+            var secondLegQuery = new RouteSearchQuery
+            {
+                Destination = routeQuery.Destination
+            };
+
+            var firstDefs = await _routeRepository.GetRoutesAsync(firstLegQuery, cancellationToken);
+            var secondDefs = await _routeRepository.GetRoutesAsync(secondLegQuery, cancellationToken);
+
+            var results = new List<FlightResponse>();
+
+            if (routeQuery.EarliestDeparture is null || routeQuery.LatestDeparture is null)
+            {
+                return results;
+            }
+
+            var earliestDeparture = routeQuery.EarliestDeparture.Value;
+            var latestDeparture = routeQuery.LatestDeparture.Value;
+            var currentDate = earliestDeparture.Date;
+            var endDate = latestDeparture.Date;
+
+            while (currentDate <= endDate)
+            {
+                foreach (var first in firstDefs)
+                {
+                    if (!OccursOn(first.Frequency, currentDate.DayOfWeek))
+                        continue;
+
+                    var dep1 = currentDate.Add(first.DepartureTime.ToTimeSpan());
+                    var arr1 = first.ArrivalTime >= first.DepartureTime
+                        ? currentDate.Add(first.ArrivalTime.ToTimeSpan())
+                        : currentDate.AddDays(1).Add(first.ArrivalTime.ToTimeSpan());
+
+                    if (dep1 < earliestDeparture || dep1 > latestDeparture)
+                        continue;
+
+                    var candidates = secondDefs.Where(s => s.DepartureAirport.Code == first.ArrivalAirport.Code);
+
+                    foreach (var second in candidates)
+                    {
+                        for (int dayOffset = 0; dayOffset <= 1; dayOffset++)
+                        {
+                            var secondDate = arr1.Date.AddDays(dayOffset);
+                            if (!OccursOn(second.Frequency, secondDate.DayOfWeek))
+                                continue;
+
+                            var dep2 = secondDate.Add(second.DepartureTime.ToTimeSpan());
+                            var arr2 = second.ArrivalTime >= second.DepartureTime
+                                ? secondDate.Add(second.ArrivalTime.ToTimeSpan())
+                                : secondDate.AddDays(1).Add(second.ArrivalTime.ToTimeSpan());
+
+                            var connectionMinutes = (int)(dep2 - arr1).TotalMinutes;
+                            if (connectionMinutes < MinStopoverMinutes || connectionMinutes > MaxStopoverMinutes)
+                                continue;
+
+                            if (dep2 < earliestDeparture || dep2 > latestDeparture)
+                                continue;
+
+                            var totalDurationMinutes = (int)(arr2 - dep1).TotalMinutes;
+
+                            results.Add(new FlightResponse
+                            {
+                                FlightGUID = CreateConnectingFlightGuid(first.Id, second.Id, dep1.Date),
+                                DepartureTime = dep1,
+                                ArrivalTime = arr2,
+                                Duration = FormatDuration(totalDurationMinutes),
+                                DepartureAirport = new AirportResponse
+                                {
+                                    Code = first.DepartureAirport.Code,
+                                    Name = first.DepartureAirport.Name,
+                                    City = first.DepartureAirport.City
+                                },
+                                ArrivalAirport = new AirportResponse
+                                {
+                                    Code = second.ArrivalAirport.Code,
+                                    Name = second.ArrivalAirport.Name,
+                                    City = second.ArrivalAirport.City
+                                },
+                                HasStopover = true,
+                                StopoverAirport = new AirportResponse
+                                {
+                                    Code = first.ArrivalAirport.Code,
+                                    Name = first.ArrivalAirport.Name,
+                                    City = first.ArrivalAirport.City
+                                },
+                                StopoverDuration = FormatDuration(connectionMinutes),
+                                TouristPrice = first.PriceEconomyClass + second.PriceEconomyClass,
+                                FirstClassPrice = first.PriceFirstClass + second.PriceFirstClass,
+                                CarryOnPrice = first.PriceCarryOnBaggage + second.PriceCarryOnBaggage,
+                                CheckedPrice = first.PriceCheckedBaggage + second.PriceCheckedBaggage
+                            });
+                        }
+                    }
+                }
+
+                currentDate = currentDate.AddDays(1);
+            }
+
+            return results;
         }
 
         private static string FormatDuration(int durationMinutes)
