@@ -11,5 +11,7 @@ namespace SnoopyAirlines.Domain.Intake
         [Required] public string BirthMonth { get; set; }
         [Required] public string BirthYear { get; set; }
         [Required] public string Nationality { get; set; }
+        [Required] public string HandLuggage { get; set; }
+        [Required] public string CheckedLuggage { get; set; }
     }
 }

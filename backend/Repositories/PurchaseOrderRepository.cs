@@ -34,9 +34,9 @@ namespace snoopy_airlines_backend.Repositories
                 {
                     passenger.PurchaseOrderId = order.Id;
                     var passengerId = await connection.ExecuteScalarAsync<int>("""
-                        INSERT INTO Passenger(purchaseOrderId, gender, FirstName, LastName, birthDay, birthMonth, birthYear, nationality)
+                        INSERT INTO Passenger(purchaseOrderId, gender, FirstName, LastName, birthDay, birthMonth, birthYear, nationality, handLuggage, checkedLuggage)
                         OUTPUT INSERTED.id
-                        VALUES (@PurchaseOrderId, @Gender, @FirstName, @LastName, @BirthDay, @BirthMonth, @BirthYear, @Nationality);
+                        VALUES (@PurchaseOrderId, @Gender, @FirstName, @LastName, @BirthDay, @BirthMonth, @BirthYear, @Nationality, @HandLuggage, @CheckedLuggage);
                         """, passenger, transaction);
                     passenger.Id = passengerId;
                 }
@@ -88,7 +88,9 @@ namespace snoopy_airlines_backend.Repositories
                     birthDay AS BirthDay,
                     birthMonth AS BirthMonth,
                     birthYear AS BirthYear,
-                    nationality AS Nationality
+                    nationality AS Nationality,
+                    handLuggage AS HandLuggage,
+                    checkedLuggage AS CheckedLuggage
                 FROM Passenger
                 WHERE purchaseOrderId = @Id
                 ORDER BY id;

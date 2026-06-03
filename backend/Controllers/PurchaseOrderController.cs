@@ -52,7 +52,9 @@ namespace SnoopyAirlines.Controllers
                     BirthDay = passenger.BirthDay,
                     BirthMonth = passenger.BirthMonth,
                     BirthYear = passenger.BirthYear,
-                    Nationality = passenger.Nationality
+                    Nationality = passenger.Nationality,
+                    HandLuggage = passenger.HandLuggage,
+                    CheckedLuggage = passenger.CheckedLuggage
                 }).ToList()
             };
             var savedPurchaseOrder = await _purchaseOrderService.CreatePurchaseOrderAsync(order, cancellationToken);

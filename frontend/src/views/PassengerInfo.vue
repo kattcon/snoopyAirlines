@@ -237,6 +237,8 @@ export default {
                     birthDay: String(p.birthDay),
                     birthMonth: String(p.birthMonth),
                     birthYear: String(p.birthYear),
+                    handLuggage: String(p.handLuggage),
+                    checkedLuggage: String(p.checkedLuggage),
                 }))
             };
             console.log('Request:', JSON.stringify(purchaseOrderRequest));
