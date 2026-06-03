@@ -8,22 +8,14 @@ using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Tests
 {
-    public class FlightServiceTests
+    public class RouteServiceTests
     {
-        private readonly Mock<FlightRepository> _mockRepository;
-        private readonly FlightService _flightService;
+        private readonly Mock<IRouteRepository> _mockRepository = new();
+        private readonly RouteService _routeService;
 
-        public FlightServiceTests()
+        public RouteServiceTests()
         {
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:DefaultConnection"] = "Server=(localdb)\\mssqllocaldb;Database=TestDb;Trusted_Connection=True;"
-                })
-                .Build();
-
-            _mockRepository = new Mock<FlightRepository>(configuration);
-            _flightService = new FlightService(_mockRepository.Object);
+            _routeService = new RouteService(_mockRepository.Object);
         }
 
         /// <summary>
@@ -33,7 +25,7 @@ namespace SnoopyAirlines.Tests
         public async Task SearchFlights_WithoutStopovers_ReturnOnlyDirectFlights()
         {
             // Arrange
-            var query = new FlightQuery
+            var query = new RouteQuery
             {
                 Origin = "SJO",
                 Destination = "MIA",
@@ -43,27 +35,27 @@ namespace SnoopyAirlines.Tests
                 IncludeStopovers = false
             };
 
-            var flightDefinition = new FlightDefinition
+            var route = new Route
             {
                 Id = 1,
-                DepartureAirport = new FlightDefinitionAirport { Code = "SJO", Name = "San José", City = "San José" },
-                ArrivalAirport = new FlightDefinitionAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San José", City = "San José" },
+                ArrivalAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
                 DepartureTime = new TimeOnly(8, 0),
                 ArrivalTime = new TimeOnly(10, 30),
                 DurationMinutes = 150,
-                Frequency = new FlightFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = false, Sunday = false },
+                Frequency = new RouteFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = false, Sunday = false },
                 PriceEconomyClass = 299,
                 PriceFirstClass = 599,
-                CarryOnPrice = 0,
-                CheckedPrice = 25
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
             };
 
             _mockRepository
-                .Setup(r => r.GetFlightDefinitionsAsync(It.IsAny<FlightDefinitionQuery>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { flightDefinition });
+                .Setup(r => r.GetRoutesAsync(It.IsAny<RouteSearchQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new[] { route });
 
             // Act
-            var results = await _flightService.SearchFlightsAsync(query, CancellationToken.None);
+            var results = await _routeService.SearchFlightsAsync(query, CancellationToken.None);
 
             // Assert
             Assert.NotEmpty(results);
@@ -78,7 +70,7 @@ namespace SnoopyAirlines.Tests
         public async Task SearchFlights_WithStopoverLessThanOneHour_StopoverIsFiltered()
         {
             // Arrange
-            var query = new FlightQuery
+            var query = new RouteQuery
             {
                 Origin = "SJO",
                 Destination = "LAX",
@@ -88,53 +80,58 @@ namespace SnoopyAirlines.Tests
                 IncludeStopovers = true
             };
 
-            var firstLegDef = new FlightDefinition
+            var firstLeg = new Route
             {
                 Id = 1,
-                DepartureAirport = new FlightDefinitionAirport { Code = "SJO", Name = "San José", City = "San José" },
-                ArrivalAirport = new FlightDefinitionAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San José", City = "San José" },
+                ArrivalAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
                 DepartureTime = new TimeOnly(8, 0),
                 ArrivalTime = new TimeOnly(10, 30),
                 DurationMinutes = 150,
-                Frequency = new FlightFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = false, Sunday = false },
+                Frequency = new RouteFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = false, Sunday = false },
                 PriceEconomyClass = 299,
                 PriceFirstClass = 599,
-                CarryOnPrice = 0,
-                CheckedPrice = 25
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
             };
 
-            var secondLegDef = new FlightDefinition
+            var secondLeg = new Route
             {
                 Id = 2,
-                DepartureAirport = new FlightDefinitionAirport { Code = "MIA", Name = "Miami", City = "Miami" },
-                ArrivalAirport = new FlightDefinitionAirport { Code = "LAX", Name = "Los Ángeles", City = "Los Ángeles" },
+                DepartureAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                ArrivalAirport = new RouteAirport { Code = "LAX", Name = "Los Ángeles", City = "Los Ángeles" },
                 DepartureTime = new TimeOnly(11, 0), // Solo 30 minutos después de la llegada (10:30)
                 ArrivalTime = new TimeOnly(12, 30),
                 DurationMinutes = 90,
-                Frequency = new FlightFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = false, Sunday = false },
+                Frequency = new RouteFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = false, Sunday = false },
                 PriceEconomyClass = 249,
                 PriceFirstClass = 499,
-                CarryOnPrice = 0,
-                CheckedPrice = 25
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
             };
 
             _mockRepository
-                .Setup(r => r.GetFlightDefinitionsAsync(
-                    It.Is<FlightDefinitionQuery>(q => q.Origin == "SJO"),
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Origin == "SJO" && string.IsNullOrWhiteSpace(q.Destination)),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { firstLegDef });
+                .ReturnsAsync(new[] { firstLeg });
 
             _mockRepository
-                .Setup(r => r.GetFlightDefinitionsAsync(
-                    It.Is<FlightDefinitionQuery>(q => q.Destination == "LAX"),
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Destination == "LAX" && string.IsNullOrWhiteSpace(q.Origin)),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { secondLegDef });
+                .ReturnsAsync(new[] { secondLeg });
+
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Origin == "SJO" && q.Destination == "LAX"),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<Route>());
 
             // Act
-            var results = await _flightService.SearchFlightsAsync(query, CancellationToken.None);
+            var results = await _routeService.SearchFlightsAsync(query, CancellationToken.None);
 
             // Assert
-            // No debe haber vuelos con escala de 30 minutos (menor a 1 hora)
             var stopoverFlights = results.Where(f => f.HasStopover && f.StopoverAirport?.Code == "MIA").ToList();
             Assert.DoesNotContain(stopoverFlights, flight => flight.StopoverDuration != null && flight.StopoverDuration.Contains("00:30"));
         }
@@ -146,7 +143,7 @@ namespace SnoopyAirlines.Tests
         public async Task SearchFlights_WithStopoverMoreThanTwelveHours_StopoverIsFiltered()
         {
             // Arrange
-            var query = new FlightQuery
+            var query = new RouteQuery
             {
                 Origin = "SJO",
                 Destination = "CDG",
@@ -156,53 +153,58 @@ namespace SnoopyAirlines.Tests
                 IncludeStopovers = true
             };
 
-            var firstLegDef = new FlightDefinition
+            var firstLeg = new Route
             {
                 Id = 3,
-                DepartureAirport = new FlightDefinitionAirport { Code = "SJO", Name = "San José", City = "San José" },
-                ArrivalAirport = new FlightDefinitionAirport { Code = "BOG", Name = "Bogotá", City = "Bogotá" },
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San José", City = "San José" },
+                ArrivalAirport = new RouteAirport { Code = "BOG", Name = "Bogotá", City = "Bogotá" },
                 DepartureTime = new TimeOnly(8, 0),
                 ArrivalTime = new TimeOnly(11, 0),
                 DurationMinutes = 180,
-                Frequency = new FlightFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = true, Sunday = true },
+                Frequency = new RouteFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = true, Sunday = true },
                 PriceEconomyClass = 199,
                 PriceFirstClass = 399,
-                CarryOnPrice = 0,
-                CheckedPrice = 25
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
             };
 
-            var secondLegDef = new FlightDefinition
+            var secondLeg = new Route
             {
                 Id = 4,
-                DepartureAirport = new FlightDefinitionAirport { Code = "BOG", Name = "Bogotá", City = "Bogotá" },
-                ArrivalAirport = new FlightDefinitionAirport { Code = "CDG", Name = "París", City = "París" },
+                DepartureAirport = new RouteAirport { Code = "BOG", Name = "Bogotá", City = "Bogotá" },
+                ArrivalAirport = new RouteAirport { Code = "CDG", Name = "París", City = "París" },
                 DepartureTime = new TimeOnly(23, 30), // 12:30 horas después de la llegada (11:00 + 12:30)
                 ArrivalTime = new TimeOnly(15, 0), // Día siguiente
                 DurationMinutes = 840,
-                Frequency = new FlightFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = true, Sunday = true },
+                Frequency = new RouteFrequency { Monday = true, Tuesday = true, Wednesday = true, Thursday = true, Friday = true, Saturday = true, Sunday = true },
                 PriceEconomyClass = 649,
                 PriceFirstClass = 1249,
-                CarryOnPrice = 0,
-                CheckedPrice = 25
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
             };
 
             _mockRepository
-                .Setup(r => r.GetFlightDefinitionsAsync(
-                    It.Is<FlightDefinitionQuery>(q => q.Origin == "SJO"),
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Origin == "SJO" && string.IsNullOrWhiteSpace(q.Destination)),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { firstLegDef });
+                .ReturnsAsync(new[] { firstLeg });
 
             _mockRepository
-                .Setup(r => r.GetFlightDefinitionsAsync(
-                    It.Is<FlightDefinitionQuery>(q => q.Destination == "CDG"),
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Destination == "CDG" && string.IsNullOrWhiteSpace(q.Origin)),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { secondLegDef });
+                .ReturnsAsync(new[] { secondLeg });
+
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Origin == "SJO" && q.Destination == "CDG"),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<Route>());
 
             // Act
-            var results = await _flightService.SearchFlightsAsync(query, CancellationToken.None);
+            var results = await _routeService.SearchFlightsAsync(query, CancellationToken.None);
 
             // Assert
-            // No debe haber vuelos con escala de 750 minutos (12:30 horas, mayor a 12 horas)
             var stopoverFlights = results.Where(f => f.HasStopover && f.StopoverAirport?.Code == "BOG").ToList();
             Assert.DoesNotContain(stopoverFlights, flight => flight.StopoverDuration != null && flight.StopoverDuration.Contains("12:30"));
         }
