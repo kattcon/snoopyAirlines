@@ -85,37 +85,35 @@ SELECT
     RouteSeed.weight_limit_carry_on_baggage,
     RouteSeed.weight_limit_checked_baggage,
     RouteSeed.checked_baggage_price_multiplier
-FROM (VALUES
-    (1, 'PI-Sprint2', 'SJO', 'MAD', CONVERT(time(0), '07:00:00'), CONVERT(time(0), '23:00:00'), 72, 540, 2000.00, 800.00, 0.00, 100.00, 10, 23, 0.5000),
-    (2, 'PI-Sprint2', 'SJO', 'ATL', CONVERT(time(0), '08:00:00'), CONVERT(time(0), '14:00:00'), 9, 300, 1000.00, 400.00, 0.00, 75.00, 10, 23, 0.5000),
-    (3, 'PI-Sprint2', 'ATL', 'MAD', CONVERT(time(0), '11:00:00'), CONVERT(time(0), '23:00:00'), 74, 420, 1050.00, 450.00, 0.00, 75.00, 10, 23, 0.5000),
-    (4, 'PI-Sprint2', 'ATL', 'MAD', CONVERT(time(0), '17:00:00'), CONVERT(time(0), '05:00:00'), 74, 420, 800.00, 350.00, 0.00, 75.00, 10, 23, 0.5000),
-    (5, 'PI-Sprint2', 'MAD', 'MEL', CONVERT(time(0), '05:00:00'), CONVERT(time(0), '08:00:00'), 4, 180, 1000.00, 300.00, 0.00, 50.00, 10, 23, 0.5000),
-    (6, 'AIRBUS-2026', 'MSQ', 'SJO', CONVERT(time(0), '01:00:00'), CONVERT(time(0), '04:00:00'), 8, 600, 2200.00, 950.00, 0.00, 100.00, 10, 23, 0.5000),
-    (7, 'PI-Sprint2', 'SJO', 'CDG', CONVERT(time(0), '06:30:00'), CONVERT(time(0), '22:30:00'), 72, 540, 1999.00, 799.00, 0.00, 100.00, 10, 23, 0.5000),
-    (8, 'PI-Sprint2', 'SJO', 'FRA', CONVERT(time(0), '06:45:00'), CONVERT(time(0), '22:45:00'), 72, 540, 1950.00, 790.00, 0.00, 100.00, 10, 23, 0.5000),
-    (9, 'PI-Sprint2', 'SJO', 'AMS', CONVERT(time(0), '07:15:00'), CONVERT(time(0), '23:15:00'), 72, 540, 2050.00, 810.00, 0.00, 100.00, 10, 23, 0.5000)
-) AS RouteSeed (
-    route_sequence,
-    airplane_model,
-    departure_airport_code,
-    arrival_airport_code,
-    departure_time,
-    arrival_time,
-    frequency,
-    duration_minutes,
-    price_first_class,
-    price_economy_class,
-    price_carry_on_baggage,
-    price_checked_baggage,
-    weight_limit_carry_on_baggage,
-    weight_limit_checked_baggage,
-    checked_baggage_price_multiplier
-)
-INNER JOIN dbo.airplane
-    ON airplane.model = RouteSeed.airplane_model
-INNER JOIN dbo.airport AS departure_airport
-    ON departure_airport.code = RouteSeed.departure_airport_code
-INNER JOIN dbo.airport AS arrival_airport
-    ON arrival_airport.code = RouteSeed.arrival_airport_code
+FROM 
+    (VALUES
+        (1, 'PI-Sprint2', 'SJO', 'MAD', CONVERT(time(0), '07:00:00'), CONVERT(time(0), '23:00:00'), 72, 540, 2000.00, 800.00, 0.00, 100.00, 10, 23, 0.5000),
+        (2, 'PI-Sprint2', 'SJO', 'ATL', CONVERT(time(0), '08:00:00'), CONVERT(time(0), '14:00:00'), 9, 300, 1000.00, 400.00, 0.00, 75.00, 10, 23, 0.5000),
+        (3, 'PI-Sprint2', 'ATL', 'MAD', CONVERT(time(0), '11:00:00'), CONVERT(time(0), '23:00:00'), 74, 420, 1050.00, 450.00, 0.00, 75.00, 10, 23, 0.5000),
+        (4, 'PI-Sprint2', 'ATL', 'MAD', CONVERT(time(0), '17:00:00'), CONVERT(time(0), '05:00:00'), 74, 420, 800.00, 350.00, 0.00, 75.00, 10, 23, 0.5000),
+        (5, 'PI-Sprint2', 'MAD', 'MEL', CONVERT(time(0), '05:00:00'), CONVERT(time(0), '08:00:00'), 4, 180, 1000.00, 300.00, 0.00, 50.00, 10, 23, 0.5000),
+        (6, 'AIRBUS-2026', 'MSQ', 'SJO', CONVERT(time(0), '01:00:00'), CONVERT(time(0), '04:00:00'), 8, 600, 2200.00, 950.00, 0.00, 100.00, 10, 23, 0.5000),
+        (7, 'PI-Sprint2', 'SJO', 'CDG', CONVERT(time(0), '06:30:00'), CONVERT(time(0), '22:30:00'), 72, 540, 1999.00, 799.00, 0.00, 100.00, 10, 23, 0.5000),
+        (8, 'PI-Sprint2', 'SJO', 'FRA', CONVERT(time(0), '06:45:00'), CONVERT(time(0), '22:45:00'), 72, 540, 1950.00, 790.00, 0.00, 100.00, 10, 23, 0.5000),
+        (9, 'PI-Sprint2', 'SJO', 'AMS', CONVERT(time(0), '07:15:00'), CONVERT(time(0), '23:15:00'), 72, 540, 2050.00, 810.00, 0.00, 100.00, 10, 23, 0.5000)
+    ) AS RouteSeed (
+        route_sequence,
+        airplane_model,
+        departure_airport_code,
+        arrival_airport_code,
+        departure_time,
+        arrival_time,
+        frequency,
+        duration_minutes,
+        price_first_class,
+        price_economy_class,
+        price_carry_on_baggage,
+        price_checked_baggage,
+        weight_limit_carry_on_baggage,
+        weight_limit_checked_baggage,
+        checked_baggage_price_multiplier
+    )
+    INNER JOIN dbo.airplane ON airplane.model = RouteSeed.airplane_model
+    INNER JOIN dbo.airport AS departure_airport ON departure_airport.code = RouteSeed.departure_airport_code
+    INNER JOIN dbo.airport AS arrival_airport ON arrival_airport.code = RouteSeed.arrival_airport_code
 ORDER BY RouteSeed.route_sequence;
