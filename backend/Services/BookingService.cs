@@ -10,16 +10,15 @@ namespace SnoopyAirlines.Services
     public class BookingService
     {
         private readonly IBookingRepository _bookingRepository;
-        private readonly IPurchaseOrderRepository _purchaseOrderRepository;
         private readonly IEmailSender _emailSender;
 
         public BookingService(
             IBookingRepository bookingRepository,
-            IPurchaseOrderRepository purchaseOrderRepository,
+            IBookingRepository purchaseOrderRepository,
             IEmailSender emailSender)
         {
             _bookingRepository = bookingRepository;
-            _purchaseOrderRepository = purchaseOrderRepository;
+            _bookingRepository = purchaseOrderRepository;
             _emailSender = emailSender;
         }
 
@@ -45,7 +44,7 @@ namespace SnoopyAirlines.Services
             CancellationToken cancellationToken)
         {
             var data = await GetPurchaseOrderEmailDataAsync(
-                booking.PurchaseOrderId,
+                booking.Guid,
                 cancellationToken);
 
             ApplyBookingDetails(data, booking);
@@ -69,15 +68,15 @@ namespace SnoopyAirlines.Services
         }
 
         private async Task<PurchaseOrderEmailData> GetPurchaseOrderEmailDataAsync(
-            int purchaseOrderId,
+            Guid bookingGuid,
             CancellationToken cancellationToken)
         {
-            var data = await _purchaseOrderRepository.GetPurchaseOrderDetailsAsync(
-                purchaseOrderId,
+            var data = await _bookingRepository.GetBookingItineraryDetailsAsync(
+                bookingGuid,
                 cancellationToken);
 
             return data ?? throw new InvalidOperationException(
-                $"Purchase order {purchaseOrderId} not found.");
+                $"Booking {bookingGuid} not found.");
         }
 
         private static void ApplyBookingDetails(

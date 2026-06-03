@@ -51,7 +51,9 @@ namespace SnoopyAirlines.Controllers
                         BirthDay = passenger.BirthDay,
                         BirthMonth = passenger.BirthMonth,
                         BirthYear = passenger.BirthYear,
-                        Nationality = passenger.Nationality
+                        Nationality = passenger.Nationality,
+                        CarryOnLuggage = passenger.CarryOnLuggage,
+                        CheckedLuggage = passenger.CheckedLuggage
                     }).ToList()
                 };
 

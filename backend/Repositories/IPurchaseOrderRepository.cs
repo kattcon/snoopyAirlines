@@ -7,6 +7,5 @@ namespace snoopy_airlines_backend.Repositories
         Task<PurchaseOrder> CreatePurchaseOrderAsync(PurchaseOrder order, CancellationToken cancellationToken);
         Task<IReadOnlyCollection<PurchaseOrder>> GetPurchaseOrdersAsync(CancellationToken cancellationToken);
         Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(int id, CancellationToken cancellationToken);
-        Task<PurchaseOrderEmailData?> GetPurchaseOrderDetailsAsync(int purchaseOrderId, CancellationToken cancellationToken);
     }
 }
