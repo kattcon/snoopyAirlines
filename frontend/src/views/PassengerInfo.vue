@@ -90,22 +90,28 @@
                     </div>
                     <div class="form-field">
                         <label>Cantidad de equipaje de mano</label>
-                        <select v-model="passenger.handLuggage" :class="{'input-error': errors[index]?.handLuggage}">
-                            <option value="">Seleccionar</option>
-                            <option value="0">Ninguno</option>
-                            <option value="1">Uno</option>
-                            <option value="2">Dos</option>
-                        </select>
+                        <input
+                            type="number"
+                            v-model.number="passenger.handLuggage"
+                            min="0"
+                            max="10"
+                            :class="{'input-error': errors[index]?.handLuggage}"
+                            @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
+                            placeholder="0"
+                        />
                         <span class="error-msg" v-if="errors[index]?.handLuggage">❗ Obligatorio</span>
                     </div>
                     <div class="form-field">
                         <label>Cantidad de equipaje documentado</label>
-                        <select v-model="passenger.checkedLuggage" :class="{'input-error': errors[index]?.checkedLuggage}">
-                            <option value="">Seleccionar</option>
-                            <option value="0">Ninguno</option>
-                            <option value="1">Uno</option>
-                            <option value="2">Dos</option>
-                        </select>
+                        <input
+                            type="number"
+                            v-model.number="passenger.checkedLuggage"
+                            min="0"
+                            max="10"
+                            :class="{'input-error': errors[index]?.checkedLuggage}"
+                            @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
+                            placeholder="0"
+                        />
                         <span class="error-msg" v-if="errors[index]?.checkedLuggage">❗ Obligatorio</span>
                     </div>
                 </div>
