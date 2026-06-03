@@ -9,13 +9,13 @@ namespace SnoopyAirlines.Services
 {
     public class BookingService
     {
-        private readonly BookingRepository _bookingRepository;
-        private readonly PurchaseOrderRepository _purchaseOrderRepository;
+        private readonly IBookingRepository _bookingRepository;
+        private readonly IPurchaseOrderRepository _purchaseOrderRepository;
         private readonly IEmailSender _emailSender;
 
         public BookingService(
-            BookingRepository bookingRepository,
-            PurchaseOrderRepository purchaseOrderRepository,
+            IBookingRepository bookingRepository,
+            IPurchaseOrderRepository purchaseOrderRepository,
             IEmailSender emailSender)
         {
             _bookingRepository = bookingRepository;
