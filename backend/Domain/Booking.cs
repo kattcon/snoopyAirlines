@@ -4,7 +4,7 @@ namespace SnoopyAirlines.Domain
     {
         public Guid Guid { get; set; }
         public int PurchaseOrderId { get; set; }
-        public Guid FlightGuid { get; set; }
+        public List<ItineraryLeg> Itinerary { get; set; } = new();
         public string ConfirmationCode { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

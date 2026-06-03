@@ -212,7 +212,15 @@ namespace backend.Tests.Services
             {
                 Guid = Guid.Parse("11111111-2222-3333-4444-555555555555"),
                 PurchaseOrderId = purchaseOrderId,
-                FlightGuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+                Itinerary =
+                [
+                    new ItineraryLeg
+                    {
+                        BookingGuid = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                        SequenceNumber = 1,
+                        FlightGuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+                    }
+                ],
                 ConfirmationCode = "SA-123456",
                 Email = email,
                 Status = "Confirmed",

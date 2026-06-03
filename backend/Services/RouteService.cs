@@ -158,6 +158,10 @@ namespace SnoopyAirlines.Services
             {
                 FlightGUID = CreateFlightGuid(route.Id, departureTime.Date),
                 RouteId = route.Id,
+                Routes =
+                [
+                    CreateFlightRouteResponse(1, route.Id, departureTime)
+                ],
                 DepartureTime = departureTime,
                 ArrivalTime = arrivalDate.Add(route.ArrivalTime.ToTimeSpan()),
                 Duration = FormatDuration(route.DurationMinutes),
@@ -313,6 +317,12 @@ namespace SnoopyAirlines.Services
                             results.Add(new FlightResponse
                             {
                                 FlightGUID = CreateConnectingFlightGuid(first.Id, second.Id, dep1.Date),
+                                RouteId = first.Id,
+                                Routes =
+                                [
+                                    CreateFlightRouteResponse(1, first.Id, dep1),
+                                    CreateFlightRouteResponse(2, second.Id, dep2)
+                                ],
                                 DepartureTime = dep1,
                                 ArrivalTime = arr2,
                                 Duration = FormatDuration(totalDurationMinutes),
@@ -349,6 +359,19 @@ namespace SnoopyAirlines.Services
             }
 
             return results;
+        }
+
+        private static FlightRouteResponse CreateFlightRouteResponse(
+            int sequenceNumber,
+            int routeId,
+            DateTime departureTime)
+        {
+            return new FlightRouteResponse
+            {
+                SequenceNumber = sequenceNumber,
+                RouteId = routeId,
+                IntendedDate = DateOnly.FromDateTime(departureTime.Date)
+            };
         }
 
         private static string FormatDuration(int durationMinutes)

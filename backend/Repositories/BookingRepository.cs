@@ -18,10 +18,11 @@ namespace SnoopyAirlines.Repositories
         public async Task<Booking> BookAsync(BookingRequest bookingRequest, CancellationToken cancellationToken)
         {
             await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
 
             try
             {
-                return await connection.QuerySingleAsync<Booking>(
+                var booking = await connection.QuerySingleAsync<Booking>(
                     new CommandDefinition(
                         "dbo.book",
                         new
@@ -34,6 +35,9 @@ namespace SnoopyAirlines.Repositories
                         },
                         commandType: CommandType.StoredProcedure,
                         cancellationToken: cancellationToken));
+
+                booking.Itinerary = await GetItineraryAsync(connection, booking.Guid, cancellationToken);
+                return booking;
             }
             catch (SqlException exception) when (exception.Number == 50000)
             {
@@ -47,7 +51,6 @@ namespace SnoopyAirlines.Repositories
                 SELECT
                     guid AS Guid,
                     purchase_order_id AS PurchaseOrderId,
-                    flight_guid AS FlightGuid,
                     confirmation_code AS ConfirmationCode,
                     email AS Email,
                     status AS Status,
@@ -59,11 +62,50 @@ namespace SnoopyAirlines.Repositories
                     confirmed_at AS ConfirmedAt
                 FROM dbo.booking
                 WHERE guid = @BookingGuid;
+
+                SELECT
+                    booking_guid AS BookingGuid,
+                    sequence_number AS SequenceNumber,
+                    flight_guid AS FlightGuid
+                FROM dbo.itinerary
+                WHERE booking_guid = @BookingGuid
+                ORDER BY sequence_number;
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            return await connection.QuerySingleOrDefaultAsync<Booking>(
+            await connection.OpenAsync(cancellationToken);
+            using var results = await connection.QueryMultipleAsync(
                 new CommandDefinition(sql, new { BookingGuid = bookingGuid }, cancellationToken: cancellationToken));
+
+            var booking = await results.ReadSingleOrDefaultAsync<Booking>();
+            if (booking is null)
+            {
+                return null;
+            }
+
+            var itinerary = await results.ReadAsync<ItineraryLeg>();
+            booking.Itinerary = itinerary.ToList();
+
+            return booking;
+        }
+
+        private static async Task<List<ItineraryLeg>> GetItineraryAsync(
+            SqlConnection connection,
+            Guid bookingGuid,
+            CancellationToken cancellationToken)
+        {
+            var itinerary = await connection.QueryAsync<ItineraryLeg>(
+                new CommandDefinition("""
+                    SELECT
+                        booking_guid AS BookingGuid,
+                        sequence_number AS SequenceNumber,
+                        flight_guid AS FlightGuid
+                    FROM dbo.itinerary
+                    WHERE booking_guid = @BookingGuid
+                    ORDER BY sequence_number;
+                    """, new { BookingGuid = bookingGuid }, cancellationToken: cancellationToken));
+
+            return itinerary.ToList();
         }
     }
 }
