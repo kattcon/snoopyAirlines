@@ -88,6 +88,26 @@
                         </select>
                         <span class="error-msg" v-if="errors[index]?.nationality">❗ Obligatorio</span>
                     </div>
+                    <div class="form-field">
+                        <label>Cantidad de equipaje de mano</label>
+                        <select v-model="passenger.handLuggage" :class="{'input-error': errors[index]?.handLuggage}">
+                            <option value="">Seleccionar</option>
+                            <option value="0">Ninguno</option>
+                            <option value="1">Uno</option>
+                            <option value="2">Dos</option>
+                        </select>
+                        <span class="error-msg" v-if="errors[index]?.handLuggage">❗ Obligatorio</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Cantidad de equipaje documentado</label>
+                        <select v-model="passenger.checkedLuggage" :class="{'input-error': errors[index]?.checkedLuggage}">
+                            <option value="">Seleccionar</option>
+                            <option value="0">Ninguno</option>
+                            <option value="1">Uno</option>
+                            <option value="2">Dos</option>
+                        </select>
+                        <span class="error-msg" v-if="errors[index]?.checkedLuggage">❗ Obligatorio</span>
+                    </div>
                 </div>
                 
             </div>
@@ -149,6 +169,8 @@ export default {
                 birthMonth: '',
                 birthYear: '',
                 nationality: '',
+                handLuggage: '',
+                checkedLuggage: '',
             })),
             holder: {
                 firstName: '',
@@ -189,6 +211,8 @@ export default {
                 gender: !passenger.gender,
                 nationality: !passenger.nationality,
                 birthdate: !(passenger.birthDay || passenger.birthMonth || passenger.birthYear),
+                handLuggage: !passenger.handLuggage,
+                checkedLuggage: !passenger.checkedLuggage,
             }));
 
             this.errors.holder = {
@@ -198,14 +222,15 @@ export default {
             };
 
             const hasErrorsPassenger = this.errors.some(error => error.firstName ||
-            error.lastName || error.gender || error.nationality || error.birthdate);
+            error.lastName || error.gender || error.nationality || error.birthdate || error.handLuggage || error.checkedLuggage);
             const hasErrorsHolder = this.errors.holder.firstName || this.errors.holder.lastName || this.errors.holder.email;
             if(hasErrorsPassenger || hasErrorsHolder){
                 return;
             }
 
             const purchaseOrderRequest = {
-                flightId: parseInt(this.$route.query.flightId),
+                routeId: parseInt(this.$route.query.routeId),
+                intendedDate: this.$route.query.intendedDate,
                 seatClass: this.$route.query.seatClass,
                 passengers: this.passengers.map(p => ({
                     ...p,
@@ -217,9 +242,14 @@ export default {
             console.log('Request:', JSON.stringify(purchaseOrderRequest));
             axios.post(`${process.env.VUE_APP_BACKEND_URL}/PurchaseOrder`, purchaseOrderRequest)
             .then((response) => {
-                sessionStorage.setItem('purchaseOrderId', response.data.id);
-                alert("Datos guardados exitosamente");
-                this.$router.push('/payment');
+                const purchaseOrderId = response.data.id ?? response.data.Id;
+                sessionStorage.setItem('purchaseOrderId', purchaseOrderId);
+                sessionStorage.setItem('bookingHolderEmail', this.holder.email);
+                sessionStorage.setItem('bookingHolderName', `${this.holder.firstName} ${this.holder.lastName}`.trim());
+                this.$router.push({
+                    name: 'PurchaseConfirmation',
+                    params: { purchaseOrderId }
+                });
             })
             .catch((error) => {
                 alert("Error al guardar los datos de los pasajeros");
