@@ -1,0 +1,393 @@
+@startuml SnoopyAirlinesPurchaseFlow
+title Snoopy Airlines Backend - Purchase Flow Class Diagram
+
+top to bottom direction
+skinparam linetype ortho
+skinparam Linetype ortho
+skinparam ArrowLinetype ortho
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 35
+hide circle
+
+    class PurchaseOrderController <<Controller>> {
+        - purchaseOrderService : PurchaseOrderService
+        + PurchaseOrderController()
+        + GetPurchaseOrdersAsync()
+        + GetPurchaseOrderByIdAsync()
+        + Post()
+        - CreateRoutes()
+    }
+
+    class BookingController <<Controller>> {
+        - bookingService : BookingService
+        + BookingController()
+        + GetByGuid()
+        + Post()
+    }
+
+    class PurchaseOrderService <<Service>> {
+        - purchaseOrderRepository : IPurchaseOrderRepository
+        + PurchaseOrderService()
+        + CreatePurchaseOrderAsync()
+        + GetPurchaseOrdersAsync()
+        + GetPurchaseOrderByIdAsync()
+        - NormalizeAndValidate()
+    }
+
+    class BookingService <<Service>> {
+        - bookingRepository : IBookingRepository
+        - purchaseOrderRepository : IPurchaseOrderRepository
+        - emailSender : IEmailSender
+        + BookingService()
+        + BookAsync()
+        + GetByGuidAsync()
+        - SendBookingConfirmationEmailAsync()
+        - GetPurchaseOrderEmailDataAsync()
+        - ApplyBookingDetails()
+        - NormalizeAndValidate()
+    }
+
+    interface IEmailSender {
+        + SendAsync()
+    }
+
+    class SmtpEmailSender <<Service>> {
+        - configuration : IConfiguration
+        + SmtpEmailSender()
+        + SendAsync()
+        - GetRequiredSetting()
+        - GetPort()
+        - GetEnableSsl()
+    }
+
+    class ConsoleEmailSender <<Service>> {
+        - logger : ILogger<ConsoleEmailSender>
+        + ConsoleEmailSender()
+        + SendAsync()
+    }
+
+    interface IPurchaseOrderRepository {
+        + CreatePurchaseOrderAsync()
+        + GetPurchaseOrdersAsync()
+        + GetPurchaseOrderByIdAsync()
+        + GetPurchaseOrderDetailsAsync()
+    }
+
+    class PurchaseOrderRepository <<Repository>> {
+        - connectionString : string
+        + PurchaseOrderRepository()
+        + CreatePurchaseOrderAsync()
+        + GetPurchaseOrdersAsync()
+        + GetPurchaseOrderByIdAsync()
+        + GetPurchaseOrderDetailsAsync()
+        - EnsureRoutesExistAsync()
+        - ToParameters()
+        - ToPurchaseOrder()
+        - ToPurchaseOrderRoute()
+    }
+
+    interface IBookingRepository {
+        + BookAsync()
+        + GetByGuidAsync()
+    }
+
+    class BookingRepository <<Repository>> {
+        - connectionString : string
+        + BookingRepository()
+        + BookAsync()
+        + GetByGuidAsync()
+        - GetItineraryAsync()
+    }
+
+    class "PurchaseOrder" as DomainPurchaseOrder <<Entity>> {
+        + Id : int
+        + SeatClass : string
+        + Routes : List<PurchaseOrderRoute>
+        + Passengers : List<Passenger>
+    }
+
+    class "PurchaseOrderRoute" as DomainPurchaseOrderRoute <<Entity>> {
+        + PurchaseOrderId : int
+        + SequenceNumber : int
+        + RouteId : int
+        + IntendedDate : DateOnly?
+    }
+
+    class "Passenger" as DomainPassenger <<Entity>> {
+        + Id : int
+        + PurchaseOrderId : int
+        + Gender : string
+        + FirstName : string
+        + LastName : string
+        + BirthDay : string
+        + BirthMonth : string
+        + BirthYear : string
+        + Nationality : string
+    }
+
+    class "BookingRequest" as DomainBookingRequest <<DTO>> {
+        + PurchaseOrderId : int
+        + Email : string
+        + CardBrand : string
+        + CardLastFour : string
+        + CardHolderName : string
+    }
+
+    class "Booking" as DomainBooking <<Entity>> {
+        + Guid : Guid
+        + PurchaseOrderId : int
+        + Itinerary : List<ItineraryLeg>
+        + ConfirmationCode : string
+        + Email : string
+        + Status : string
+        + TotalAmount : decimal
+        + CardBrand : string?
+        + CardLastFour : string?
+        + CardHolderName : string?
+        + CreatedAt : DateTime
+        + ConfirmedAt : DateTime
+    }
+
+    class "ItineraryLeg" as DomainItineraryLeg <<Entity>> {
+        + BookingGuid : Guid
+        + SequenceNumber : int
+        + FlightGuid : Guid
+    }
+
+    class PurchaseOrderEmailData <<DTO>> {
+        + PurchaseOrderId : int
+        + SeatClass : string
+        + DepartureTime : DateTime
+        + ArrivalTime : DateTime
+        + DepartureAirportName : string
+        + DepartureAirportCode : string
+        + DepartureCityName : string
+        + ArrivalAirportName : string
+        + ArrivalAirportCode : string
+        + ArrivalCityName : string
+        + AirplaneModel : string
+        + Passengers : List<PassengerEmailData>
+        + BaseFare : string
+        + Taxes : string
+        + TravelInsurance : string
+        + Total : string
+        + PaymentMethod : string
+        + PurchaseDate : string
+        + TransactionId : string
+    }
+
+    class PassengerEmailData <<DTO>> {
+        + FirstName : string
+        + LastName : string
+        + Gender : string
+        + Nationality : string
+        + BirthDay : string
+        + BirthMonth : string
+        + BirthYear : string
+    }
+
+    class PurchaseOrderDetailRow <<DTO>> {
+        + PurchaseOrderId : int
+        + SeatClass : string
+        + DepartureTime : DateTime
+        + ArrivalTime : DateTime
+        + DepartureAirportName : string
+        + DepartureAirportCode : string
+        + DepartureCityName : string
+        + ArrivalAirportName : string
+        + ArrivalAirportCode : string
+        + ArrivalCityName : string
+        + AirplaneModel : string
+        + FirstName : string
+        + LastName : string
+        + Gender : string
+        + Nationality : string
+        + BirthDay : string
+        + BirthMonth : string
+        + BirthYear : string
+    }
+
+    class PurchaseOrderIntake <<DTO>> {
+        + Routes : List<PurchaseOrderRouteIntake>
+        + SeatClass : string
+        + Passengers : List<PassengerIntake>
+    }
+
+    class PurchaseOrderRouteIntake <<DTO>> {
+        + SequenceNumber : int?
+        + RouteId : int
+        + IntendedDate : DateOnly?
+    }
+
+    class PassengerIntake <<DTO>> {
+        + Gender : string
+        + FirstName : string
+        + LastName : string
+        + BirthDay : string
+        + BirthMonth : string
+        + BirthYear : string
+        + Nationality : string
+    }
+
+    class BookingIntake <<DTO>> {
+        + PurchaseOrderId : int
+        + Email : string
+        + CardBrand : string
+        + CardLastFour : string
+        + CardHolderName : string
+    }
+
+    class BookingConfirmationEmail <<Template>> {
+        + Build()
+        - LoadTemplate()
+    }
+
+    class BookingItineraryEmail <<Template>> {
+        + Build()
+        - BuildPassengerHtml()
+        - LoadTemplate()
+    }
+
+    class "dbo.PurchaseOrder" as DbPurchaseOrder <<Table>> {
+        + Id
+        + SeatClass
+    }
+
+    class "dbo.PurchaseOrderRoute" as DbPurchaseOrderRoute <<Table>> {
+        + PurchaseOrderId
+        + SequenceNumber
+        + RouteId
+        + IntendedDate
+    }
+
+    class "dbo.Passenger" as DbPassenger <<Table>> {
+        + Id
+        + PurchaseOrderId
+    }
+
+    class "dbo.booking" as DbBooking <<Table>> {
+        + guid
+        + purchase_order_id
+        + confirmation_code
+        + email
+        + total_amount
+    }
+
+    class "dbo.itinerary" as DbItinerary <<Table>> {
+        + booking_guid
+        + sequence_number
+        + flight_guid
+    }
+
+    class "dbo.route" as DbRoute <<Table>> {
+        + id
+        + departure_airport_id
+        + arrival_airport_id
+        + price_economy_class
+        + price_first_class
+    }
+
+    class "dbo.flight" as DbFlight <<Table>> {
+        + guid
+        + route_id
+        + departure_at
+        + arrival_at
+        + status
+    }
+
+    class "dbo.book" as DbBook <<Stored Procedure>> {
+        + execute()
+    }
+
+    class "dbo.remaining_seats" as DbRemainingSeats <<Function>> {
+        + calculate()
+    }
+
+    class "dbo.route_flights_at" as DbRouteFlightsAt <<Function>> {
+        + getFlightsAtDate()
+    }
+
+    class "dbo.GetPurchaseOrderDetails" as DbGetPurchaseOrderDetails <<Function>> {
+        + getDetails()
+    }
+
+PurchaseOrderController -down-> PurchaseOrderService
+PurchaseOrderController -down-> PurchaseOrderIntake
+PurchaseOrderController -down-> DomainPurchaseOrder
+BookingController -down-> BookingService
+BookingController -down-> BookingIntake
+BookingController -down-> DomainBooking
+
+PurchaseOrderService -down-> IPurchaseOrderRepository
+PurchaseOrderService -down-> DomainPurchaseOrder
+BookingService -down-> IBookingRepository
+BookingService -down-> IPurchaseOrderRepository
+BookingService -down-> IEmailSender
+BookingService -down-> DomainBookingRequest
+BookingService -down-> DomainBooking
+BookingService -down-> PurchaseOrderEmailData
+BookingService -down-> BookingConfirmationEmail
+BookingService -down-> BookingItineraryEmail
+
+PurchaseOrderRepository ..|> IPurchaseOrderRepository
+BookingRepository ..|> IBookingRepository
+SmtpEmailSender ..|> IEmailSender
+ConsoleEmailSender ..|> IEmailSender
+
+PurchaseOrderRepository -down-> DomainPurchaseOrder
+PurchaseOrderRepository -down-> DomainPurchaseOrderRoute
+PurchaseOrderRepository -down-> DomainPassenger
+PurchaseOrderRepository -down-> PurchaseOrderEmailData
+PurchaseOrderRepository -down-> PurchaseOrderDetailRow
+BookingRepository -down-> DomainBookingRequest
+BookingRepository -down-> DomainBooking
+BookingRepository -down-> DomainItineraryLeg
+
+DomainPurchaseOrder *-down-> DomainPurchaseOrderRoute
+DomainPurchaseOrder *-down-> DomainPassenger
+DomainBooking *-down-> DomainItineraryLeg
+DomainBooking -down-> DomainPurchaseOrder
+PurchaseOrderEmailData *-down-> PassengerEmailData
+PurchaseOrderDetailRow -down-> PurchaseOrderEmailData
+
+PurchaseOrderIntake *-down-> PurchaseOrderRouteIntake
+PurchaseOrderIntake *-down-> PassengerIntake
+BookingIntake -down-> DomainBookingRequest
+
+BookingConfirmationEmail -down-> PurchaseOrderEmailData
+BookingItineraryEmail -down-> PurchaseOrderEmailData
+BookingItineraryEmail -down-> PassengerEmailData
+
+PurchaseOrderRepository -down-> DbPurchaseOrder
+PurchaseOrderRepository -down-> DbPurchaseOrderRoute
+PurchaseOrderRepository -down-> DbPassenger
+PurchaseOrderRepository -down-> DbRoute
+PurchaseOrderRepository -down-> DbGetPurchaseOrderDetails
+BookingRepository -down-> DbBook
+BookingRepository -down-> DbBooking
+BookingRepository -down-> DbItinerary
+
+DbPurchaseOrder *-down-> DbPurchaseOrderRoute
+DbPurchaseOrder *-down-> DbPassenger
+DbBooking -down-> DbPurchaseOrder
+DbBooking *-down-> DbItinerary
+DbItinerary -down-> DbFlight
+DbPurchaseOrderRoute -down-> DbRoute
+DbBook -down-> DbPurchaseOrder
+DbBook -down-> DbPurchaseOrderRoute
+DbBook -down-> DbPassenger
+DbBook -down-> DbRoute
+DbBook -down-> DbRouteFlightsAt
+DbBook -down-> DbFlight
+DbBook -down-> DbRemainingSeats
+DbBook -down-> DbBooking
+DbBook -down-> DbItinerary
+DbGetPurchaseOrderDetails -down-> DbPurchaseOrder
+DbGetPurchaseOrderDetails -down-> DbPurchaseOrderRoute
+DbGetPurchaseOrderDetails -down-> DbPassenger
+DbGetPurchaseOrderDetails -down-> DbRoute
+DbGetPurchaseOrderDetails -down-> DbFlight
+
+@enduml
