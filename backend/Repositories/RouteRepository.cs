@@ -202,7 +202,7 @@ namespace SnoopyAirlines.Repositories
             return routes.ToList();
         }
 
-        public async Task<DomainRoute> SaveAsync(DomainRoute route, CancellationToken cancellationToken)
+        public async Task SaveAsync(DomainRoute route, CancellationToken cancellationToken)
         {
             const string sql = """
                 IF @Id > 0 AND EXISTS (SELECT 1 FROM [route] WHERE id = @Id)
@@ -223,22 +223,6 @@ namespace SnoopyAirlines.Repositories
                         weight_limit_carry_on_baggage = @WeightLimitCarryOnBaggage,
                         weight_limit_checked_baggage = @WeightLimitCheckedBaggage,
                         checked_baggage_price_multiplier = @CheckedBaggagePriceMultiplier
-                    OUTPUT
-                        INSERTED.id AS Id,
-                        INSERTED.airplane_id AS AirplaneId,
-                        INSERTED.departure_airport_id AS DepartureAirportId,
-                        INSERTED.arrival_airport_id AS ArrivalAirportId,
-                        INSERTED.departure_time AS DepartureTime,
-                        INSERTED.arrival_time AS ArrivalTime,
-                        INSERTED.frequency AS Frequency,
-                        INSERTED.duration_minutes AS DurationMinutes,
-                        INSERTED.price_first_class AS PriceFirstClass,
-                        INSERTED.price_economy_class AS PriceEconomyClass,
-                        INSERTED.price_carry_on_baggage AS PriceCarryOnBaggage,
-                        INSERTED.price_checked_baggage AS PriceCheckedBaggage,
-                        INSERTED.weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
-                        INSERTED.weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
-                        INSERTED.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
                     WHERE id = @Id;
                 END
                 ELSE
@@ -259,22 +243,6 @@ namespace SnoopyAirlines.Repositories
                         weight_limit_checked_baggage,
                         checked_baggage_price_multiplier
                     )
-                    OUTPUT
-                        INSERTED.id AS Id,
-                        INSERTED.airplane_id AS AirplaneId,
-                        INSERTED.departure_airport_id AS DepartureAirportId,
-                        INSERTED.arrival_airport_id AS ArrivalAirportId,
-                        INSERTED.departure_time AS DepartureTime,
-                        INSERTED.arrival_time AS ArrivalTime,
-                        INSERTED.frequency AS Frequency,
-                        INSERTED.duration_minutes AS DurationMinutes,
-                        INSERTED.price_first_class AS PriceFirstClass,
-                        INSERTED.price_economy_class AS PriceEconomyClass,
-                        INSERTED.price_carry_on_baggage AS PriceCarryOnBaggage,
-                        INSERTED.price_checked_baggage AS PriceCheckedBaggage,
-                        INSERTED.weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
-                        INSERTED.weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
-                        INSERTED.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
                     VALUES (
                         @AirplaneId,
                         @DepartureAirportId,
@@ -295,10 +263,8 @@ namespace SnoopyAirlines.Repositories
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
-            var savedRoute = await connection.QuerySingleAsync<RouteRecord>(
+            await connection.ExecuteAsync(
                 new CommandDefinition(sql, ToParameters(route), cancellationToken: cancellationToken));
-
-            return ToRoute(savedRoute);
         }
 
         private static DomainRoute ToRoute(RouteRecord route)

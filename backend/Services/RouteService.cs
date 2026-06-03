@@ -56,7 +56,7 @@ namespace SnoopyAirlines.Services
                 .ToList();
         }
 
-        public Task<DomainRoute> SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken)
+        public Task SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken)
         {
             return _routeRepository.SaveAsync(route, cancellationToken);
         }

@@ -9,6 +9,6 @@ namespace SnoopyAirlines.Repositories
         Task<IReadOnlyCollection<DomainRoute>> GetRoutesAsync(RouteSearchQuery routeQuery, CancellationToken cancellationToken = default);
         Task<DomainRoute?> GetByIdAsync(int routeId, CancellationToken cancellationToken);
         Task<IReadOnlyCollection<DomainRoute>> SearchAsync(int? departureAirportId, int? arrivalAirportId, DateOnly? departureDate, CancellationToken cancellationToken);
-        Task<DomainRoute> SaveAsync(DomainRoute route, CancellationToken cancellationToken);
+        Task SaveAsync(DomainRoute route, CancellationToken cancellationToken);
     }
 }

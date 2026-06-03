@@ -8,7 +8,7 @@ using SnoopyAirlines.Domain.View;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class AirplaneRepository
+    public class AirplaneRepository : IAirplaneRepository
     {
 
         private readonly string _connectionString;

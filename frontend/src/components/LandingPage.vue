@@ -32,11 +32,9 @@
         <div class="search-box">
           <div class="search-tabs">
             <button :class="['tab-btn', { active: tripType === 'ida' }]" @click="setTripType('ida')">Ida</button>
-            <button :class="['tab-btn', { active: tripType === 'ida-vuelta' }]" @click="setTripType('ida-vuelta')">Ida y Vuelta</button>
-            <button :class="['tab-btn', { active: tripType === 'multiciudad' }]" @click="setTripType('multiciudad')">Multiciudad</button>
           </div>
           <form class="search-form" @submit.prevent="searchFlights">
-            <div v-if="tripType !== 'multiciudad'" class="search-row">
+            <div class="search-row">
               <div class="search-field">
                 <label>Origen</label>
                 <select v-model="search.origin" required class="search-select">
@@ -45,7 +43,7 @@
                     {{ city.name }} ({{ city.code }})
                   </option>
                 </select>
-                <div v-if="tripType === 'ida'" class="checkbox-field">
+                <div class="checkbox-field">
                   <label class="checkbox-label">
                     <input type="checkbox" v-model="search.includeStopovers" />
                     Incluir vuelos con escalas
@@ -65,53 +63,7 @@
                 <label>Fecha de salida</label>
                 <input type="date" v-model="search.departureDate" class="search-input" />
               </div>
-              <div class="search-field" v-if="tripType === 'ida-vuelta'">
-                <label>Fecha de retorno</label>
-                <input type="date" v-model="search.returnDate" class="search-input" />
-              </div>
               <div class="search-field">
-                <label>Pasajeros</label>
-                <select v-model="search.passengers" class="search-select">
-                  <option value="1">1 Pasajero</option>
-                  <option value="2">2 Pasajeros</option>
-                  <option value="3">3 Pasajeros</option>
-                  <option value="4">4 Pasajeros</option>
-                  <option value="5">5 Pasajeros</option>
-                </select>
-              </div>
-              
-            </div>
-            <div v-else class="multicity-section">
-              <div class="multicity-legs">
-                <div class="multicity-leg" v-for="(leg, index) in search.legs" :key="index">
-                  <div class="leg-title">Tramo {{ index + 1 }}</div>
-                  <div class="search-field">
-                    <label>Origen</label>
-                    <select v-model="leg.origin" required class="search-select">
-                      <option value="" disabled>Seleccionar origen</option>
-                      <option v-for="city in originCities" :key="city.code" :value="city.code">
-                        {{ city.name }} ({{ city.code }})
-                      </option>
-                    </select>
-                  </div>
-                  <div class="search-field">
-                    <label>Destino</label>
-                    <select v-model="leg.destination" required class="search-select">
-                      <option value="" disabled>Seleccionar destino</option>
-                      <option v-for="city in destinationCities" :key="city.code" :value="city.code">
-                        {{ city.name }} ({{ city.code }})
-                      </option>
-                    </select>
-                  </div>
-                  <div class="search-field">
-                    <label>Fecha</label>
-                    <input type="date" v-model="leg.departureDate" required class="search-input" />
-                  </div>
-                  <button v-if="index > 1" type="button" class="btn-remove-leg" @click="removeLeg(index)">Eliminar tramo</button>
-                </div>
-              </div>
-              <button type="button" class="btn-add-leg" @click="addLeg">Agregar otro tramo</button>
-              <div class="search-field passengers-field">
                 <label>Pasajeros</label>
                 <select v-model="search.passengers" class="search-select">
                   <option value="1">1 Pasajero</option>
@@ -128,9 +80,9 @@
           </form>
 
           <!-- Search Results -->
-          <div v-if="searchPerformed && (searchResults.length > 0 || outboundFlights.length > 0)" class="search-results">
-            <!-- Resultados para Solo Ida -->
-            <div v-if="tripType === 'ida'">
+          <div v-if="searchPerformed && searchResults.length > 0" class="search-results">
+            <!-- Resultados de vuelos -->
+            <div>
               <h3>Vuelos disponibles</h3>
               <div class="flights-grid">
                 <div class="flight-card" v-for="flight in searchResults" :key="flight.id" @click="toggleFlight(flight.id)" style="cursor:pointer">
@@ -188,190 +140,7 @@
               </div>
             </div>
 
-            <!-- Resultados para Ida y Vuelta -->
-            <div v-if="tripType === 'ida-vuelta'">
-              <!-- Vuelos de IDA -->
-              <div class="trip-section">
-                <h3>Vuelos de IDA - {{ search.origin }} → {{ search.destination }}</h3>
-                <div v-if="outboundFlights.length > 0" class="flights-grid">
-                  <div class="flight-card" v-for="flight in outboundFlights" :key="'out-' + flight.id" @click="toggleOutbound(flight.id)" style="cursor:pointer">
-                    <div class="flight-header">
-                      <div class="flight-route">
-                        <span class="airport-code">{{ search.origin }}</span>
-                        <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M5 12h14M12 5l7 7-7 7"></path>
-                        </svg>
-                        <span class="airport-code">{{ search.destination }}</span>
-                      </div>
-                    </div>
-                    <div class="flight-details">
-                      <div class="flight-time">
-                        <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
-                        <span class="flight-duration">{{ flight.durationMinutes }}min</span>
-                        <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
-                      </div>
-                      <div class="flight-date">
-                        {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
-                      </div>
-                      <div v-if="flight.stopoverAirport" class="flight-stopover-info">
-                        <div class="stopover-row">
-                          <span class="stopover-label">Escala:</span>
-                          <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
-                        </div>
-                        <div class="stopover-row">
-                          <span class="stopover-label">Duración escala:</span>
-                          <span>{{ flight.stopoverDuration }}</span>
-                        </div>
-                        <div class="stopover-row">
-                          <span class="stopover-label">Salida primer tramo:</span>
-                          <span>{{ flight.departureTime.substring(11, 16) }}</span>
-                        </div>
-                        <div class="stopover-row">
-                          <span class="stopover-label">Llegada tramo final:</span>
-                          <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="flight-prices">
-                      <div v-if="selectedOutboundId === flight.id" class="seat-options">
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
-                        <span class="class-name">Económica</span>
-                        <span class="price">${{ flight.priceEconomyClass }}</span>
-      
-                      </div>
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
-                        <span class="class-name">Primera clase</span>
-                        <span class="price">${{ flight.priceFirstClass }}</span>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-                <p v-else class="no-results">No se encontraron vuelos de ida para esa fecha</p>
-              </div>
 
-              <!-- Vuelos de VUELTA -->
-              <div class="trip-section">
-                <h3>Vuelos de VUELTA - {{ search.destination }} → {{ search.origin }}</h3>
-                <div v-if="returnFlights.length > 0" class="flights-grid">
-                  <div class="flight-card" v-for="flight in returnFlights" :key="'ret-' + flight.id" @click="toggleReturn(flight.id)" style="cursor:pointer">
-                    <div class="flight-header">
-                      <div class="flight-route">
-                        <span class="airport-code">{{ search.destination }}</span>
-                        <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M5 12h14M12 5l7 7-7 7"></path>
-                        </svg>
-                        <span class="airport-code">{{ search.origin }}</span>
-                      </div>
-                    </div>
-                    <div class="flight-details">
-                      <div class="flight-time">
-                        <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
-                        <span class="flight-duration">{{ flight.durationMinutes }}min</span>
-                        <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
-                      </div>
-                      <div class="flight-date">
-                        {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
-                      </div>
-                      <div v-if="flight.stopoverAirport" class="flight-stopover-info">
-                        <div class="stopover-row">
-                          <span class="stopover-label">Escala:</span>
-                          <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
-                        </div>
-                        <div class="stopover-row">
-                          <span class="stopover-label">Duración escala:</span>
-                          <span>{{ flight.stopoverDuration }}</span>
-                        </div>
-                        <div class="stopover-row">
-                          <span class="stopover-label">Salida primer tramo:</span>
-                          <span>{{ flight.departureTime.substring(11, 16) }}</span>
-                        </div>
-                        <div class="stopover-row">
-                          <span class="stopover-label">Llegada tramo final:</span>
-                          <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="flight-prices">
-                      <div v-if="selectedReturnId === flight.id" class="seat-options">
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
-                        <span class="class-name">Económica</span>
-                        <span class="price">${{ flight.priceEconomyClass }}</span>
-      
-                      </div>
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
-                        <span class="class-name">Primera clase</span>
-                        <span class="price">${{ flight.priceFirstClass }}</span>
-                      </div>
-                    </div>
-                    </div>
-                    <button class="btn-select-flight">Seleccionar</button>
-                  </div>
-                </div>
-                <p v-else class="no-results">No se encontraron vuelos de vuelta para esa fecha</p>
-              </div>
-            </div>
-
-            <!-- Resultados para Multiciudad -->
-            <div v-if="tripType === 'multiciudad'">
-              <div
-                class="trip-section"
-                v-for="(legFlights, index) in multiCityResults"
-                :key="'leg-' + index"
-              >
-                <h3>
-                  Tramo {{ index + 1 }} —
-                  {{ search.legs[index].origin }} → {{ search.legs[index].destination }}
-                </h3>
-
-                <div v-if="legFlights.length > 0" class="flights-grid">
-                  <div
-                    class="flight-card"
-                    v-for="flight in legFlights"
-                    :key="'mc-' + index + '-' + flight.id"
-                  >
-                    <div class="flight-header">
-                      <div class="flight-route">
-                        <span class="airport-code">{{ search.legs[index].origin }}</span>
-                        <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M5 12h14M12 5l7 7-7 7"></path>
-                        </svg>
-                        <span class="airport-code">{{ search.legs[index].destination }}</span>
-                      </div>
-                    </div>
-                    <div class="flight-details">
-                      <div class="flight-time">
-                        <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
-                        <span class="flight-duration">{{ flight.durationMinutes }}min</span>
-                        <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
-                      </div>
-                      <div class="flight-date">
-                        {{ new Date(flight.departureTime).toLocaleDateString('es-ES', {
-                          weekday: 'short', month: 'short', day: 'numeric'
-                        }) }}
-                      </div>
-                    </div>
-                    <div class="flight-prices">
-                      <div v-if="selectedOutboundId === flight.id" class="seat-options">
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
-                        <span class="class-name">Económica</span>
-                        <span class="price">${{ flight.priceEconomyClass }}</span>
-      
-                      </div>
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
-                        <span class="class-name">Primera clase</span>
-                        <span class="price">${{ flight.priceFirstClass }}</span>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-
-                <p v-else class="no-results">
-                  No se encontraron vuelos para este tramo en esa fecha
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -449,35 +218,22 @@
 
 
 const BACKEND_API_BASE = 'http://localhost:5235';
-const EXTERNAL_API_KEY  = 'u2fdwOUDKCv8X7GhhX9m6ZU2Rak5Z4b2Qi7wV35BqYEnA0wh2rDndiJSuTO3bFVERudTzF9GQwuC0AvXRoWTp3uVQev6ID18yxtby2kiMR3ak0RGvPmFKz1NHQXFTcVNbTIuj60bxVhNeiZQrGem83mVfFRXocAeNfFoO7IM2qJwi27VrV8SfqvtCh62xIlgpquCqRr53KVL02Rvk1s4w9IFAL2Xod1MCjtzyvdnffgXcxMDco4Vw1u1BiZFHSv5';
-
 export default {
   name: 'LandingPage',
   data() {
     return {
       selectedFlightId: null,
-      selectedOutboundId: null,      // para ida de ida-vuelta
-      selectedReturnId: null,        // para vuelta de ida-vuelta
-      selectedMultiCityIds: [],
-      tripType: 'ida-vuelta',
+      tripType: 'ida',
       search: {
         origin: '',
         destination: '',
         departureDate: '',
-        returnDate: '',
         passengers: '1',
         includeStopovers: false,
-        legs: [
-          { origin: '', destination: '', departureDate: '' },
-          { origin: '', destination: '', departureDate: '' }
-        ]
       },
       originCities: [],
       destinationCities: [],
       searchResults: [],
-      outboundFlights: [],
-      returnFlights: [],
-      multiCityResults: [],
       loading: false,
       searchPerformed: false,
       destinations: [
@@ -592,7 +348,7 @@ export default {
   },
   methods: {
     /**
-     * Carga todos los aeropuertos disponibles desde el External API
+     * Carga todos los aeropuertos disponibles desde el Backend
      * y los asigna a las listas de origen y destino.
      */
     async loadAirports() {
@@ -619,32 +375,10 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
     },
     setTripType(type) {
       this.tripType = type;
-      if (type === 'multiciudad' && this.search.legs.length < 2) {
-        this.search.legs = [
-          { origin: '', destination: '', departureDate: '' },
-          { origin: '', destination: '', departureDate: '' }
-        ];
-      }
-      if (type !== 'multiciudad') {
-        this.search.legs = [
-          { origin: '', destination: '', departureDate: '' },
-          { origin: '', destination: '', departureDate: '' }
-        ];
-      }
-    },
-    addLeg() {
-      if (this.search.legs.length < 5) {
-        this.search.legs.push({ origin: '', destination: '', departureDate: '' });
-      }
-    },
-    removeLeg(index) {
-      if (this.search.legs.length > 2) {
-        this.search.legs.splice(index, 1);
-      }
     },
 
     /**
-     * Construye los query params para el External API.
+     * Construye los query params para el Backend.
      * El rango cubre todo el día solicitado (T00:00 → T23:59) para que la
      * búsqueda por día de la semana funcione correctamente.
      */
@@ -656,12 +390,12 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         latestDeparture:   `${date}T23:59`,
         quantityOfPassengers: passengers,
         includeStopovers: this.search.includeStopovers ? 'true' : 'false',
-        apiKey: EXTERNAL_API_KEY,
+        apiKey: BACKEND_API_BASE,
       });
     },
 
     /**
-     * Normaliza un vuelo del External API al shape que usa el template.
+     * Normaliza un vuelo del backend al shape que usa el template.
      *
      * Mapeo de campos:
      *   flightGUID       → id
@@ -728,7 +462,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
     },
 
     /**
-     * Hace el fetch al External API y devuelve los vuelos ya normalizados.
+     * Hace el fetch al Backend y devuelve los vuelos ya normalizados.
      */
     fetchFlights(origin, destination, date, passengers) {
       const params = this.buildExternalParams(origin, destination, date, passengers);
@@ -741,98 +475,24 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
     },
 
     searchFlights() {
-      // ── Multiciudad
-      if (this.tripType === 'multiciudad') {
-        for (let i = 0; i < this.search.legs.length; i++) {
-          const leg = this.search.legs[i];
-          if (!leg.origin || !leg.destination || !leg.departureDate) {
-            alert(`Por favor completa todos los campos del tramo ${i + 1}`);
-            return;
-          }
-        }
-
-        this.loading = true;
-        this.searchPerformed = true;
-        this.multiCityResults = [];
-
-        const legPromises = this.search.legs.map(leg =>
-          this.fetchFlights(leg.origin, leg.destination, leg.departureDate, this.search.passengers)
-        );
-
-        Promise.all(legPromises)
-          .then(results => {
-            this.multiCityResults = results;
-            if (results.every(r => r.length === 0)) {
-              alert('No se encontraron vuelos para ninguno de los tramos');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Error al buscar vuelos: ' + error.message);
-          })
-          .finally(() => {
-            this.loading = false;
-          });
-
-        return;
-      }
-
-      // ── Ida / Ida y Vuelta
       if (!this.search.origin || !this.search.destination || !this.search.departureDate) {
         alert('Por favor completa todos los campos requeridos');
-        return;
-      }
-
-      if (this.tripType === 'ida-vuelta' && !this.search.returnDate) {
-        alert('Por favor selecciona la fecha de retorno');
         return;
       }
 
       this.loading = true;
       this.searchPerformed = true;
 
-      const outboundPromise = this.fetchFlights(
+      this.fetchFlights(
         this.search.origin,
         this.search.destination,
         this.search.departureDate,
         this.search.passengers
-      );
-
-      // Solo ida
-      if (this.tripType === 'ida') {
-        outboundPromise
-          .then(data => {
-            this.searchResults = data;
-            if (data.length === 0) {
-              alert('No se encontraron vuelos para esa búsqueda');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Error al buscar vuelos: ' + error.message);
-          })
-          .finally(() => {
-            this.loading = false;
-          });
-        return;
-      }
-
-      // Ida y vuelta — buscar ambos tramos en paralelo
-      const returnPromise = this.fetchFlights(
-        this.search.destination,
-        this.search.origin,
-        this.search.returnDate,
-        this.search.passengers
-      );
-
-      Promise.all([outboundPromise, returnPromise])
-        .then(([outboundData, returnData]) => {
-          this.outboundFlights = outboundData;
-          this.returnFlights   = returnData;
-          this.searchResults   = [];
-
-          if (outboundData.length === 0 && returnData.length === 0) {
-            alert('No se encontraron vuelos para esas fechas');
+      )
+        .then(data => {
+          this.searchResults = data;
+          if (data.length === 0) {
+            alert('No se encontraron vuelos para esa búsqueda');
           }
         })
         .catch(error => {
@@ -848,21 +508,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
       this.selectedFlightId = this.selectedFlightId === flightId ? null : flightId;
     },
 
-    toggleOutbound(flightId) {
-      this.selectedOutboundId = this.selectedOutboundId === flightId ? null : flightId;
-    },
 
-    toggleReturn(flightId) {
-      this.selectedReturnId = this.selectedReturnId === flightId ? null : flightId;
-    },
-
-    toggleMultiCity(flightId) {
-      if (this.selectedMultiCityIds.includes(flightId)) {
-        this.selectedMultiCityIds = this.selectedMultiCityIds.filter(id => id !== flightId);
-      } else {
-        this.selectedMultiCityIds.push(flightId);
-      }
-    },
 
     selectSeatClass(flight, seatClass) {
       const routes = this.normalizeFlightRoutes(flight);
@@ -1087,25 +733,6 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
   gap: 15px;
 }
 
-.multicity-section {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.multicity-legs {
-  display: grid;
-  gap: 20px;
-}
-
-.multicity-leg {
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
-  background: #fafafa;
-  display: grid;
-  gap: 16px;
-}
 
 .leg-title {
   font-weight: 700;
