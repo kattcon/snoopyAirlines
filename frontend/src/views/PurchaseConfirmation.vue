@@ -31,7 +31,7 @@
             :key="details.sequenceNumber"
             :details="details"
           />
-          <PassengerListCard :passengers="passengers" />
+          <PassengerListCard :passengers="passengersWithLuggage" />
           <PaymentMethodCard v-model="paymentDetails" :errors="paymentErrors" />
         </div>
 
@@ -99,6 +99,21 @@ export default {
     passengers() {
       return this.fieldValue(this.purchaseOrder, "passengers", "Passengers") || [];
     },
+    passengersWithLuggage() {
+      return this.passengers.map((passenger, index) => ({
+        ...passenger,
+        carryOnLuggageLabel: this.luggageValue(
+          passenger,
+          ["carryOnLuggage", "CarryOnLuggage", "handLuggage", "HandLuggage"],
+          `equipaje_mano_pasajero_${index + 1}`
+        ),
+        checkedLuggageLabel: this.luggageValue(
+          passenger,
+          ["checkedLuggage", "CheckedLuggage", "checkedBags", "CheckedBags"],
+          `maletas_facturadas_pasajero_${index + 1}`
+        )
+      }));
+    },
     seatClass() {
       return this.fieldValue(this.purchaseOrder, "seatClass", "SeatClass");
     },
@@ -115,14 +130,57 @@ export default {
           value: this.formatCurrency(this.flightSubtotal)
         },
         {
-          label: "Equipaje facturado",
-          value: this.placeholder("equipaje_facturado_total")
+          label: `Equipaje facturado (${this.checkedLuggageCountLabel})`,
+          value: this.currencyOrPlaceholder(
+            this.checkedLuggageTotalAmount,
+            "equipaje_facturado_total"
+          )
         },
         {
           label: "Tasas e impuestos",
-          value: this.placeholder("tasas_impuestos")
+          value: this.formatCurrency(0)
         }
       ];
+    },
+    checkedLuggageCountLabel() {
+      return this.checkedLuggageCount === null
+        ? this.placeholder("maletas_facturadas_total")
+        : String(this.checkedLuggageCount);
+    },
+    checkedLuggageCount() {
+      return this.passengerLuggageTotal([
+        "checkedLuggage",
+        "CheckedLuggage",
+        "checkedBags",
+        "CheckedBags"
+      ]);
+    },
+    checkedLuggageUnitPrice() {
+      if (this.routeDetails.length === 0) return null;
+
+      const total = this.routeDetails.reduce((sum, routeDetail) => {
+        const route = routeDetail.route || {};
+        const price = Number(this.firstFieldValue(route, [
+          "priceCheckedBaggage",
+          "PriceCheckedBaggage",
+          "checkedPrice",
+          "CheckedPrice"
+        ]));
+
+        return Number.isFinite(price) ? sum + price : Number.NaN;
+      }, 0);
+
+      return Number.isFinite(total) ? total : null;
+    },
+    checkedLuggageTotalAmount() {
+      if (
+        !Number.isFinite(this.checkedLuggageCount) ||
+        !Number.isFinite(this.checkedLuggageUnitPrice)
+      ) {
+        return null;
+      }
+
+      return this.checkedLuggageCount * this.checkedLuggageUnitPrice;
     },
     unitFlightPrice() {
       if (this.routeDetails.length === 0) return null;
@@ -148,6 +206,13 @@ export default {
       const bookedTotal = Number(this.fieldValue(this.booking, "totalAmount", "TotalAmount"));
       if (Number.isFinite(bookedTotal)) {
         return this.formatCurrency(bookedTotal);
+      }
+
+      if (
+        Number.isFinite(this.flightSubtotal) &&
+        Number.isFinite(this.checkedLuggageTotalAmount)
+      ) {
+        return this.formatCurrency(this.flightSubtotal + this.checkedLuggageTotalAmount);
       }
 
       return this.placeholder("total_compra");
@@ -276,6 +341,36 @@ export default {
     },
     fieldValue(source, camelCaseKey, pascalCaseKey) {
       return source?.[camelCaseKey] ?? source?.[pascalCaseKey];
+    },
+    firstFieldValue(source, keys) {
+      const key = keys.find((field) => source?.[field] !== undefined && source?.[field] !== null);
+      return key ? source[key] : undefined;
+    },
+    luggageValue(passenger, keys, placeholderKey) {
+      const value = this.firstFieldValue(passenger, keys);
+
+      return value === undefined || value === ""
+        ? this.placeholder(placeholderKey)
+        : String(value);
+    },
+    passengerLuggageTotal(keys) {
+      if (this.passengers.length === 0) return null;
+
+      return this.passengers.reduce((total, passenger) => {
+        if (total === null) return null;
+
+        const value = this.firstFieldValue(passenger, keys);
+        const amount = Number(value);
+
+        return value === undefined || value === "" || !Number.isFinite(amount)
+          ? null
+          : total + amount;
+      }, 0);
+    },
+    currencyOrPlaceholder(value, placeholderKey) {
+      return Number.isFinite(value)
+        ? this.formatCurrency(value)
+        : this.placeholder(placeholderKey);
     },
     async loadRouteDetails(routes) {
       if (!Array.isArray(routes) || routes.length === 0) {
