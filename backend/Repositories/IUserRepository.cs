@@ -17,5 +17,6 @@ namespace SnoopyAirlines.Repositories
         Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken);
         Task<UserView> UpdateAsync(int id, UserUpdateIntake intake, CancellationToken cancellationToken);
         Task UpdatePasswordAsync(int id, string passwordHash, string passwordSalt, CancellationToken cancellationToken);
+        Task<UserView?> AdminUpdateAsync(int id, AdminUserUpdateIntake intake, CancellationToken cancellationToken);
     }
 }
