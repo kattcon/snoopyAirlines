@@ -21,11 +21,10 @@ namespace SnoopyAirlines.Domain.EmailTemplate
                 .Replace("{{ARRIVAL_CITY}}", data.ArrivalCityName)
                 .Replace("{{ARRIVAL_CODE}}", data.ArrivalAirportCode)
                 .Replace("{{ARRIVAL_AIRPORT}}", data.ArrivalAirportName)
-                .Replace("{{DEPARTURE_DATE}}", data.DepartureTime.ToString("dd MMM yyyy"))
-                .Replace("{{DEPARTURE_TIME}}", data.DepartureTime.ToString("hh:mm tt"))
-                .Replace("{{ARRIVAL_TIME}}", data.ArrivalTime.ToString("hh:mm tt"))
+                .Replace("{{DEPARTURE_DATE}}", data.DepartureAt.ToString("dd MMM yyyy"))
+                .Replace("{{DEPARTURE_TIME}}", data.DepartureAt.ToString("hh:mm tt"))
+                .Replace("{{ARRIVAL_TIME}}", data.ArrivalAt.ToString("hh:mm tt"))
                 .Replace("{{SEAT_CLASS}}", data.SeatClass)
-                .Replace("{{AIRPLANE_MODEL}}", data.AirplaneModel)
                 .Replace("{{PASSENGERS_HTML}}", passengerHtml);
         }
 

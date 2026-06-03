@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using SnoopyAirlines.Domain;
+using snoopy_airlines_backend.Domain;
 
 namespace SnoopyAirlines.Repositories
 {
@@ -106,6 +107,63 @@ namespace SnoopyAirlines.Repositories
                     """, new { BookingGuid = bookingGuid }, cancellationToken: cancellationToken));
 
             return itinerary.ToList();
+        }
+
+        public async Task<PurchaseOrderEmailData?> GetBookingItineraryDetailsAsync(Guid bookingGuid, CancellationToken cancellationToken)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var row = await connection.QuerySingleOrDefaultAsync<PurchaseOrderDetailRow>("""
+                SELECT * FROM dbo.GetBookingItineraryDetails(@BookingGuid);
+                """, new { BookingGuid = bookingGuid });
+
+            if (row is null)
+            {
+                return null;
+            }
+
+            var passengers = await connection.QueryAsync<PassengerEmailData>("""
+                SELECT
+                    p.FirstName,
+                    p.LastName,
+                    p.Gender,
+                    p.Nationality,
+                    p.BirthDay,
+                    p.BirthMonth,
+                    p.BirthYear
+                FROM dbo.Passenger p
+                JOIN dbo.booking b ON p.PurchaseOrderId = b.PurchaseOrderId
+                WHERE b.Guid = @BookingGuid
+                """, new { BookingGuid = bookingGuid });
+            
+            return new PurchaseOrderEmailData
+            {
+                BookingGuid = row.BookingGuid,
+                ConfirmationCode = row.ConfirmationCode,
+                Email = row.Email,
+                BookingStatus = row.BookingStatus,
+                TotalAmount = row.TotalAmount,
+                CardBrand = row.CardBrand,
+                CardLastFour = row.CardLastFour,
+                CardHolderName = row.CardHolderName,
+                CreatedAt = row.CreatedAt,
+                ConfirmedAt = row.ConfirmedAt,
+                PurchaseOrderId = row.PurchaseOrderId,
+                SeatClass = row.SeatClass,
+                DepartureAirportName = row.DepartureAirportName,
+                DepartureAirportCode = row.DepartureAirportCode,
+                DepartureCityName = row.DepartureCityName,
+                DepartureAt = row.DepartureAt,
+                ArrivalAirportName = row.ArrivalAirportName,
+                ArrivalAirportCode = row.ArrivalAirportCode,
+                ArrivalCityName = row.ArrivalCityName,
+                ArrivalAt = row.ArrivalAt,
+                TotalItineraryMinutes = row.TotalItineraryMinutes,
+                TotalFlightMinutes = row.TotalFlightMinutes,
+                LayoverCount = row.LayoverCount,
+                Passengers = passengers.ToList()
+            };    
         }
     }
 }
