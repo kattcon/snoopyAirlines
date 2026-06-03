@@ -204,9 +204,14 @@ export default {
                 return;
             }
 
+            const routes = this.bookingRoutes();
+            if (routes.length === 0) {
+                alert("No se encontraron los tramos del vuelo seleccionado");
+                return;
+            }
+
             const purchaseOrderRequest = {
-                routeId: parseInt(this.$route.query.routeId),
-                intendedDate: this.$route.query.intendedDate,
+                routes,
                 seatClass: this.$route.query.seatClass,
                 passengers: this.passengers.map(p => ({
                     ...p,
@@ -228,9 +233,43 @@ export default {
                 });
             })
             .catch((error) => {
-                alert("Error al guardar los datos de los pasajeros");
+                alert(this.backendErrorMessage(error));
                 console.error(error);
             });
+        },
+        backendErrorMessage(error) {
+            return (
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
+                "Error al guardar los datos de los pasajeros"
+            );
+        },
+        bookingRoutes() {
+            const rawRoutes = Array.isArray(this.$route.query.routes)
+                ? this.$route.query.routes[0]
+                : this.$route.query.routes;
+
+            if (!rawRoutes) {
+                return [];
+            }
+
+            try {
+                const routes = JSON.parse(rawRoutes);
+                if (!Array.isArray(routes)) {
+                    return [];
+                }
+
+                return routes
+                    .map((route, index) => ({
+                        sequenceNumber: Number(route.sequenceNumber) || index + 1,
+                        routeId: Number(route.routeId),
+                        intendedDate: route.intendedDate,
+                    }))
+                    .filter(route => route.routeId > 0 && route.intendedDate);
+            } catch (error) {
+                console.error("Error leyendo los tramos del vuelo:", error);
+                return [];
+            }
         }
     }
 }

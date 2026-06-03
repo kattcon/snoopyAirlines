@@ -673,20 +673,58 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
      * departureTime y arrivalTime ya vienen en formato ISO, no cambian.
      */
     mapFlight(flight) {
-      const [hours, minutes] = (flight.duration ?? '')
+      const [hours, minutes] = (this.fieldValue(flight, 'duration', 'Duration') ?? '')
         .split(/[:-]/)
         .map(Number);
       const validHours = Number.isFinite(hours) ? hours : 0;
       const validMinutes = Number.isFinite(minutes) ? minutes : 0;
+      const flightGUID = this.fieldValue(flight, 'flightGUID', 'FlightGUID');
+      const routeId = this.fieldValue(flight, 'routeId', 'RouteId');
 
       return {
         ...flight,
-        id:                flight.flightGUID,
-        routeId:           flight.routeId,
-        priceEconomyClass: flight.touristPrice,
-        priceFirstClass:   flight.firstClassPrice,
+        id:                flightGUID,
+        routeId:           routeId,
+        routes:            this.normalizeFlightRoutes(flight),
+        priceEconomyClass: this.fieldValue(flight, 'touristPrice', 'TouristPrice'),
+        priceFirstClass:   this.fieldValue(flight, 'firstClassPrice', 'FirstClassPrice'),
         durationMinutes:   validHours * 60 + validMinutes,
       };
+    },
+
+    fieldValue(source, camelCaseKey, pascalCaseKey) {
+      return source?.[camelCaseKey] ?? source?.[pascalCaseKey];
+    },
+
+    normalizeFlightRoutes(flight) {
+      const routes = this.fieldValue(flight, 'routes', 'Routes');
+      if (Array.isArray(routes) && routes.length > 0) {
+        return routes
+          .map((route, index) => ({
+            sequenceNumber: Number(this.fieldValue(route, 'sequenceNumber', 'SequenceNumber')) || index + 1,
+            routeId: Number(this.fieldValue(route, 'routeId', 'RouteId')),
+            intendedDate: this.dateOnly(this.fieldValue(route, 'intendedDate', 'IntendedDate')),
+          }))
+          .filter(route => route.routeId > 0 && route.intendedDate);
+      }
+
+      const routeId = Number(this.fieldValue(flight, 'routeId', 'RouteId'));
+      const departureTime = this.fieldValue(flight, 'departureTime', 'DepartureTime');
+      if (!routeId || !departureTime) {
+        return [];
+      }
+
+      return [
+        {
+          sequenceNumber: 1,
+          routeId,
+          intendedDate: this.dateOnly(departureTime),
+        }
+      ];
+    },
+
+    dateOnly(value) {
+      return value ? String(value).slice(0, 10) : '';
     },
 
     /**
@@ -699,7 +737,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
           if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
           return res.json();
         })
-        .then(data => (data.flights ?? data.Flights ?? []).map(this.mapFlight));
+        .then(data => (data.flights ?? data.Flights ?? []).map(flight => this.mapFlight(flight)));
     },
 
     searchFlights() {
@@ -827,10 +865,14 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
     },
 
     selectSeatClass(flight, seatClass) {
+      const routes = this.normalizeFlightRoutes(flight);
+      if (routes.length === 0) {
+        alert('No se pudieron determinar los tramos del vuelo seleccionado');
+        return;
+      }
 
       this.$router.push({path: '/booking', query: {
-        routeId: flight.routeId,
-        intendedDate: new Date(flight.departureTime).toISOString().slice(0, 10),
+        routes: JSON.stringify(routes),
         seatClass: seatClass,
         passengersCount: this.search.passengers
       }})

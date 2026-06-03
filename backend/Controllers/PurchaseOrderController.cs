@@ -37,26 +37,45 @@ namespace SnoopyAirlines.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<PurchaseOrder>> Post([FromBody] PurchaseOrderIntake purchaseIntake, CancellationToken cancellationToken)
         {
-            var order = new PurchaseOrder
+            try
             {
-
-                RouteId = purchaseIntake.RouteId,
-                IntendedDate = purchaseIntake.IntendedDate,
-                SeatClass = purchaseIntake.SeatClass,
-
-                Passengers = purchaseIntake.Passengers.Select(passenger => new Passenger
+                var order = new PurchaseOrder
                 {
-                    Gender = passenger.Gender,
-                    FirstName = passenger.FirstName,
-                    LastName = passenger.LastName,
-                    BirthDay = passenger.BirthDay,
-                    BirthMonth = passenger.BirthMonth,
-                    BirthYear = passenger.BirthYear,
-                    Nationality = passenger.Nationality
-                }).ToList()
-            };
-            var savedPurchaseOrder = await _purchaseOrderService.CreatePurchaseOrderAsync(order, cancellationToken);
-            return Ok(savedPurchaseOrder);
+                    SeatClass = purchaseIntake.SeatClass,
+                    Routes = CreateRoutes(purchaseIntake).ToList(),
+                    Passengers = purchaseIntake.Passengers.Select(passenger => new Passenger
+                    {
+                        Gender = passenger.Gender,
+                        FirstName = passenger.FirstName,
+                        LastName = passenger.LastName,
+                        BirthDay = passenger.BirthDay,
+                        BirthMonth = passenger.BirthMonth,
+                        BirthYear = passenger.BirthYear,
+                        Nationality = passenger.Nationality
+                    }).ToList()
+                };
+
+                var savedPurchaseOrder = await _purchaseOrderService.CreatePurchaseOrderAsync(order, cancellationToken);
+                return Ok(savedPurchaseOrder);
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new { Message = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(new { Message = exception.Message });
+            }
+        }
+
+        private static IEnumerable<PurchaseOrderRoute> CreateRoutes(PurchaseOrderIntake purchaseIntake)
+        {
+            return purchaseIntake.Routes.Select((route, index) => new PurchaseOrderRoute
+            {
+                SequenceNumber = route.SequenceNumber ?? index + 1,
+                RouteId = route.RouteId,
+                IntendedDate = route.IntendedDate
+            });
         }
     }
 }
