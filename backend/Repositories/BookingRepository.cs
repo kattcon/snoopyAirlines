@@ -133,7 +133,7 @@ namespace SnoopyAirlines.Repositories
                     p.BirthMonth,
                     p.BirthYear
                 FROM dbo.Passenger p
-                JOIN dbo.booking b ON p.PurchaseOrderId = b.PurchaseOrderId
+                JOIN dbo.booking b ON p.PurchaseOrderId = b.purchase_order_id
                 WHERE b.Guid = @BookingGuid
                 """, new { BookingGuid = bookingGuid });
             
