@@ -13,11 +13,11 @@ namespace SnoopyAirlines.Services
         private const int MinimumPasswordLength = 8;
         private const string SpecialPasswordSymbols = "!#$%&@";
 
-        private readonly UserRepository _userRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IEmailSender _emailSender;
 
         public UserService(
-            UserRepository userRepository,
+            IUserRepository userRepository,
             IEmailSender emailSender)
         {
             _userRepository = userRepository;

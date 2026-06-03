@@ -65,139 +65,100 @@
 
           <div class="sectionDivider">
             <h3>Información Personal</h3>
+            <form @submit.prevent="saveField('name')">
+              <div class="editableField">
+                <label>Primer Nombre</label>
 
-            <div class="editableField">
-              <label>Primer Nombre</label>
+                <div class="editableRow">
+                  <template v-if="isEditingName">
+                    <input v-model="editableData.firstName" type="text" class="formInput" required />
 
-              <div class="editableRow">
-                <template v-if="isEditingName">
-                  <input
-                    v-model="editableData.firstName"
-                    type="text"
-                    class="formInput"
-                  />
+                    <button class="primaryButton" :disabled="isSaving">
+                      {{ isSaving ? 'Guardando...' : 'Guardar' }}
+                    </button>
 
-                  <button
-                    class="primaryButton"
-                    :disabled="isSaving"
-                    @click="saveField('name')"
-                  >
-                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
-                  </button>
+                    <button type="button" class="secondaryButton" :disabled="isSaving" @click="cancelEdit('name')">
+                      Cancelar
+                    </button>
+                  </template>
 
-                  <button
-                    class="secondaryButton"
-                    :disabled="isSaving"
-                    @click="cancelEdit('name')"
-                  >
-                    Cancelar
-                  </button>
-                </template>
+                  <template v-else>
+                    <div class="readonlyField editableBox">
+                      {{ userData.firstName }}
+                    </div>
 
-                <template v-else>
-                  <div class="readonlyField editableBox">
-                    {{ userData.firstName }}
-                  </div>
+                    <button class="iconButton" @click="startEdit('name')">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                  </template>
+                </div>
 
-                  <button
-                    class="iconButton"
-                    @click="startEdit('name')"
-                  >
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-                </template>
+                <p v-if="fieldErrors.name" class="fieldError">{{ fieldErrors.name }}</p>
               </div>
+            </form>
 
-              <p v-if="fieldErrors.name" class="fieldError">{{ fieldErrors.name }}</p>
-            </div>
+            <form @submit.prevent="saveField('lastName1')">
+              <div class="editableField">
+                <label>Primer Apellido</label>
 
-            <div class="editableField">
-              <label>Primer Apellido</label>
+                <div class="editableRow">
+                  <template v-if="isEditingLastName1">
+                    <input v-model="editableData.firstLastName" type="text" class="formInput" required />
 
-              <div class="editableRow">
-                <template v-if="isEditingLastName1">
-                  <input
-                    v-model="editableData.firstLastName"
-                    type="text"
-                    class="formInput"
-                  />
+                    <button class="primaryButton" :disabled="isSaving">
+                      {{ isSaving ? 'Guardando...' : 'Guardar' }}
+                    </button>
 
-                  <button
-                    class="primaryButton"
-                    :disabled="isSaving"
-                    @click="saveField('lastName1')"
-                  >
-                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
-                  </button>
+                    <button type="button" class="secondaryButton" :disabled="isSaving" @click="cancelEdit('lastName1')">
+                      Cancelar
+                    </button>
+                  </template>
 
-                  <button
-                    class="secondaryButton"
-                    :disabled="isSaving"
-                    @click="cancelEdit('lastName1')"
-                  >
-                    Cancelar
-                  </button>
-                </template>
+                  <template v-else>
+                    <div class="readonlyField editableBox">
+                      {{ userData.firstLastName }}
+                    </div>
 
-                <template v-else>
-                  <div class="readonlyField editableBox">
-                    {{ userData.firstLastName }}
-                  </div>
-
-                  <button
-                    class="iconButton"
-                    @click="startEdit('lastName1')"
-                  >
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-                </template>
+                    <button class="iconButton" @click="startEdit('lastName1')">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                  </template>
+                </div>
+                <p v-if="fieldErrors.lastName1" class="fieldError">{{ fieldErrors.lastName1 }}</p>
               </div>
-              <p v-if="fieldErrors.lastName1" class="fieldError">{{ fieldErrors.lastName1 }}</p>
-            </div>
+            </form>
 
-            <div class="editableField">
-              <label>Segundo Apellido</label>
+            <form @submit.prevent="saveField('lastName2')">
+              <div class="editableField">
+                <label>Segundo Apellido</label>
 
-              <div class="editableRow">
-                <template v-if="isEditingLastName2">
-                  <input
-                    v-model="editableData.secondLastName"
-                    type="text"
-                    class="formInput"
-                  />
+                <div class="editableRow">
+                  <template v-if="isEditingLastName2">
+                    <input v-model="editableData.secondLastName" type="text" class="formInput" />
 
-                  <button
-                    class="primaryButton"
-                    :disabled="isSaving"
-                    @click="saveField('lastName2')"
-                  >
-                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
-                  </button>
+                    <button class="primaryButton" :disabled="isSaving">
+                      {{ isSaving ? 'Guardando...' : 'Guardar' }}
+                    </button>
 
-                  <button
-                    class="secondaryButton"
-                    :disabled="isSaving"
-                    @click="cancelEdit('lastName2')"
-                  >
-                    Cancelar
-                  </button>
-                </template>
+                    <button type="button" class="secondaryButton" :disabled="isSaving" @click="cancelEdit('lastName2')">
+                      Cancelar
+                    </button>
+                  </template>
 
-                <template v-else>
-                  <div class="readonlyField editableBox">
-                    {{ userData.secondLastName }}
-                  </div>
+                  <template v-else>
+                    <div class="readonlyField editableBox">
+                      {{ userData.secondLastName }}
+                    </div>
 
-                  <button
-                    class="iconButton"
-                    @click="startEdit('lastName2')"
-                  >
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-                </template>
+                    <button class="iconButton" @click="startEdit('lastName2')">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                  </template>
+                </div>
+                <p v-if="fieldErrors.lastName2" class="fieldError">{{ fieldErrors.lastName2 }}</p>
               </div>
-              <p v-if="fieldErrors.lastName2" class="fieldError">{{ fieldErrors.lastName2 }}</p>
-            </div>
+            </form>
+
           </div>
 
           <div class="sectionDivider">
@@ -216,47 +177,34 @@
                 Cambiar Contraseña
               </button>
             </div>
-            <div v-if="isChangingPassword" class = "passwordForm">
-              <div class="fieldGroup">
-                <label>Contraseña Actual</label>
+            <div v-if="isChangingPassword" class="passwordForm">
+              <form @submit.prevent="savePassword">
+                <div class="fieldGroup">
+                  <label>Contraseña Actual</label>
 
-                <input
-                  v-model="passwordData.currentPassword"
-                  type="password"
-                  class="formInput"
-                />
-              </div>
+                  <input v-model="passwordData.currentPassword" type="password" class="formInput" required />
+                </div>
 
-              <div class="fieldGroup">
-                <label>Nueva Contraseña</label>
+                <div class="fieldGroup">
+                  <label>Nueva Contraseña</label>
 
-                <input
-                  v-model="passwordData.newPassword"
-                  type="password"
-                  class="formInput"
-                />
-              </div>
+                  <input v-model="passwordData.newPassword" type="password" class="formInput" required />
 
-              <p v-if="passwordError" class="fieldError">{{ passwordError }}</p>
-              <p v-if="passwordSuccess" class="successMessage">{{ passwordSuccess }}</p>
+                  <p v-if="passwordError" class="fieldError">{{ passwordError }}</p>
+                  <p v-if="passwordSuccess" class="successMessage">{{ passwordSuccess }}</p>
 
-              <div class="passwordActions">
-                <button 
-                  class="primaryButton"
-                  :disabled="isSavingPassword"
-                  @click="savePassword"
-                >
-                  {{ isSavingPassword ? 'Guardando...' : 'Guardar Cambios' }}
-                </button>
+                  <div class="passwordActions">
+                    <button class="primaryButton" :disabled="isSavingPassword">
+                      {{ isSavingPassword ? 'Guardando...' : 'Guardar Cambios' }}
+                    </button>
 
-                <button
-                  class="secondaryButton"
-                  :disabled="isSavingPassword"
-                  @click="cancelPasswordChange"
-                >
-                  Cancelar
-                </button>
-              </div>
+                    <button class="secondaryButton" :disabled="isSavingPassword" @click="cancelPasswordChange">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </form>
+
 
             </div>
           </div>
@@ -315,7 +263,7 @@ onMounted(async () => {
     const { data } = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/user/me`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    applyUserData(data); 
+    applyUserData(data);
   } catch (error) {
     loadError.value = 'Error al cargar los datos del usuario.';
   }
@@ -327,7 +275,7 @@ function applyUserData(data) {
   userData.email = data.email;
   userData.firstName = data.firstName;
   userData.firstLastName = data.lastNameOne;
-  userData.secondLastName = data.lastNameTwo  ?? '';
+  userData.secondLastName = data.lastNameTwo ?? '';
   userData.userType = mapUserType(data.type);
 
   editableData.firstName = userData.firstName;
@@ -358,13 +306,13 @@ async function saveField(field) {
 
   const token = localStorage.getItem("token");
   try {
-    const { data } = await axios.put(`${process.env.VUE_APP_BACKEND_URL}/user/me`, 
-    {
-      firstName: editableData.firstName,
-      lastNameOne: editableData.firstLastName,
-      lastNameTwo: editableData.secondLastName || null,
-    },
-    { headers: { Authorization: `Bearer ${token}` } }
+    const { data } = await axios.put(`${process.env.VUE_APP_BACKEND_URL}/user/me`,
+      {
+        firstName: editableData.firstName,
+        lastNameOne: editableData.firstLastName,
+        lastNameTwo: editableData.secondLastName || null,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     applyUserData(data);
     closeEditors();
@@ -419,14 +367,31 @@ function cancelPasswordChange() {
 }
 
 function extractErrorMessage(error) {
-  return error.response?.data?.message ?? error.response?.data?.Message ?? null;
+  const data = error.response?.data
+
+  if (data?.errors?.length > 0) {
+    return data.errors.map(e => translatePasswordError(e.message)).join(', ')
+  }
+
+  return data?.message ?? data?.Message ?? null
+}
+
+function translatePasswordError(message) {
+  const translations = {
+    'Password must be at least 8 characters long.': 'La contraseña debe tener al menos 8 caracteres.',
+    'Password must include at least one uppercase letter.': 'La contraseña debe incluir al menos una letra mayúscula.',
+    'Password must include at least one lowercase letter.': 'La contraseña debe incluir al menos una letra minúscula.',
+    'Password must include at least one number.': 'La contraseña debe incluir al menos un número.',
+    'Password must include at least one special symbol (!#$%&@).': 'La contraseña debe incluir al menos un símbolo especial (!#$%&@).'
+  }
+  return translations[message] ?? message
 }
 
 function cancelEdit() {
   editableData.firstName = userData.firstName;
   editableData.firstLastName = userData.firstLastName;
   editableData.secondLastName = userData.secondLastName;
- 
+
   closeEditors();
 }
 
@@ -462,11 +427,9 @@ function cancelEdit() {
 }
 
 .profileHeader {
-  background: linear-gradient(
-    to right,
-    var(--primaryColor),
-    var(--primaryColorHover)
-  );
+  background: linear-gradient(to right,
+      var(--primaryColor),
+      var(--primaryColorHover));
 
   padding: var(--extraLargeSpacing);
 

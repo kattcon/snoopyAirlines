@@ -6,7 +6,7 @@ using SnoopyAirlines.Domain.Intake;
 
 namespace SnoopyAirlines.Repositories
 {
-    public class UserRepository
+    public class UserRepository : IUserRepository
     {
         private readonly string _connectionString;
 
