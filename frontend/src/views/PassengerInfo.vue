@@ -88,6 +88,32 @@
                         </select>
                         <span class="error-msg" v-if="errors[index]?.nationality">❗ Obligatorio</span>
                     </div>
+                    <div class="form-field">
+                        <label>Cantidad de equipaje de mano</label>
+                        <input
+                            type="number"
+                            v-model.number="passenger.CarryOnLuggage"
+                            min="0"
+                            max="10"
+                            :class="{'input-error': errors[index]?.CarryOnLuggage}"
+                            @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
+                            placeholder="0"
+                        />
+                        <span class="error-msg" v-if="errors[index]?.CarryOnLuggage">❗ Obligatorio</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Cantidad de equipaje documentado</label>
+                        <input
+                            type="number"
+                            v-model.number="passenger.checkedLuggage"
+                            min="0"
+                            max="10"
+                            :class="{'input-error': errors[index]?.checkedLuggage}"
+                            @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
+                            placeholder="0"
+                        />
+                        <span class="error-msg" v-if="errors[index]?.checkedLuggage">❗ Obligatorio</span>
+                    </div>
                 </div>
                 
             </div>
@@ -149,6 +175,8 @@ export default {
                 birthMonth: '',
                 birthYear: '',
                 nationality: '',
+                CarryOnLuggage: '',
+                checkedLuggage: '',
             })),
             holder: {
                 firstName: '',
@@ -189,6 +217,8 @@ export default {
                 gender: !passenger.gender,
                 nationality: !passenger.nationality,
                 birthdate: !(passenger.birthDay || passenger.birthMonth || passenger.birthYear),
+                CarryOnLuggage: !passenger.CarryOnLuggage,
+                checkedLuggage: !passenger.checkedLuggage,
             }));
 
             this.errors.holder = {
@@ -198,7 +228,7 @@ export default {
             };
 
             const hasErrorsPassenger = this.errors.some(error => error.firstName ||
-            error.lastName || error.gender || error.nationality || error.birthdate);
+            error.lastName || error.gender || error.nationality || error.birthdate || error.CarryOnLuggage || error.checkedLuggage);
             const hasErrorsHolder = this.errors.holder.firstName || this.errors.holder.lastName || this.errors.holder.email;
             if(hasErrorsPassenger || hasErrorsHolder){
                 return;
@@ -218,6 +248,8 @@ export default {
                     birthDay: String(p.birthDay),
                     birthMonth: String(p.birthMonth),
                     birthYear: String(p.birthYear),
+                    CarryOnLuggage: String(p.CarryOnLuggage),
+                    checkedLuggage: String(p.checkedLuggage),
                 }))
             };
             console.log('Request:', JSON.stringify(purchaseOrderRequest));
