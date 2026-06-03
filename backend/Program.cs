@@ -43,7 +43,7 @@ builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IAirportRepository, AirportRepository>();
 builder.Services.AddScoped<AirportService>();
-builder.Services.AddScoped<AirplaneRepository>();
+builder.Services.AddScoped<IAirplaneRepository, AirplaneRepository>();
 builder.Services.AddScoped<AirplaneService>();
 builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderRepository>();
