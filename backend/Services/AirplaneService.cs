@@ -7,9 +7,9 @@ namespace SnoopyAirlines.Services
 {
     public class AirplaneService
     {
-        private readonly AirplaneRepository _airplaneRepository;
+        private readonly IAirplaneRepository _airplaneRepository;
 
-        public AirplaneService(AirplaneRepository airplaneRepository)
+        public AirplaneService(IAirplaneRepository airplaneRepository)
         {
             _airplaneRepository = airplaneRepository;
         }
