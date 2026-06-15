@@ -35,6 +35,8 @@ namespace SnoopyAirlines.Controllers
             [FromQuery(Name = "detination")] string? detination,
             [FromQuery] string? earliestDeparture,
             [FromQuery] string? latestDeparture,
+            [FromQuery] string? earliestArrival,
+            [FromQuery] string? latestArrival,
             [FromQuery] string? quantityOfPassengers,
             [FromQuery] string? includeStopovers,
             [FromQuery] string? apiKey,
@@ -45,6 +47,8 @@ namespace SnoopyAirlines.Controllers
                 detination,
                 earliestDeparture,
                 latestDeparture,
+                earliestArrival,
+                latestArrival,
                 quantityOfPassengers,
                 includeStopovers,
                 out var routeQuery,
@@ -70,6 +74,8 @@ namespace SnoopyAirlines.Controllers
             string? detination,
             string? earliestDeparture,
             string? latestDeparture,
+            string? earliestArrival,
+            string? latestArrival,
             string? quantityOfPassengers,
             string? includeStopovers,
             out RouteQuery routeQuery,
@@ -99,6 +105,29 @@ namespace SnoopyAirlines.Controllers
                 {
                     Field = nameof(latestDeparture),
                     Message = "latestDeparture must be greater than or equal to earliestDeparture."
+                });
+            }
+
+            TryParseOptionalDateTime(
+                nameof(earliestArrival),
+                earliestArrival,
+                validationErrors,
+                out var parsedEarliestArrival);
+
+            TryParseOptionalDateTime(
+                nameof(latestArrival),
+                latestArrival,
+                validationErrors,
+                out var parsedLatestArrival);
+
+            if (parsedEarliestArrival.HasValue
+                && parsedLatestArrival.HasValue
+                && parsedLatestArrival.Value < parsedEarliestArrival.Value)
+            {
+                validationErrors.Add(new ValidationError
+                {
+                    Field = nameof(latestArrival),
+                    Message = "latestArrival must be greater than or equal to earliestArrival."
                 });
             }
 
@@ -137,6 +166,8 @@ namespace SnoopyAirlines.Controllers
                 Destination = detination?.Trim().ToUpperInvariant(),
                 EarliestDeparture = parsedEarliestDeparture,
                 LatestDeparture = parsedLatestDeparture,
+                EarliestArrival = parsedEarliestArrival,
+                LatestArrival = parsedLatestArrival,
                 QuantityOfPassengers = parsedQuantityOfPassengers,
                 IncludeStopovers = parsedIncludeStopovers
             };
@@ -188,17 +219,7 @@ namespace SnoopyAirlines.Controllers
                 return false;
             }
 
-            if (DateTime.TryParseExact(
-                    value.Trim(),
-                    SupportedDateTimeFormats,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AllowWhiteSpaces,
-                    out parsedDateTime)
-                || DateTime.TryParse(
-                    value.Trim(),
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind,
-                    out parsedDateTime))
+            if (TryParseDateTime(value, out parsedDateTime))
             {
                 return true;
             }
@@ -209,6 +230,47 @@ namespace SnoopyAirlines.Controllers
                 Message = $"{fieldName} must be a valid ISO date time."
             });
             return false;
+        }
+
+        private static void TryParseOptionalDateTime(
+            string fieldName,
+            string? value,
+            ICollection<ValidationError> errors,
+            out DateTime? parsedDateTime)
+        {
+            parsedDateTime = null;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            if (TryParseDateTime(value, out var dateTime))
+            {
+                parsedDateTime = dateTime;
+                return;
+            }
+
+            errors.Add(new ValidationError
+            {
+                Field = fieldName,
+                Message = $"{fieldName} must be a valid ISO date time."
+            });
+        }
+
+        private static bool TryParseDateTime(string value, out DateTime parsedDateTime)
+        {
+            return DateTime.TryParseExact(
+                    value.Trim(),
+                    SupportedDateTimeFormats,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AllowWhiteSpaces,
+                    out parsedDateTime)
+                || DateTime.TryParse(
+                    value.Trim(),
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind,
+                    out parsedDateTime);
         }
 
         private class ValidationError
