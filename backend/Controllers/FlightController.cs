@@ -87,19 +87,21 @@ namespace SnoopyAirlines.Controllers
             ValidateOptionalAirportCode(nameof(origin), origin, validationErrors);
             ValidateAirportCode("detination", detination, validationErrors);
 
-            var hasEarliestDeparture = TryParseRequiredDateTime(
+            TryParseOptionalDateTime(
                 nameof(earliestDeparture),
                 earliestDeparture,
                 validationErrors,
                 out var parsedEarliestDeparture);
 
-            var hasLatestDeparture = TryParseRequiredDateTime(
+            TryParseOptionalDateTime(
                 nameof(latestDeparture),
                 latestDeparture,
                 validationErrors,
                 out var parsedLatestDeparture);
 
-            if (hasEarliestDeparture && hasLatestDeparture && parsedLatestDeparture < parsedEarliestDeparture)
+            if (parsedEarliestDeparture.HasValue
+                && parsedLatestDeparture.HasValue
+                && parsedLatestDeparture.Value < parsedEarliestDeparture.Value)
             {
                 validationErrors.Add(new ValidationError
                 {
@@ -219,37 +221,6 @@ namespace SnoopyAirlines.Controllers
                     Message = $"{fieldName} must be exactly 3 letters (A-Z)."
                 });
             }
-        }
-
-        private static bool TryParseRequiredDateTime(
-            string fieldName,
-            string? value,
-            ICollection<ValidationError> errors,
-            out DateTime parsedDateTime)
-        {
-            parsedDateTime = default;
-
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                errors.Add(new ValidationError
-                {
-                    Field = fieldName,
-                    Message = $"{fieldName} is required."
-                });
-                return false;
-            }
-
-            if (TryParseDateTime(value, out parsedDateTime))
-            {
-                return true;
-            }
-
-            errors.Add(new ValidationError
-            {
-                Field = fieldName,
-                Message = $"{fieldName} must be a valid ISO date time."
-            });
-            return false;
         }
 
         private static void TryParseOptionalDateTime(
