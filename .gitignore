@@ -420,3 +420,5 @@ FodyWeavers.xsd
 
 /scripts/plantuml.jar
 /backend/ulm.svg
+
+**/appsettings.local.json
