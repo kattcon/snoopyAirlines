@@ -85,7 +85,7 @@ namespace SnoopyAirlines.Controllers
             var validationErrors = new List<ValidationError>();
 
             ValidateOptionalAirportCode(nameof(origin), origin, validationErrors);
-            ValidateAirportCode("detination", detination, validationErrors);
+            ValidateOptionalAirportCode("detination", detination, validationErrors);
 
             TryParseOptionalDateTime(
                 nameof(earliestDeparture),

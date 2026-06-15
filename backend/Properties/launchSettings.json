@@ -21,36 +21,15 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "local-jeshua": {
+    "local": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5235",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "local-jeshua"
+        "ASPNETCORE_ENVIRONMENT": "local"
       }
-    },
-    "local-kat": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "applicationUrl": "https://localhost:7080;http://localhost:5235",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "local-kat"
-      }
-    },
-    "local-jordan": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:5235",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "local-jordan"
-      }
-
     }
   }
 }
