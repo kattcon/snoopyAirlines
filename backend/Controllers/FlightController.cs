@@ -84,7 +84,7 @@ namespace SnoopyAirlines.Controllers
             routeQuery = null!;
             var validationErrors = new List<ValidationError>();
 
-            ValidateAirportCode(nameof(origin), origin, validationErrors);
+            ValidateOptionalAirportCode(nameof(origin), origin, validationErrors);
             ValidateAirportCode("detination", detination, validationErrors);
 
             var hasEarliestDeparture = TryParseRequiredDateTime(
@@ -188,6 +188,26 @@ namespace SnoopyAirlines.Controllers
                     Field = fieldName,
                     Message = $"{fieldName} is required."
                 });
+                return;
+            }
+
+            if (!Regex.IsMatch(value.Trim(), "^[A-Za-z]{3}$"))
+            {
+                errors.Add(new ValidationError
+                {
+                    Field = fieldName,
+                    Message = $"{fieldName} must be exactly 3 letters (A-Z)."
+                });
+            }
+        }
+
+        private static void ValidateOptionalAirportCode(
+            string fieldName,
+            string? value,
+            ICollection<ValidationError> errors)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
                 return;
             }
 
