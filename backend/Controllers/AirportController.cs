@@ -128,6 +128,21 @@ namespace SnoopyAirlines.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{airportId}")]
+        public async Task<IActionResult> DeleteAirport(int airportId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _airportService.DeleteAirportAsync(airportId, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException airportNotFoundException)
+            {
+                return NotFound(new { Message = airportNotFoundException.Message });
+            }
+        }
+
         private static bool TryMapToAirport(
             AirportIntake airportIntake,
             out Airport airport,
