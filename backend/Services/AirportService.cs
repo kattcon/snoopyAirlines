@@ -4,7 +4,7 @@ using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Services
 {
-    public class AirportService
+    public class AirportService : IAirportService
     {
         private readonly IAirportRepository _airportRepository;
 

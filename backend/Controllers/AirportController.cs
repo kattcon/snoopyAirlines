@@ -12,11 +12,8 @@ namespace SnoopyAirlines.Controllers
     [Route("airport")]
     public class AirportController : ControllerBase
     {
-        // Servicio que contiene la lógica de negocio para aeropuertos
-        private readonly AirportService _airportService;
-
-        // El constructor recibe el AirportService mediante inyección de dependencias
-        public AirportController(AirportService airportService)
+        private readonly IAirportService _airportService;
+        public AirportController(IAirportService airportService)
         {
             _airportService = airportService;
         }
