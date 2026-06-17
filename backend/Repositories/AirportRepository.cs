@@ -7,19 +7,14 @@ namespace SnoopyAirlines.Repositories
 {
     public class AirportRepository : IAirportRepository
     {
-        // Cadena de conexión a la base de datos, leída desde appsettings.json
         private readonly string _connectionString;
 
-        // El constructor recibe IConfiguration mediante inyección de dependencias
-        // y extrae la cadena de conexión. Si no existe, lanza un error claro.
         public AirportRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        // Devuelve todos los países ordenados alfabéticamente.
-        // AS Id, AS Name mapean las columnas de la BD a las propiedades del modelo Country.
         public async Task<IReadOnlyCollection<Country>> GetCountriesAsync(CancellationToken cancellationToken)
         {
             const string sql = "SELECT id AS Id, name AS Name FROM country ORDER BY name;";
@@ -31,8 +26,6 @@ namespace SnoopyAirlines.Repositories
             return countries.ToList();
         }
 
-        // Devuelve las ciudades que pertenecen a un país específico, ordenadas alfabéticamente.
-        // @CountryId es un parámetro seguro que evita SQL injection.
         public async Task<IReadOnlyCollection<City>> GetCitiesByCountryAsync(int countryId, CancellationToken cancellationToken)
         {
             const string sql = """
@@ -49,11 +42,9 @@ namespace SnoopyAirlines.Repositories
             return cities.ToList();
         }
 
-        // Verifica si ya existe un aeropuerto con el código IATA dado.
-        // COUNT(1) devuelve 0 si no existe, o un número mayor si existe.
-        public async Task<bool> AirportCodeExistsAsync(string code, CancellationToken cancellationToken)
+                public async Task<bool> AirportCodeExistsAsync(string code, CancellationToken cancellationToken)
         {
-            const string sql = "SELECT COUNT(1) FROM airport WHERE code = @Code;";
+            const string sql = "SELECT COUNT(1) FROM airport WHERE code = @Code AND deleted_at IS NULL;";
 
             await using var connection = new SqlConnection(_connectionString);
             var count = await connection.ExecuteScalarAsync<int>(
@@ -62,9 +53,6 @@ namespace SnoopyAirlines.Repositories
             return count > 0;
         }
 
-        // Inserta un nuevo aeropuerto y devuelve el registro completo tal como quedó en la BD,
-        // incluyendo el Id generado automáticamente por IDENTITY.
-        // OUTPUT INSERTED permite obtener la fila insertada en una sola operación.
         public async Task<Airport> CreateAirportAsync(Airport airport, CancellationToken cancellationToken)
         {
             const string sql = """
@@ -82,8 +70,6 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, airport, cancellationToken: cancellationToken));
         }
 
-        // Devuelve todos los aeropuertos con nombre de ciudad y país resueltos mediante JOINs.
-        // Si se proporciona un término de búsqueda, filtra por nombre del aeropuerto, código o ciudad.
         public async Task<IReadOnlyCollection<AirportView>> GetAirportsAsync(string? search, CancellationToken cancellationToken)
         {
             const string sql = """
@@ -113,7 +99,7 @@ namespace SnoopyAirlines.Repositories
         public async Task<Airport?> GetAirportByIdAsync(int id, CancellationToken cancellationToken)
         {
             const string sql = """
-                SELECT id AS Id, name AS Name, code AS Code, city_id AS CityId
+                SELECT id AS Id, name AS Name, code AS Code, city_id AS CityId, deleted_at AS DeletedAt
                 FROM airport
                 WHERE id = @Id;
                 """;
@@ -132,6 +118,81 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, new { Id = id, Name = name }, cancellationToken: cancellationToken));
 
             return rowsAffected > 0;
+        }
+
+        public async Task<bool> AirportHasPurchasesAsync(int airportId, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT COUNT(1)
+                FROM dbo.PurchaseOrderRoute por
+                INNER JOIN dbo.[route] r ON r.id = por.RouteId
+                WHERE r.departure_airport_id = @AirportId
+                   OR r.arrival_airport_id = @AirportId;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            var count = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition(sql, new { AirportId = airportId }, cancellationToken: cancellationToken));
+
+            return count > 0;
+        }
+
+        public async Task SoftDeleteAirportAsync(int airportId, CancellationToken cancellationToken)
+        {
+            const string sql = "UPDATE airport SET deleted_at = SYSUTCDATETIME() WHERE id = @Id AND deleted_at IS NULL;";
+
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                new CommandDefinition(sql, new { Id = airportId }, cancellationToken: cancellationToken));
+        }
+
+        public async Task HardDeleteAirportAsync(int airportId, CancellationToken cancellationToken)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                await connection.ExecuteAsync(
+                    new CommandDefinition("""
+                        DELETE dbo.itinerary
+                        FROM dbo.itinerary it
+                        INNER JOIN dbo.flight f ON f.guid = it.flight_guid
+                        INNER JOIN dbo.[route] r ON r.id = f.route_id
+                        WHERE r.departure_airport_id = @AirportId
+                           OR r.arrival_airport_id = @AirportId;
+                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
+
+                await connection.ExecuteAsync(
+                    new CommandDefinition("""
+                        DELETE dbo.flight
+                        FROM dbo.flight f
+                        INNER JOIN dbo.[route] r ON r.id = f.route_id
+                        WHERE r.departure_airport_id = @AirportId
+                           OR r.arrival_airport_id = @AirportId;
+                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
+
+                await connection.ExecuteAsync(
+                    new CommandDefinition("""
+                        DELETE FROM dbo.[route]
+                        WHERE departure_airport_id = @AirportId
+                           OR arrival_airport_id = @AirportId;
+                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
+
+                await connection.ExecuteAsync(
+                    new CommandDefinition("""
+                        DELETE FROM dbo.airport
+                        WHERE id = @AirportId;
+                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
+
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
     }
 }
