@@ -82,10 +82,11 @@ namespace SnoopyAirlines.Repositories
                 FROM airport a
                 INNER JOIN city ci ON a.city_id = ci.id
                 INNER JOIN country co ON ci.country_id = co.id
-                WHERE @Search IS NULL
+                WHERE a.deleted_at IS NULL
+                  AND (@Search IS NULL
                    OR a.name LIKE '%' + @Search + '%'
                    OR a.code LIKE '%' + @Search + '%'
-                   OR ci.name LIKE '%' + @Search + '%'
+                   OR ci.name LIKE '%' + @Search + '%')
                 ORDER BY a.name;
                 """;
 
