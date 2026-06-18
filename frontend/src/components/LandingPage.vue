@@ -10,7 +10,7 @@
         <nav class="nav-menu">
           <a href="#inicio" class="nav-link">Inicio</a>
           <a href="#destinos" class="nav-link">Destinos</a>
-          <a href="#ofertas" class="nav-link">Ofertas</a>
+          <a href="#reserva" class="nav-link">Mi Reserva</a>
           <a href="#ventajas" class="nav-link">¿Por qué nosotros?</a>
         </nav>
         <div class="header-actions">
@@ -142,6 +142,54 @@
 
 
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mi reserva -->
+    <section id="reserva" class="reservation">
+      <div class="reservation-container">
+        <div class="reservation-content">
+          <div class="reservation-badge">
+            <span>✈</span>
+            <span>GESTIÓN DE RESERVACIONES</span>
+          </div>
+
+          <h2 class="reservation-title">Consulta tu reservación</h2>
+
+          <p class="reservation-description">
+            Ingresa tu número de reservación y apellidos para ver los detalles de tu viaje,
+            gestionar equipaje o imprimir tu itinerario.
+          </p>
+        </div>
+
+        <div class="reservation-card">
+          <form class="reservation-form">
+            <div class="form-group">
+              <label>Número de reservación</label>
+              <input
+                type="text"
+                class="reservation-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Apellidos del titular</label>
+              <input
+                type="text"
+                placeholder="Ej. García Rodríguez"
+                class="reservation-input"
+              />
+            </div>
+
+            <button type="submit" class="reservation-button">
+              Buscar reservación
+            </button>
+
+            <p class="reservation-help">
+              Encuentra tu número de reservación en el correo de confirmación de compra.
+            </p>
+          </form>
         </div>
       </div>
     </section>
@@ -1363,4 +1411,134 @@ input[type="checkbox"] {
   background: #f0f7ff;
   border-color: #4a90e2;
 }
+
+/* Reservation Section */
+.reservation {
+  background: linear-gradient(90deg, #0d3d9f 0%, #2f2ea8 100%);
+  padding: 100px 40px;
+}
+
+.reservation-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.reservation-content {
+  color: white;
+}
+
+.reservation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffc107;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+
+.reservation-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.reservation-description {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 600px;
+}
+
+.reservation-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.reservation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.reservation-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 1rem;
+}
+
+.reservation-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.reservation-input:focus {
+  outline: none;
+  border-color: #ffc107;
+}
+
+.reservation-button {
+  width: 100%;
+  padding: 16px;
+  background: #ffc107;
+  color: #1f1f1f;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.reservation-button:hover {
+  transform: translateY(-2px);
+}
+
+.reservation-help {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 992px) {
+  .reservation-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .reservation-title {
+    font-size: 2.2rem;
+  }
+
+  .reservation-content {
+    text-align: center;
+  }
+
+  .reservation-description {
+    margin: 0 auto;
+  }
+}
+
 </style>
