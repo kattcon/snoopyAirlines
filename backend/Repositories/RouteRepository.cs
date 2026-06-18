@@ -210,7 +210,7 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition("""
                     SELECT id FROM airport
                     WHERE id IN (@DepartureAirportId, @ArrivalAirportId)
-                      AND deleted_at IS NOT NULL;
+                      AND is_deleted = 1;
                     """,
                     new { route.DepartureAirportId, route.ArrivalAirportId },
                     cancellationToken: cancellationToken));

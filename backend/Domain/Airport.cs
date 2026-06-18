@@ -6,6 +6,6 @@ namespace SnoopyAirlines.Domain
         required public string Name { get; set; }
         required public string Code { get; set; }
         public int CityId { get; set; }
-        public DateTime? DeletedAt { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

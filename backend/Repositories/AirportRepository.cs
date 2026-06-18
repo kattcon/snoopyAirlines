@@ -44,7 +44,7 @@ namespace SnoopyAirlines.Repositories
 
                 public async Task<bool> AirportCodeExistsAsync(string code, CancellationToken cancellationToken)
         {
-            const string sql = "SELECT COUNT(1) FROM airport WHERE code = @Code AND deleted_at IS NULL;";
+            const string sql = "SELECT COUNT(1) FROM airport WHERE code = @Code AND is_deleted = 0;";
 
             await using var connection = new SqlConnection(_connectionString);
             var count = await connection.ExecuteScalarAsync<int>(
@@ -82,7 +82,7 @@ namespace SnoopyAirlines.Repositories
                 FROM airport a
                 INNER JOIN city ci ON a.city_id = ci.id
                 INNER JOIN country co ON ci.country_id = co.id
-                WHERE a.deleted_at IS NULL
+                WHERE a.is_deleted = 0
                   AND (@Search IS NULL
                    OR a.name LIKE '%' + @Search + '%'
                    OR a.code LIKE '%' + @Search + '%'
@@ -100,7 +100,7 @@ namespace SnoopyAirlines.Repositories
         public async Task<Airport?> GetAirportByIdAsync(int id, CancellationToken cancellationToken)
         {
             const string sql = """
-                SELECT id AS Id, name AS Name, code AS Code, city_id AS CityId, deleted_at AS DeletedAt
+                SELECT id AS Id, name AS Name, code AS Code, city_id AS CityId, is_deleted AS IsDeleted
                 FROM airport
                 WHERE id = @Id;
                 """;
@@ -140,15 +140,6 @@ namespace SnoopyAirlines.Repositories
 
         public async Task SoftDeleteAirportAsync(int airportId, CancellationToken cancellationToken)
         {
-            const string sql = "UPDATE airport SET deleted_at = SYSUTCDATETIME() WHERE id = @Id AND deleted_at IS NULL;";
-
-            await using var connection = new SqlConnection(_connectionString);
-            await connection.ExecuteAsync(
-                new CommandDefinition(sql, new { Id = airportId }, cancellationToken: cancellationToken));
-        }
-
-        public async Task HardDeleteAirportAsync(int airportId, CancellationToken cancellationToken)
-        {
             await using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -156,36 +147,14 @@ namespace SnoopyAirlines.Repositories
             try
             {
                 await connection.ExecuteAsync(
-                    new CommandDefinition("""
-                        DELETE dbo.itinerary
-                        FROM dbo.itinerary it
-                        INNER JOIN dbo.flight f ON f.guid = it.flight_guid
-                        INNER JOIN dbo.[route] r ON r.id = f.route_id
-                        WHERE r.departure_airport_id = @AirportId
-                           OR r.arrival_airport_id = @AirportId;
-                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
+                    new CommandDefinition(
+                        "UPDATE dbo.[route] SET is_deleted = 1 WHERE departure_airport_id = @Id OR arrival_airport_id = @Id;",
+                        new { Id = airportId }, transaction, cancellationToken: cancellationToken));
 
                 await connection.ExecuteAsync(
-                    new CommandDefinition("""
-                        DELETE dbo.flight
-                        FROM dbo.flight f
-                        INNER JOIN dbo.[route] r ON r.id = f.route_id
-                        WHERE r.departure_airport_id = @AirportId
-                           OR r.arrival_airport_id = @AirportId;
-                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
-
-                await connection.ExecuteAsync(
-                    new CommandDefinition("""
-                        DELETE FROM dbo.[route]
-                        WHERE departure_airport_id = @AirportId
-                           OR arrival_airport_id = @AirportId;
-                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
-
-                await connection.ExecuteAsync(
-                    new CommandDefinition("""
-                        DELETE FROM dbo.airport
-                        WHERE id = @AirportId;
-                        """, new { AirportId = airportId }, transaction, cancellationToken: cancellationToken));
+                    new CommandDefinition(
+                        "UPDATE dbo.airport SET is_deleted = 1 WHERE id = @Id;",
+                        new { Id = airportId }, transaction, cancellationToken: cancellationToken));
 
                 await transaction.CommitAsync(cancellationToken);
             }
@@ -194,6 +163,15 @@ namespace SnoopyAirlines.Repositories
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        public async Task HardDeleteAirportAsync(int airportId, CancellationToken cancellationToken)
+        {
+            const string sql = "DELETE FROM dbo.airport WHERE id = @Id;";
+
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                new CommandDefinition(sql, new { Id = airportId }, cancellationToken: cancellationToken));
         }
     }
 }
