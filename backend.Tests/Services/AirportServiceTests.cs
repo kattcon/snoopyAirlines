@@ -58,5 +58,64 @@ namespace backend.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.UpdateAirportNameAsync(1, "   ", CancellationToken.None));
         }
+
+        [Fact]
+        public async Task DeleteAirport_AirportNotFound_ThrowsKeyNotFoundException()
+        {
+            // Arrange
+            var mockRepo = new Mock<IAirportRepository>();
+            mockRepo.Setup(r => r.GetAirportByIdAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((Airport?)null);
+
+            var service = new AirportService(mockRepo.Object);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+                service.DeleteAirportAsync(1, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task DeleteAirport_AirportHasPurchases_CallsSoftDelete()
+        {
+            // Arrange
+            var airport = new Airport { Id = 1, Name = "Aeropuerto Internacional", Code = "SJO", CityId = 1 };
+
+            var mockRepo = new Mock<IAirportRepository>();
+            mockRepo.Setup(r => r.GetAirportByIdAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(airport);
+            mockRepo.Setup(r => r.AirportHasPurchasesAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+            var service = new AirportService(mockRepo.Object);
+
+            // Act
+            await service.DeleteAirportAsync(1, CancellationToken.None);
+
+            // Assert
+            mockRepo.Verify(r => r.SoftDeleteAirportAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+            mockRepo.Verify(r => r.HardDeleteAirportAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAirport_AirportHasNoPurchases_CallsHardDelete()
+        {
+            // Arrange
+            var airport = new Airport { Id = 1, Name = "Aeropuerto Internacional", Code = "SJO", CityId = 1 };
+
+            var mockRepo = new Mock<IAirportRepository>();
+            mockRepo.Setup(r => r.GetAirportByIdAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(airport);
+            mockRepo.Setup(r => r.AirportHasPurchasesAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(false);
+
+            var service = new AirportService(mockRepo.Object);
+
+            // Act
+            await service.DeleteAirportAsync(1, CancellationToken.None);
+
+            // Assert
+            mockRepo.Verify(r => r.HardDeleteAirportAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+            mockRepo.Verify(r => r.SoftDeleteAirportAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }

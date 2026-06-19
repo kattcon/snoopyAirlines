@@ -12,5 +12,8 @@ namespace SnoopyAirlines.Repositories
         Task<IReadOnlyCollection<AirportView>> GetAirportsAsync(string? search, CancellationToken cancellationToken);
         Task<Airport?> GetAirportByIdAsync(int id, CancellationToken cancellationToken);
         Task<bool> UpdateAirportNameAsync(int id, string name, CancellationToken cancellationToken);
+        Task<bool> AirportHasPurchasesAsync(int airportId, CancellationToken cancellationToken);
+        Task SoftDeleteAirportAsync(int airportId, CancellationToken cancellationToken);
+        Task HardDeleteAirportAsync(int airportId, CancellationToken cancellationToken);
     }
 }

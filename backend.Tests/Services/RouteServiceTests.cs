@@ -3,7 +3,6 @@ using Xunit;
 using Moq;
 using SnoopyAirlines.Services;
 using SnoopyAirlines.Domain;
-using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Tests
@@ -207,6 +206,123 @@ namespace SnoopyAirlines.Tests
             // Assert
             var stopoverFlights = results.Where(f => f.HasStopover && f.StopoverAirport?.Code == "BOG").ToList();
             Assert.DoesNotContain(stopoverFlights, flight => flight.StopoverDuration != null && flight.StopoverDuration.Contains("12:30"));
+        }
+
+        [Fact]
+        public async Task SearchFlights_WithArrivalWindow_PassesArrivalWindowAndFiltersDirectFlights()
+        {
+            // Arrange
+            var query = new RouteQuery
+            {
+                Origin = "SJO",
+                Destination = "MIA",
+                EarliestDeparture = new DateTime(2026, 6, 15, 6, 0, 0),
+                LatestDeparture = new DateTime(2026, 6, 15, 22, 0, 0),
+                EarliestArrival = new DateTime(2026, 6, 15, 10, 0, 0),
+                LatestArrival = new DateTime(2026, 6, 15, 11, 0, 0),
+                QuantityOfPassengers = 1,
+                IncludeStopovers = false
+            };
+
+            var matchingRoute = new Route
+            {
+                Id = 5,
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San Jose", City = "San Jose" },
+                ArrivalAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                DepartureTime = new TimeOnly(8, 0),
+                ArrivalTime = new TimeOnly(10, 30),
+                DurationMinutes = 150,
+                Frequency = new RouteFrequency { Monday = true },
+                PriceEconomyClass = 299,
+                PriceFirstClass = 599,
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
+            };
+
+            var lateRoute = new Route
+            {
+                Id = 6,
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San Jose", City = "San Jose" },
+                ArrivalAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                DepartureTime = new TimeOnly(9, 0),
+                ArrivalTime = new TimeOnly(12, 30),
+                DurationMinutes = 210,
+                Frequency = new RouteFrequency { Monday = true },
+                PriceEconomyClass = 299,
+                PriceFirstClass = 599,
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
+            };
+
+            RouteSearchQuery? capturedQuery = null;
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(It.IsAny<RouteSearchQuery>(), It.IsAny<CancellationToken>()))
+                .Callback<RouteSearchQuery, CancellationToken>((routeSearchQuery, _) => capturedQuery = routeSearchQuery)
+                .ReturnsAsync([matchingRoute, lateRoute]);
+
+            // Act
+            var results = await _routeService.SearchFlightsAsync(query, CancellationToken.None);
+
+            // Assert
+            var flight = Assert.Single(results);
+            Assert.Equal(matchingRoute.Id, flight.RouteId);
+
+            Assert.NotNull(capturedQuery);
+            var arrivalWindow = Assert.Single(capturedQuery.ArrivalWindows);
+            Assert.True(arrivalWindow.SameDayDepartureFrequency.Monday);
+            Assert.True(arrivalWindow.PreviousDayDepartureFrequency.Sunday);
+            Assert.Equal(new TimeOnly(10, 0), arrivalWindow.EarliestArrival);
+            Assert.Equal(new TimeOnly(11, 0), arrivalWindow.LatestArrival);
+        }
+
+        [Fact]
+        public async Task SearchFlights_WithOvernightArrivalWindow_UsesPreviousDayDepartureFrequency()
+        {
+            // Arrange
+            var query = new RouteQuery
+            {
+                Origin = "SJO",
+                Destination = "MIA",
+                EarliestDeparture = new DateTime(2026, 6, 15, 20, 0, 0),
+                LatestDeparture = new DateTime(2026, 6, 15, 23, 0, 0),
+                EarliestArrival = new DateTime(2026, 6, 16, 0, 30, 0),
+                LatestArrival = new DateTime(2026, 6, 16, 2, 0, 0),
+                QuantityOfPassengers = 1,
+                IncludeStopovers = false
+            };
+
+            var overnightRoute = new Route
+            {
+                Id = 7,
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San Jose", City = "San Jose" },
+                ArrivalAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                DepartureTime = new TimeOnly(22, 30),
+                ArrivalTime = new TimeOnly(1, 15),
+                DurationMinutes = 165,
+                Frequency = new RouteFrequency { Monday = true },
+                PriceEconomyClass = 299,
+                PriceFirstClass = 599,
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
+            };
+
+            RouteSearchQuery? capturedQuery = null;
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(It.IsAny<RouteSearchQuery>(), It.IsAny<CancellationToken>()))
+                .Callback<RouteSearchQuery, CancellationToken>((routeSearchQuery, _) => capturedQuery = routeSearchQuery)
+                .ReturnsAsync(new[] { overnightRoute });
+
+            // Act
+            var results = await _routeService.SearchFlightsAsync(query, CancellationToken.None);
+
+            // Assert
+            var flight = Assert.Single(results);
+            Assert.Equal(new DateTime(2026, 6, 16, 1, 15, 0), flight.ArrivalTime);
+
+            Assert.NotNull(capturedQuery);
+            var arrivalWindow = Assert.Single(capturedQuery.ArrivalWindows);
+            Assert.True(arrivalWindow.SameDayDepartureFrequency.Tuesday);
+            Assert.True(arrivalWindow.PreviousDayDepartureFrequency.Monday);
         }
     }
 }
