@@ -9,5 +9,6 @@ namespace SnoopyAirlines.domain
         public int FirstclassRows { get; set; }
         public int FirstclassColumns { get; set; }
         public float MaxWeight { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

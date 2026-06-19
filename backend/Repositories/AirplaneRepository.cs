@@ -51,7 +51,8 @@ namespace SnoopyAirlines.Repositories
                 firstclass_rows AS FirstclassRows,
                 firstclass_columns AS FirstclassColumns, 
                 max_weight AS MaxWeight
-                FROM Airplane;
+                FROM Airplane
+                WHERE is_deleted = 0;
 
                 """;
             await using var connection = new SqlConnection(_connectionString);
@@ -105,7 +106,8 @@ namespace SnoopyAirlines.Repositories
                     tourist_columns AS TouristColumns,
                     firstclass_rows AS FirstclassRows,
                     firstclass_columns AS FirstclassColumns,
-                    max_weight AS MaxWeight
+                    max_weight AS MaxWeight,
+                    is_deleted AS IsDeleted
                 FROM airplane
                 WHERE id = @Id;
                 """;
@@ -142,6 +144,58 @@ namespace SnoopyAirlines.Repositories
 
                 throw new InvalidOperationException(exception.Message, exception);
             }
+        }
+
+        public async Task<bool> AirplaneHasPurchasesAsync(int airplaneId, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT COUNT(1)
+                FROM dbo.PurchaseOrderRoute por
+                INNER JOIN dbo.[route] r ON r.id = por.RouteId
+                WHERE r.airplane_id = @AirplaneId;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            var count = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition(sql, new { AirplaneId = airplaneId }, cancellationToken: cancellationToken));
+
+            return count > 0;
+        }
+
+        public async Task SoftDeleteAirplaneAsync(int airplaneId, CancellationToken cancellationToken)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                await connection.ExecuteAsync(
+                    new CommandDefinition(
+                        "UPDATE dbo.[route] SET is_deleted = 1 WHERE airplane_id = @Id;",
+                        new { Id = airplaneId }, transaction, cancellationToken: cancellationToken));
+
+                await connection.ExecuteAsync(
+                    new CommandDefinition(
+                        "UPDATE dbo.airplane SET is_deleted = 1 WHERE id = @Id;",
+                        new { Id = airplaneId }, transaction, cancellationToken: cancellationToken));
+
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        public async Task HardDeleteAirplaneAsync(int airplaneId, CancellationToken cancellationToken)
+        {
+            const string sql = "DELETE FROM dbo.airplane WHERE id = @Id;";
+
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                new CommandDefinition(sql, new { Id = airplaneId }, cancellationToken: cancellationToken));
         }
     }
 }
