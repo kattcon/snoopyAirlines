@@ -170,6 +170,7 @@
               <input
                 type="text"
                 class="reservation-input"
+                placeholder="AA0A00AA0AA0"
               />
             </div>
 
@@ -1498,6 +1499,8 @@ input[type="checkbox"] {
 }
 
 .reservation-button {
+  text-align: center;
+  text-decoration: none;
   width: 100%;
   padding: 16px;
   background: #ffc107;
