@@ -103,7 +103,12 @@ namespace SnoopyAirlines.Repositories
                 AddDepartureWindowFilters(where, parameters, routeQuery.DepartureWindows);
             }
 
-           if (where.Count > 0)
+            if (routeQuery.ArrivalWindows.Count > 0)
+            {
+                AddArrivalWindowFilters(where, parameters, routeQuery.ArrivalWindows);
+            }
+
+            if (where.Count > 0)
             {
                 sql.Append(" WHERE ");
                 sql.Append(string.Join(" AND ", where));
@@ -348,6 +353,56 @@ namespace SnoopyAirlines.Repositories
                 parameters.Add(frequencyParameter, frequencyMask);
                 parameters.Add(startTimeParameter, departureWindow.EarliestDeparture.ToTimeSpan());
                 parameters.Add(endTimeParameter, departureWindow.LatestDeparture.ToTimeSpan());
+
+                index++;
+            }
+
+            if (conditions.Count > 0)
+            {
+                where.Add("(" + string.Join(" OR ", conditions) + ")");
+            }
+        }
+
+        private static void AddArrivalWindowFilters(
+            ICollection<string> where,
+            DynamicParameters parameters,
+            IReadOnlyCollection<RouteArrivalWindow> arrivalWindows)
+        {
+            var conditions = new List<string>();
+            var index = 0;
+
+            foreach (var arrivalWindow in arrivalWindows)
+            {
+                var sameDayFrequencyParameter = $"ArrivalSameDayFrequencyMask{index}";
+                var previousDayFrequencyParameter = $"ArrivalPreviousDayFrequencyMask{index}";
+                var startTimeParameter = $"ArrivalStartTime{index}";
+                var endTimeParameter = $"ArrivalEndTime{index}";
+                var sameDayFrequencyMask = ToByte(arrivalWindow.SameDayDepartureFrequency);
+                var previousDayFrequencyMask = ToByte(arrivalWindow.PreviousDayDepartureFrequency);
+                var windowConditions = new List<string>();
+
+                if (sameDayFrequencyMask != 0)
+                {
+                    windowConditions.Add(
+                        $"((f.frequency & @{sameDayFrequencyParameter}) <> 0 AND f.arrival_time >= @{startTimeParameter} AND f.arrival_time <= @{endTimeParameter} AND f.arrival_time >= f.departure_time)");
+                    parameters.Add(sameDayFrequencyParameter, sameDayFrequencyMask);
+                }
+
+                if (previousDayFrequencyMask != 0)
+                {
+                    windowConditions.Add(
+                        $"((f.frequency & @{previousDayFrequencyParameter}) <> 0 AND f.arrival_time >= @{startTimeParameter} AND f.arrival_time <= @{endTimeParameter} AND f.arrival_time < f.departure_time)");
+                    parameters.Add(previousDayFrequencyParameter, previousDayFrequencyMask);
+                }
+
+                if (windowConditions.Count == 0)
+                {
+                    continue;
+                }
+
+                conditions.Add("(" + string.Join(" OR ", windowConditions) + ")");
+                parameters.Add(startTimeParameter, arrivalWindow.EarliestArrival.ToTimeSpan());
+                parameters.Add(endTimeParameter, arrivalWindow.LatestArrival.ToTimeSpan());
 
                 index++;
             }
