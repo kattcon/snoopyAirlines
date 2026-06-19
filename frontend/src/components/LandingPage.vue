@@ -182,9 +182,7 @@
               />
             </div>
 
-            <button type="submit" class="reservation-button">
-              Buscar reservación
-            </button>
+            <router-link to="/client-flight-report" class="reservation-button">Buscar reservación</router-link>
 
             <p class="reservation-help">
               Encuentra tu número de reservación en el correo de confirmación de compra.
