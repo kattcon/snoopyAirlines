@@ -4,7 +4,7 @@ using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Services
 {
-    public class AirportService
+    public class AirportService : IAirportService
     {
         private readonly IAirportRepository _airportRepository;
 
@@ -57,6 +57,27 @@ namespace SnoopyAirlines.Services
             if (!airportWasUpdated)
             {
                 throw new KeyNotFoundException($"No se encontró un aeropuerto con id '{airportId}'.");
+            }
+        }
+
+        public async Task DeleteAirportAsync(int airportId, CancellationToken cancellationToken)
+        {
+            var airport = await _airportRepository.GetAirportByIdAsync(airportId, cancellationToken);
+
+            if (airport is null)
+            {
+                throw new KeyNotFoundException($"No se encontró un aeropuerto con id '{airportId}'.");
+            }
+
+            var hasPurchases = await _airportRepository.AirportHasPurchasesAsync(airportId, cancellationToken);
+
+            if (hasPurchases)
+            {
+                await _airportRepository.SoftDeleteAirportAsync(airportId, cancellationToken);
+            }
+            else
+            {
+                await _airportRepository.HardDeleteAirportAsync(airportId, cancellationToken);
             }
         }
     }

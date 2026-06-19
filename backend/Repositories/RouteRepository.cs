@@ -209,6 +209,22 @@ namespace SnoopyAirlines.Repositories
 
         public async Task SaveAsync(DomainRoute route, CancellationToken cancellationToken)
         {
+            await using var connection = new SqlConnection(_connectionString);
+
+            var deletedAirports = await connection.QueryAsync<int>(
+                new CommandDefinition("""
+                    SELECT id FROM airport
+                    WHERE id IN (@DepartureAirportId, @ArrivalAirportId)
+                      AND is_deleted = 1;
+                    """,
+                    new { route.DepartureAirportId, route.ArrivalAirportId },
+                    cancellationToken: cancellationToken));
+
+            if (deletedAirports.Any())
+            {
+                throw new InvalidOperationException("No se puede crear una ruta con un aeropuerto eliminado.");
+            }
+
             const string sql = """
                 IF @Id > 0 AND EXISTS (SELECT 1 FROM [route] WHERE id = @Id)
                 BEGIN
@@ -267,7 +283,6 @@ namespace SnoopyAirlines.Repositories
                 END
                 """;
 
-            await using var connection = new SqlConnection(_connectionString);
             await connection.ExecuteAsync(
                 new CommandDefinition(sql, ToParameters(route), cancellationToken: cancellationToken));
         }
