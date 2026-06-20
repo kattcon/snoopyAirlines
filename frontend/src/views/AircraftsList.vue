@@ -31,6 +31,7 @@
                     >
                     <template #cell-actions="{ item }">
                         <button class="primaryButton" @click.stop="$router.push(`/admin/edit-aircraft/${item.id}`)">Editar</button>
+                        <button class="dangerButton" @click.stop="confirmDelete(item)">Eliminar</button>
                     </template>
                 </AppList>
                 <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
@@ -91,6 +92,22 @@ export default{
                 this.errorMsg = "Acceso no autorizado";
                 }
                 console.error("Error cargando aeronaves:", error);
+            });
+        },
+        confirmDelete(aircraft) {
+            if (!confirm(`¿Estás seguro de que deseas eliminar la aeronave "${aircraft.model}"?`)) return;
+            const token = localStorage.getItem("token");
+            axios.delete(`${process.env.VUE_APP_BACKEND_URL}/airplane/${aircraft.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).then(() => {
+                this.aircrafts = this.aircrafts.filter(a => a.id !== aircraft.id);
+            }).catch((error) => {
+                if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                    this.errorMsg = "Acceso no autorizado";
+                } else {
+                    this.errorMsg = "Error al eliminar la aeronave.";
+                }
+                console.error("Error eliminando aeronave:", error);
             });
         }
     }
