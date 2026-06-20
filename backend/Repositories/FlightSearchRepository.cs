@@ -1,7 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using SnoopyAirlines.Domain.Intake;
-using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.View;
 
 namespace SnoopyAirlines.Repositories
 {
@@ -15,16 +14,25 @@ namespace SnoopyAirlines.Repositories
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<IReadOnlyCollection<FlightCustomerReport>> GetFlightReportByConfirmationAsync(string confirmationNumber, string lastNames, CancellationToken cancellationToken)
+        public async Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
+            string confirmationNumber,
+            string lastNames,
+            CancellationToken cancellationToken)
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
 
-            var flightSearch = await connection.QueryAsync<FlightCustomerReport>("""
-                SELECT * FROM dbo.GetFlightReportByConfirmation(@ConfirmationNumber, @LastNames);
-                """, new { ConfirmationNumber = confirmationNumber, LastNames = lastNames });
+            var CommandDefinition = new CommandDefinition(
+                """
+                SELECT * FROM dbo.GetFlightReportByConfirmation(@ConfirmationNumber, @LastNames)
+                ORDER BY SequenceNumber;
+                """,
+                new { ConfirmationNumber = confirmationNumber, LastNames = lastNames },
+                cancellationToken: cancellationToken);
 
-            return flightSearch.ToList();
+            var flightReport = await connection.QueryAsync<FlightReportView>(CommandDefinition);
+
+            return flightReport.ToList();
         }
     }
 }
