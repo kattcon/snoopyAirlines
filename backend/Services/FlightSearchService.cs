@@ -1,6 +1,6 @@
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
-using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace SnoopyAirlines.Services
 {
@@ -20,12 +20,12 @@ namespace SnoopyAirlines.Services
         {
             if (string.IsNullOrWhiteSpace(confirmationNumber))
             {
-                throw new ValidationException("El número de reservación es obligatorio.");
+                throw new ArgumentException("El número de reservación es obligatorio.", nameof(confirmationNumber));
             }
 
             if (string.IsNullOrWhiteSpace(lastNames))
             {
-                throw new ValidationException("Los apellidos son obligatorios.");
+                throw new ArgumentException("Los apellidos son obligatorios.", nameof(lastNames));
             }
 
             var flightReport = await _flightSearchRepository.GetFlightReportByConfirmationAsync(

@@ -170,7 +170,7 @@
               <input
                 v-model="formData.confirmationNumber"
                 type="text"
-                class="reservation-input"
+                :class="['reservation-input', { 'input-error': reservationError }]"
                 placeholder="AA0A00AA0AA0"
                 required
               />
@@ -182,7 +182,7 @@
                 v-model="formData.lastNames"
                 type="text"
                 placeholder="Ej. García Rodríguez"
-                class="reservation-input"
+                :class="['reservation-input', { 'input-error': reservationError }]"
                 required
               />
             </div>
@@ -190,6 +190,10 @@
             <button type="submit" class="reservation-button" :disabled="reservationLoading">
               {{ reservationLoading ? 'Buscando...' : 'Buscar reservación' }}
             </button>
+            
+            <p v-if="reservationError" class="reservation-error">
+              {{ reservationError }}
+            </p>
 
             <p class="reservation-help">
               Encuentra tu número de reservación en el correo de confirmación de compra e itinerario.
@@ -292,6 +296,8 @@ export default {
       destinationCities: [],
       searchResults: [],
       loading: false,
+      reservationLoading: false,
+      reservationError: '',
       searchPerformed: false,
       advantages: [
         {
@@ -511,6 +517,8 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
 
     searchReservation() {
       this.reservationLoading = true;
+      this.reservationError = '';
+
       axios
           .get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/search`, { 
             params: {
@@ -525,13 +533,15 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
               });
           })
           .catch((error) => {
-              if (error.response && error.response.status === 404)
-              {
-                  alert("No se encontró ninguna reservación con esos datos");
-              }
-              else
-              {
-                  alert("Error al buscar reservación.");
+              const status = error.response?.status;
+              const backendMessage = error.response?.data?.message;
+
+              if (status === 400) {
+                  this.reservationError = backendMessage || 'Por favor verifica los datos ingresados.';
+              } else if (status === 404) {
+                  this.reservationError = backendMessage || 'No se encontró ninguna reservación con esos datos.';
+              } else {
+                  this.reservationError = 'Error al buscar reservación. Por favor intenta de nuevo más tarde.';
               }
               console.error(error);
           })
@@ -1468,6 +1478,26 @@ input[type="checkbox"] {
   outline: none;
   border-color: #ffc107;
 }
+
+.reservation-input.input-error {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.reservation-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ffd6d6;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
 
 .reservation-button {
   text-align: center;

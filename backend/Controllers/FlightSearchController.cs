@@ -23,12 +23,24 @@ namespace SnoopyAirlines.Controllers
             [FromQuery] string lastNames,
             CancellationToken cancellationToken)
         {
-            var flightReport = await _flightSearchService.GetFlightReportByConfirmationAsync(
+            try
+            {
+                var flightReport = await _flightSearchService.GetFlightReportByConfirmationAsync(
                 confirmationNumber,
                 lastNames,
                 cancellationToken);
 
-            return Ok(flightReport);
+                return Ok(flightReport);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            
         }
     }
 }
