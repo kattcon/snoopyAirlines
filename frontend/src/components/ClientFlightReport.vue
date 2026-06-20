@@ -124,8 +124,8 @@
             </button>
           </div>
 
-          <button class="pdf-button">
-            Imprimir itinerario (PDF)
+          <button class="pdf-button" :disabled="generatingPdf" @click="generatePdf">
+            {{ generatingPdf ? 'Generando PDF...' : 'Imprimir itinerario (PDF)' }}
           </button>
 
           <div class="passenger-card">
@@ -157,13 +157,15 @@
 </template>
 
 <script>
+import { jsPDF } from 'jspdf';
+
 export default {
   name: 'ClientFlightReport',
   data() {
     return {
-      // Los tramos llegan vía router state desde LandingPage.vue (búsqueda de reservación).
-      // Cada elemento corresponde a una fila devuelta por dbo.GetFlightReportByConfirmation.
+      // Los tramos llegan por state desde LandingPage.vue, de la busqueda
       flightLegs: [],
+      generatingPdf: false,
     };
   },
   created() {
@@ -253,6 +255,179 @@ export default {
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
       return `${hours}h ${remainingMinutes}min`;
+    },
+
+    /**
+     * Generar PDF con una tarjeta por cada tramo
+     * del itinerario, usando los mismos datos ya cargados en la página
+     */
+    generatePdf() {
+      this.generatingPdf = true;
+
+      try {
+        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+
+        this.flightLegs.forEach((leg, index) => {
+          if (index > 0) {
+            doc.addPage();
+          }
+          this.drawBoardingPass(doc, leg);
+        });
+
+        const fileName = `Itinerario_${this.reservationNumber || 'SnoopyAirlines'}.pdf`;
+        doc.save(fileName);
+      } catch (error) {
+        console.error('Error generando el PDF del itinerario:', error);
+      } finally {
+        this.generatingPdf = false;
+      }
+    },
+
+    /**
+     * Dibuja una tarjeta de boarding pass para un tramo en la página
+     * actual del documento jsPDF.
+     */
+    drawBoardingPass(doc, leg) {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 40;
+      const cardWidth = pageWidth - margin * 2;
+
+      const brandBlueDark = [0, 59, 122];   // #003b7a
+      const brandBlueLight = [10, 94, 176];  // #0a5eb0
+      const brandGold = [255, 193, 7];       // #ffc107
+      const textGray = [90, 90, 90];
+      const textDark = [30, 30, 30];
+
+      let y = 50;
+
+      // ---- Encabezado de marca ----
+      doc.setFontSize(20);
+      doc.setTextColor(...brandBlueDark);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SNOOPY AIRLINES', margin, y);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...textGray);
+      doc.text('ITINERARIO', margin, y + 16);
+
+      y += 40;
+
+      // ---- Tarjeta principal (header degradado simulado con rect sólido) ----
+      const headerHeight = 70;
+      doc.setFillColor(...brandBlueDark);
+      doc.roundedRect(margin, y, cardWidth, headerHeight, 10, 10, 'F');
+      doc.setFillColor(...brandBlueLight);
+      doc.rect(margin, y + headerHeight - 12, cardWidth, 12, 'F');
+
+      doc.setFontSize(11);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'normal');
+      doc.text(this.legLabel(leg), margin + 20, y + 26);
+
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${leg.departureCity} -> ${leg.arrivalCity}`, margin + 20, y + 48);
+
+      doc.setFontSize(14);
+      doc.text(`Tramo ${leg.sequenceNumber}`, margin + cardWidth - 90, y + 40);
+
+      y += headerHeight;
+
+      // ---- Cuerpo: aeropuertos y horarios ----
+      const bodyHeight = 90;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(225, 225, 225);
+      doc.rect(margin, y, cardWidth, bodyHeight, 'FD');
+
+      const bodyPadding = 24;
+      const bodyTextY = y + 40;
+
+      doc.setTextColor(...textDark);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text(this.formatTime(leg.departureTime), margin + bodyPadding, bodyTextY);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(leg.departureAirportCode || '', margin + bodyPadding, bodyTextY + 18);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...textGray);
+      doc.text(leg.departureCity || '', margin + bodyPadding, bodyTextY + 32);
+
+
+      doc.setTextColor(...textDark);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(this.formatDuration(leg.durationMinutes), pageWidth / 2, bodyTextY - 4, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setTextColor(31, 143, 71);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DIRECTO', pageWidth / 2, bodyTextY + 12, { align: 'center' });
+
+
+      const rightX = margin + cardWidth - bodyPadding;
+      doc.setTextColor(...textDark);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text(this.formatTime(leg.arrivalTime), rightX, bodyTextY, { align: 'right' });
+
+      doc.setFontSize(11);
+      doc.text(leg.arrivalAirportCode || '', rightX, bodyTextY + 18, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...textGray);
+      doc.text(leg.arrivalCity || '', rightX, bodyTextY + 32, { align: 'right' });
+
+      y += bodyHeight;
+
+
+      const footerHeight = 50;
+      doc.setFillColor(250, 250, 250);
+      doc.setDrawColor(225, 225, 225);
+      doc.rect(margin, y, cardWidth, footerHeight, 'FD');
+
+      doc.setFontSize(8);
+      doc.setTextColor(...textGray);
+      doc.setFont('helvetica', 'normal');
+      doc.text('FECHA', margin + bodyPadding, y + 18);
+      doc.text('AERONAVE', margin + cardWidth / 2, y + 18);
+
+      doc.setFontSize(10);
+      doc.setTextColor(...textDark);
+      doc.setFont('helvetica', 'bold');
+      doc.text(this.formatDate(leg.departureDate), margin + bodyPadding, y + 34);
+      doc.text(leg.airplaneModel || 'N/D', margin + cardWidth / 2, y + 34);
+
+      y += footerHeight + 30;
+
+
+      doc.setDrawColor(...brandGold);
+      doc.setLineWidth(1.5);
+      doc.line(margin, y, margin + cardWidth, y);
+      y += 24;
+
+      doc.setFontSize(9);
+      doc.setTextColor(...textGray);
+      doc.setFont('helvetica', 'normal');
+      doc.text('TITULAR DE LA RESERVACIÓN', margin, y);
+      doc.text('NÚMERO DE RESERVACIÓN', margin + cardWidth / 2, y);
+
+      y += 16;
+      doc.setFontSize(12);
+      doc.setTextColor(...textDark);
+      doc.setFont('helvetica', 'bold');
+      doc.text(this.cardHolderName, margin, y);
+      doc.text(this.reservationNumber, margin + cardWidth / 2, y);
+
+      y += 24;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...textGray);
+      doc.text(
+        `${this.passengerCount} pasajero${this.passengerCount === 1 ? '' : 's'} · ${this.tripTypeLabel}`,
+        margin,
+        y
+      );
     },
   },
 };
@@ -506,6 +681,11 @@ export default {
 .pdf-button {
   margin-bottom: 20px;
   background: #ffc107;
+}
+
+.pdf-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .passenger-card {
