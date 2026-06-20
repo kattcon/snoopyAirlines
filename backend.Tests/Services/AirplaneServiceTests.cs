@@ -83,5 +83,64 @@ namespace backend.Tests.Services
             Assert.NotNull(result);
             Assert.Equal("Airbus A320", result.Model);
         }
+
+        [Fact]
+        public async Task DeleteAirplane_AirplaneNotFound_ThrowsKeyNotFoundException()
+        {
+            // Arrange
+            var mockRepo = new Mock<IAirplaneRepository>();
+            mockRepo.Setup(r => r.GetAirplaneByIdAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((Airplane?)null);
+
+            var service = new AirplaneService(mockRepo.Object);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+                service.DeleteAirplaneAsync(1, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task DeleteAirplane_AirplaneHasPurchases_CallsSoftDelete()
+        {
+            // Arrange
+            var airplane = new Airplane { Id = 1, Model = "Boeing 737" };
+
+            var mockRepo = new Mock<IAirplaneRepository>();
+            mockRepo.Setup(r => r.GetAirplaneByIdAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(airplane);
+            mockRepo.Setup(r => r.AirplaneHasPurchasesAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+            var service = new AirplaneService(mockRepo.Object);
+
+            // Act
+            await service.DeleteAirplaneAsync(1, CancellationToken.None);
+
+            // Assert
+            mockRepo.Verify(r => r.SoftDeleteAirplaneAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+            mockRepo.Verify(r => r.HardDeleteAirplaneAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAirplane_AirplaneHasNoPurchases_CallsHardDelete()
+        {
+            // Arrange
+            var airplane = new Airplane { Id = 1, Model = "Boeing 737" };
+
+            var mockRepo = new Mock<IAirplaneRepository>();
+            mockRepo.Setup(r => r.GetAirplaneByIdAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(airplane);
+            mockRepo.Setup(r => r.AirplaneHasPurchasesAsync(1, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(false);
+
+            var service = new AirplaneService(mockRepo.Object);
+
+            // Act
+            await service.DeleteAirplaneAsync(1, CancellationToken.None);
+
+            // Assert
+            mockRepo.Verify(r => r.HardDeleteAirplaneAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+            mockRepo.Verify(r => r.SoftDeleteAirplaneAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }
