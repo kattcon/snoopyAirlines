@@ -1,5 +1,4 @@
 namespace SnoopyAirlines.Domain.View
-
 {
     public class FlightReportView
     {
