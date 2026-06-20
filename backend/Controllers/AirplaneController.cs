@@ -12,8 +12,8 @@ namespace SnoopyAirlines.Controllers
     [ApiController]
     [Route("airplane")]
     public class AirplaneController : ControllerBase {
-        private readonly AirplaneService _airplaneService;
-        public AirplaneController(AirplaneService airplaneService)
+        private readonly IAirplaneService _airplaneService;
+        public AirplaneController(IAirplaneService airplaneService)
         {
             _airplaneService = airplaneService;
         }
@@ -93,6 +93,21 @@ namespace SnoopyAirlines.Controllers
             catch (InvalidOperationException exception)
             {
                 return BadRequest(exception.Message);
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{airplaneId}")]
+        public async Task<IActionResult> DeleteAirplane(int airplaneId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _airplaneService.DeleteAirplaneAsync(airplaneId, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(exception.Message);
             }
         }
     }
