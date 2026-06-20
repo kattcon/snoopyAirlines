@@ -2,7 +2,7 @@ namespace SnoopyAirlines.Domain.Intake
 {
     public class FlightSearchIntake
     {
-        public string? ConfirmationNumber { get; set; }
-        public string? LastNames { get; set; }
+        public required string ConfirmationNumber { get; set; }
+        public required string LastNames { get; set; }
     }
 }
