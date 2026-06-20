@@ -1,4 +1,4 @@
-CREATE OR ALTER FUNCTION [dbo].[GetFlightReportByConfirmation](
+CREATE FUNCTION [dbo].[GetFlightReportByConfirmation](
     @confirmation_code VARCHAR(12),
     @last_name_search  VARCHAR(120)
 )
@@ -6,30 +6,30 @@ RETURNS TABLE
 AS
 RETURN (
     SELECT
-        b.confirmation_code                AS NumeroReservacion,
-        b.card_holder_name                 AS TitularReservacion,
-        i.sequence_number                  AS NumeroTramo,
+        b.confirmation_code                AS ReservationNumber,
+        b.card_holder_name                 AS CardHolderName,
+        i.sequence_number                  AS SequenceNumber,
 
-        dc.name                            AS CiudadPartida,
-        ac.name                            AS CiudadLlegada,
+        dc.name                            AS DepartureCity,
+        ac.name                            AS ArrivalCity,
 
-        da.code                            AS CodigoAeropuertoSalida,
-        aa.code                            AS CodigoAeropuertoLlegada,
+        da.code                            AS DepartureAirportCode,
+        aa.code                            AS ArrivalAirportCode,
 
-        CAST(f.departure_at AS DATE)       AS FechaSalida,
-        CAST(f.departure_at AS TIME(0))    AS HoraSalida,
-        CAST(f.arrival_at AS DATE)         AS FechaLlegada,
-        CAST(f.arrival_at AS TIME(0))      AS HoraLlegada,
+        CAST(f.departure_at AS DATE)       AS DepartureDate,
+        CAST(f.departure_at AS TIME(0))    AS DepartureTime,
+        CAST(f.arrival_at AS DATE)         AS ArrivalDate,
+        CAST(f.arrival_at AS TIME(0))      AS ArrivalTime,
 
-        r.duration_minutes                 AS DuracionVueloMinutos,
+        r.duration_minutes                 AS DurationMinutes,
 
-        ap.model                           AS Aeronave,
+        ap.model                           AS AirplaneModel,
 
         (
             SELECT COUNT(*)
             FROM dbo.Passenger p
             WHERE p.PurchaseOrderId = po.Id
-        )                                   AS CantidadPasajeros
+        )                                   AS PassengerCount
 
     FROM dbo.booking b
     JOIN dbo.PurchaseOrder po  ON po.Id          = b.purchase_order_id
