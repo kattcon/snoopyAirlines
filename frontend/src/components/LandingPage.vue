@@ -164,26 +164,30 @@
         </div>
 
         <div class="reservation-card">
-          <form class="reservation-form">
+          <form @submit.prevent="searchReservation" class="reservation-form">
             <div class="form-group">
               <label>Número de reservación</label>
               <input
+                v-model="formData.confirmationNumber"
                 type="text"
                 class="reservation-input"
                 placeholder="AA0A00AA0AA0"
+                required
               />
             </div>
 
             <div class="form-group">
               <label>Apellidos del titular</label>
               <input
+                v-model="formData.lastNames"
                 type="text"
                 placeholder="Ej. García Rodríguez"
                 class="reservation-input"
+                required
               />
             </div>
 
-            <router-link to="/client-flight-report" class="reservation-button">Buscar reservación</router-link>
+            <button type="submit" class="reservation-button">Buscar reservación</button>
 
             <p class="reservation-help">
               Encuentra tu número de reservación en el correo de confirmación de compra.
@@ -262,13 +266,17 @@
 </template>
 
 <script>
-
+import axios from 'axios';
 
 const BACKEND_API_BASE = 'http://localhost:5235';
 export default {
   name: 'LandingPage',
   data() {
     return {
+      formData: {
+                    confirmationNumber: '',
+                    lastNames: ''
+                },
       selectedFlightId: null,
       tripType: 'ida',
       search: {
@@ -283,79 +291,6 @@ export default {
       searchResults: [],
       loading: false,
       searchPerformed: false,
-      destinations: [
-        {
-          id: 1,
-          name: 'Nueva York',
-          country: 'Estados Unidos',
-          price: 299,
-          image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop',
-          badge: 'Más popular'
-        },
-        {
-          id: 2,
-          name: 'Londres',
-          country: 'Reino Unido',
-          price: 449,
-          image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop',
-          badge: null
-        },
-        {
-          id: 3,
-          name: 'París',
-          country: 'Francia',
-          price: 379,
-          image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop',
-          badge: 'Best seller'
-        },
-        {
-          id: 4,
-          name: 'Tokio',
-          country: 'Japón',
-          price: 599,
-          image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
-          badge: null
-        },
-        {
-          id: 5,
-          name: 'Miami',
-          country: 'Estados Unidos',
-          price: 249,
-          image: 'https://images.unsplash.com/photo-1535498730771-e735b998cd64?w=400&h=300&fit=crop',
-          badge: 'Oferta'
-        },
-        {
-          id: 6,
-          name: 'Dubai',
-          country: 'Emiratos Árabes',
-          price: 529,
-          image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop',
-          badge: null
-        }
-      ],
-      offers: [
-        {
-          id: 1,
-          title: 'Descuento de Temporada',
-          description: 'Hasta 40% de descuento en vuelos a Europa',
-          route: 'San José → Madrid',
-          discount: 40
-        },
-        {
-          id: 2,
-          title: 'Viaja en Grupo',
-          description: '3era persona gratis viajando en grupo',
-          route: 'Varios destinos',
-          discount: 50
-        },
-        {
-          id: 3,
-          title: 'Early Bird',
-          description: '30% de descuento reservando con 60 días de anticipación',
-          route: 'América Central',
-          discount: 30
-        }
-      ],
       advantages: [
         {
           id: 1,
@@ -569,9 +504,38 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         seatClass: seatClass,
         passengersCount: this.search.passengers
       }})
+    },
+
+    searchReservation() {
+      axios
+          .get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/search`, { params: {
+                        ConfirmationNumber: this.formData.confirmationNumber,
+                        LastNames: this.formData.lastNames
+          }})
+          .then(function (response) {
+              console.log(response);
+              this.$router.push({ path: '/client-flight-report', query: {
+                ConfirmationNumber: this.formData.confirmationNumber,
+                LastNames: this.formData.lastNames
+              }});
+              console.log(response);
+          })
+          .catch(function (error) {
+              if (error.response && error.response.status === 404)
+              {
+                  alert("No se encontró ninguna reservación con esos datos");
+              }
+              else
+              {
+                  alert("Error al buscar reservación.");
+              }
+              console.error(error);
+          });
     }
-  }
+  } 
 };
+
+
 </script>
 
 <style scoped>
