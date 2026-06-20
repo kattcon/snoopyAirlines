@@ -225,6 +225,20 @@ namespace SnoopyAirlines.Repositories
                 throw new InvalidOperationException("No se puede crear una ruta con un aeropuerto eliminado.");
             }
 
+            var airplaneDeleted = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition("""
+                    SELECT COUNT(1) FROM airplane
+                    WHERE id = @AirplaneId
+                      AND is_deleted = 1;
+                    """,
+                    new { route.AirplaneId },
+                    cancellationToken: cancellationToken));
+
+            if (airplaneDeleted > 0)
+            {
+                throw new InvalidOperationException("No se puede crear una ruta con una aeronave eliminada.");
+            }
+
             const string sql = """
                 IF @Id > 0 AND EXISTS (SELECT 1 FROM [route] WHERE id = @Id)
                 BEGIN
