@@ -7,248 +7,255 @@
         </a>
     </div>
 
-    <!-- Header -->
-    <section class="hero">
-      <div class="hero-content">
-        <div>
-          <p class="hero-subtitle">
-            SNOOPY AIRLINES — TU RESERVACIÓN
-          </p>
+    <!-- Empty state: no llegaron datos (ej. recarga de página) -->
+    <div v-if="!hasReport" class="empty-state">
+      <p>No hay información de reservación para mostrar.</p>
+      <p>Por favor busca tu reservación nuevamente desde la página de inicio.</p>
+      <router-link to="/" class="reservation-button empty-state-link">Volver al inicio</router-link>
+    </div>
 
-          <h1 class="hero-title">
-            {{ MOCK_ORIGIN }} → {{ MOCK_DESTINATION }}
-          </h1>
+    <template v-else>
+      <!-- Header -->
+      <section class="hero">
+        <div class="hero-content">
+          <div>
+            <p class="hero-subtitle">
+              SNOOPY AIRLINES — TU RESERVACIÓN
+            </p>
 
-          <p class="hero-location">
-            {{ MOCK_DESTINATION_LOCATION }}
-          </p>
+            <h1 class="hero-title">
+              {{ firstLeg.departureCity }} → {{ lastLeg.arrivalCity }}
+            </h1>
 
-          <div class="hero-tags">
-            <span>{{ MOCK_RESERVATION_NUMBER }}</span>
-            <span>{{ MOCK_DEPARTURE_DATE }}</span>
-            <span>{{ MOCK_PASSENGERS }} pasajeros</span>
-            <span>{{ MOCK_TRIP_TYPE }}</span>
-          </div>
-        </div>
-
-        <div class="countdown-card">
-          <div class="countdown-number">
-            {{ MOCK_DAYS_LEFT }}
-          </div>
-
-          <div class="countdown-text">
-            días para viajar
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Main Content -->
-    <section class="content">
-      <!-- Left Column -->
-      <div class="left-column">
-        <!-- Outbound Flight -->
-        <div class="flight-card">
-          <div class="flight-header">
-            <div>
-              <div class="flight-type">
-                VUELO DE IDA
-              </div>
-
-              <div class="route">
-                {{ MOCK_ORIGIN }} → {{ MOCK_DESTINATION }}
-              </div>
-            </div>
-
-            <div class="flight-number">
-              {{ MOCK_OUTBOUND_FLIGHT }}
+            <div class="hero-tags">
+              <span>{{ reservationNumber }}</span>
+              <span>{{ formatDate(firstLeg.departureDate) }}</span>
+              <span>{{ passengerCount }} pasajero{{ passengerCount === 1 ? '' : 's' }}</span>
+              <span>{{ tripTypeLabel }}</span>
             </div>
           </div>
 
-          <div class="flight-body">
-            <div class="airport">
-              <h2>{{ MOCK_OUTBOUND_DEPARTURE_TIME }}</h2>
-              <span>SJO</span>
-              <small>San José</small>
+          <div v-if="daysUntilDeparture !== null" class="countdown-card">
+            <div class="countdown-number">
+              {{ Math.abs(daysUntilDeparture) }}
             </div>
 
-            <div class="flight-center">
-              <div>{{ MOCK_FLIGHT_DURATION }}</div>
-              <small>Directo</small>
-            </div>
-
-            <div class="airport airport-right">
-              <h2>{{ MOCK_OUTBOUND_ARRIVAL_TIME }}</h2>
-              <span>MIA</span>
-              <small>Miami</small>
-            </div>
-          </div>
-
-          <div class="flight-footer">
-            <div>
-              <label>Fecha</label>
-              <span>{{ MOCK_DEPARTURE_DATE }}</span>
-            </div>
-
-            <div>
-              <label>Aeronave</label>
-              <span>{{ MOCK_OUTBOUND_AIRCRAFT }}</span>
-            </div>
-
-            <div>
-              <label>Terminal</label>
-              <span>{{ MOCK_OUTBOUND_TERMINAL }}</span>
+            <div class="countdown-text">
+              {{ countdownLabel }}
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- Return Flight -->
-        <div class="flight-card">
-          <div class="flight-header">
-            <div>
-              <div class="flight-type">
-                VUELO DE REGRESO
+      <!-- Main Content -->
+      <section class="content">
+        <!-- Left Column -->
+        <div class="left-column">
+          <!-- Una tarjeta por cada tramo de la reservación -->
+          <div class="flight-card" v-for="leg in flightLegs" :key="leg.sequenceNumber">
+            <div class="flight-header">
+              <div>
+                <div class="flight-type">
+                  {{ legLabel(leg) }}
+                </div>
+
+                <div class="route">
+                  {{ leg.departureCity }} → {{ leg.arrivalCity }}
+                </div>
               </div>
 
-              <div class="route">
-                {{ MOCK_DESTINATION }} → {{ MOCK_ORIGIN }}
+              <div class="flight-number">
+                Tramo {{ leg.sequenceNumber }}
               </div>
             </div>
 
-            <div class="flight-number">
-              {{ MOCK_RETURN_FLIGHT }}
-            </div>
-          </div>
+            <div class="flight-body">
+              <div class="airport">
+                <h2>{{ formatTime(leg.departureTime) }}</h2>
+                <span>{{ leg.departureAirportCode }}</span>
+                <small>{{ leg.departureCity }}</small>
+              </div>
 
-          <div class="flight-body">
-            <div class="airport">
-              <h2>{{ MOCK_RETURN_DEPARTURE_TIME }}</h2>
-              <span>MIA</span>
-              <small>Miami</small>
-            </div>
+              <div class="flight-center">
+                <div>{{ formatDuration(leg.durationMinutes) }}</div>
+                <small>Directo</small>
+              </div>
 
-            <div class="flight-center">
-              <div>{{ MOCK_FLIGHT_DURATION }}</div>
-              <small>Directo</small>
-            </div>
-
-            <div class="airport airport-right">
-              <h2>{{ MOCK_RETURN_ARRIVAL_TIME }}</h2>
-              <span>SJO</span>
-              <small>San José</small>
-            </div>
-          </div>
-
-          <div class="flight-footer">
-            <div>
-              <label>Fecha</label>
-              <span>{{ MOCK_RETURN_DATE }}</span>
+              <div class="airport airport-right">
+                <h2>{{ formatTime(leg.arrivalTime) }}</h2>
+                <span>{{ leg.arrivalAirportCode }}</span>
+                <small>{{ leg.arrivalCity }}</small>
+              </div>
             </div>
 
-            <div>
-              <label>Aeronave</label>
-              <span>{{ MOCK_RETURN_AIRCRAFT }}</span>
-            </div>
+            <div class="flight-footer">
+              <div>
+                <label>Fecha</label>
+                <span>{{ formatDate(leg.departureDate) }}</span>
+              </div>
 
-            <div>
-              <label>Terminal</label>
-              <span>{{ MOCK_RETURN_TERMINAL }}</span>
+              <div>
+                <label>Aeronave</label>
+                <span>{{ leg.airplaneModel }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Right Column -->
-      <div class="right-column">
-        <div class="action-card">
-          <h3>Equipaje</h3>
+        <!-- Right Column -->
+        <div class="right-column">
+          <div class="action-card">
+            <h3>Equipaje</h3>
 
-          <p>
-            Agrega equipaje adicional a tu reservación.
-          </p>
+            <p>
+              Agrega equipaje adicional a tu reservación.
+            </p>
 
-          <button class="primary-button">
-            Comprar equipaje
+            <button class="primary-button">
+              Comprar equipaje
+            </button>
+          </div>
+
+          <div class="action-card">
+            <h3>Cancelar reservación</h3>
+
+            <button class="danger-button">
+              Cancelar reservación
+            </button>
+          </div>
+
+          <button class="pdf-button">
+            Imprimir itinerario (PDF)
           </button>
-        </div>
 
-        <div class="action-card">
-          <h3>Cancelar reservación</h3>
-
-          <button class="danger-button">
-            Cancelar reservación
-          </button>
-        </div>
-
-        <button class="pdf-button">
-          Imprimir itinerario (PDF)
-        </button>
-
-        <div class="passenger-card">
-          <div class="passenger-title">
-            TITULAR DE LA RESERVACIÓN
-          </div>
-
-          <div class="passenger-info">
-            <div class="avatar">
-              CG
+          <div class="passenger-card">
+            <div class="passenger-title">
+              TITULAR DE LA RESERVACIÓN
             </div>
 
-            <div>
-              <strong>
-                {{ MOCK_PASSENGER_NAME }}
-              </strong>
+            <div class="passenger-info">
+              <div class="avatar">
+                {{ cardHolderInitials }}
+              </div>
 
-              <p>
-                {{ MOCK_PASSENGERS }}
-                pasajeros ·
-                {{ MOCK_TRIP_TYPE }}
-              </p>
+              <div>
+                <strong>
+                  {{ cardHolderName }}
+                </strong>
+
+                <p>
+                  {{ passengerCount }} pasajero{{ passengerCount === 1 ? '' : 's' }} ·
+                  {{ tripTypeLabel }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </template>
   </div>
 </template>
 
-<script setup>
-// ======================================
-// MOCK DATA - REPLACE WITH API RESPONSE
-// ======================================
+<script>
+export default {
+  name: 'ClientFlightReport',
+  data() {
+    return {
+      // Los tramos llegan vía router state desde LandingPage.vue (búsqueda de reservación).
+      // Cada elemento corresponde a una fila devuelta por dbo.GetFlightReportByConfirmation.
+      flightLegs: [],
+    };
+  },
+  created() {
+    const stateReport = window.history.state?.flightReport;
 
-const MOCK_ORIGIN = 'San José';
-const MOCK_DESTINATION = 'Miami';
-const MOCK_DESTINATION_LOCATION = 'Florida, EE.UU.';
+    if (Array.isArray(stateReport) && stateReport.length > 0) {
+      this.flightLegs = [...stateReport].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+    }
+  },
+  computed: {
+    hasReport() {
+      return this.flightLegs.length > 0;
+    },
+    firstLeg() {
+      return this.flightLegs[0] ?? {};
+    },
+    lastLeg() {
+      return this.flightLegs[this.flightLegs.length - 1] ?? {};
+    },
+    reservationNumber() {
+      return this.firstLeg.reservationNumber ?? '';
+    },
+    cardHolderName() {
+      return this.firstLeg.cardHolderName ?? 'Titular no disponible';
+    },
+    cardHolderInitials() {
+      return this.cardHolderName
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(word => word[0]?.toUpperCase() ?? '')
+        .join('');
+    },
+    passengerCount() {
+      return this.firstLeg.passengerCount ?? 0;
+    },
+    tripTypeLabel() {
+      return this.flightLegs.length > 1 ? 'Con escala(s)' : 'Directo';
+    },
+    daysUntilDeparture() {
+      const departureDate = this.firstLeg.departureDate;
+      if (!departureDate) return null;
 
-const MOCK_RESERVATION_NUMBER = 'SA-2026-001234';
+      // Comparar solo fechas (sin horas) para evitar resultados parciales por zona horaria
+      const today = new Date();
+      const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const departure = new Date(`${departureDate}T00:00:00`);
 
-const MOCK_DEPARTURE_DATE = 'Sábado, 5 de julio de 2026';
-const MOCK_RETURN_DATE = 'Sábado, 12 de julio de 2026';
-
-const MOCK_PASSENGERS = 2;
-const MOCK_TRIP_TYPE = 'Ida y vuelta';
-
-const MOCK_DAYS_LEFT = 19;
-
-const MOCK_OUTBOUND_FLIGHT = 'SN 204';
-const MOCK_RETURN_FLIGHT = 'SN 108';
-
-const MOCK_OUTBOUND_DEPARTURE_TIME = '07:45';
-const MOCK_OUTBOUND_ARRIVAL_TIME = '12:00';
-
-const MOCK_RETURN_DEPARTURE_TIME = '15:30';
-const MOCK_RETURN_ARRIVAL_TIME = '19:45';
-
-const MOCK_FLIGHT_DURATION = '4h 15min';
-
-const MOCK_OUTBOUND_AIRCRAFT = 'Boeing 737-800';
-const MOCK_RETURN_AIRCRAFT = 'Airbus A320neo';
-
-const MOCK_OUTBOUND_TERMINAL = 'Terminal 2';
-const MOCK_RETURN_TERMINAL = 'Concourse D';
-
-const MOCK_PASSENGER_NAME = 'Carlos García Rodríguez';
+      const msPerDay = 1000 * 60 * 60 * 24;
+      return Math.round((departure - todayDateOnly) / msPerDay);
+    },
+    countdownLabel() {
+      if (this.daysUntilDeparture === 0) return 'tu vuelo es hoy';
+      if (this.daysUntilDeparture > 0) return 'días para viajar';
+      return 'días desde tu vuelo';
+    },
+  },
+  methods: {
+    legLabel(leg) {
+      if (this.flightLegs.length === 1) {
+        return 'VUELO';
+      }
+      if (leg.sequenceNumber === this.firstLeg.sequenceNumber) {
+        return 'PRIMER TRAMO';
+      }
+      if (leg.sequenceNumber === this.lastLeg.sequenceNumber) {
+        return 'ÚLTIMO TRAMO';
+      }
+      return `TRAMO ${leg.sequenceNumber}`;
+    },
+    formatTime(value) {
+      // El backend envía TimeOnly serializado como "HH:mm:ss"
+      return value ? String(value).slice(0, 5) : '';
+    },
+    formatDate(value) {
+      if (!value) return '';
+      // El backend envía DateOnly serializado como "YYYY-MM-DD"
+      return new Date(`${value}T00:00:00`).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    },
+    formatDuration(minutes) {
+      if (!minutes && minutes !== 0) return '';
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}h ${remainingMinutes}min`;
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -263,6 +270,28 @@ const MOCK_PASSENGER_NAME = 'Carlos García Rodríguez';
   font-weight: 600;
   color: #005fa3;
   cursor: pointer;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 80px 40px;
+  text-align: center;
+  color: #555;
+}
+
+.empty-state-link {
+  display: inline-block;
+  width: auto;
+  margin-top: 12px;
+  padding: 14px 28px;
+  background: #ffc107;
+  color: #1f1f1f;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .hero {
@@ -294,10 +323,6 @@ const MOCK_PASSENGER_NAME = 'Carlos García Rodríguez';
   font-weight: 700;
 }
 
-.hero-location {
-  opacity: 0.9;
-}
-
 .hero-tags {
   display: flex;
   flex-wrap: wrap;
@@ -324,6 +349,11 @@ const MOCK_PASSENGER_NAME = 'Carlos García Rodríguez';
   font-size: 3rem;
   font-weight: bold;
   color: #ffd54a;
+}
+
+.countdown-text {
+  font-size: 0.9rem;
+  opacity: 0.85;
 }
 
 .content {

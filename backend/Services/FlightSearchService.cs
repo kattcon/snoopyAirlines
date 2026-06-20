@@ -1,5 +1,6 @@
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
+using System.ComponentModel.DataAnnotations;
 
 namespace SnoopyAirlines.Services
 {

@@ -187,10 +187,12 @@
               />
             </div>
 
-            <button type="submit" class="reservation-button">Buscar reservación</button>
+            <button type="submit" class="reservation-button" :disabled="reservationLoading">
+              {{ reservationLoading ? 'Buscando...' : 'Buscar reservación' }}
+            </button>
 
             <p class="reservation-help">
-              Encuentra tu número de reservación en el correo de confirmación de compra.
+              Encuentra tu número de reservación en el correo de confirmación de compra e itinerario.
             </p>
           </form>
         </div>
@@ -505,22 +507,24 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         passengersCount: this.search.passengers
       }})
     },
+    // SEARCH RESERVATION
 
     searchReservation() {
+      this.reservationLoading = true;
       axios
-          .get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/search`, { params: {
-                        ConfirmationNumber: this.formData.confirmationNumber,
-                        LastNames: this.formData.lastNames
-          }})
-          .then(function (response) {
-              console.log(response);
-              this.$router.push({ path: '/client-flight-report', query: {
-                ConfirmationNumber: this.formData.confirmationNumber,
-                LastNames: this.formData.lastNames
-              }});
-              console.log(response);
+          .get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/search`, { 
+            params: {
+              confirmationNumber: this.formData.confirmationNumber,
+              lastNames: this.formData.lastNames
+            },
           })
-          .catch(function (error) {
+          .then((response) => {
+              this.$router.push({
+                path: '/client-flight-report',
+                state: { flightReport : response.data}
+              });
+          })
+          .catch((error) => {
               if (error.response && error.response.status === 404)
               {
                   alert("No se encontró ninguna reservación con esos datos");
@@ -530,7 +534,10 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
                   alert("Error al buscar reservación.");
               }
               console.error(error);
-          });
+          })
+          .finally(() => {
+              this.reservationLoading = false;
+           });
     }
   } 
 };
