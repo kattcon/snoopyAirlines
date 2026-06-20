@@ -172,7 +172,6 @@
                 type="text"
                 :class="['reservation-input', { 'input-error': reservationError }]"
                 placeholder="AA0A00AA0AA0"
-                required
               />
             </div>
 
@@ -183,7 +182,6 @@
                 type="text"
                 placeholder="Ej. García Rodríguez"
                 :class="['reservation-input', { 'input-error': reservationError }]"
-                required
               />
             </div>
 
