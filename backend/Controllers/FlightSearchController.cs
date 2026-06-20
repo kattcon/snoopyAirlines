@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SnoopyAirlines.Domain.Intake;
-using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Services;
 
 namespace SnoopyAirlines.Controllers
@@ -16,10 +16,18 @@ namespace SnoopyAirlines.Controllers
             _flightSearchService = flightSearchService;
         }
 
+        [AllowAnonymous]
         [HttpGet("search")]
-        public async Task<ActionResult<IReadOnlyCollection<FlightCustomerReport>>> Search(FlightSearchIntake intake, CancellationToken cancellationToken)
+        public async Task<ActionResult<IReadOnlyCollection<FlightReportView>>> Search(
+            [FromQuery] string confirmationNumber,
+            [FromQuery] string lastNames,
+            CancellationToken cancellationToken)
         {
-            var flightReport = await _flightSearchService.GetFlightReportByConfirmationAsync(intake.ConfirmationNumber, intake.LastNames, cancellationToken);
+            var flightReport = await _flightSearchService.GetFlightReportByConfirmationAsync(
+                confirmationNumber,
+                lastNames,
+                cancellationToken);
+
             return Ok(flightReport);
         }
     }
