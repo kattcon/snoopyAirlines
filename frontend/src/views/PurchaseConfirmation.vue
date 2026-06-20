@@ -162,32 +162,15 @@ export default {
         "CheckedBags"
       ]);
     },
-    checkedLuggageUnitPrice() {
+    checkedLuggageTotalAmount() {
       if (this.routeDetails.length === 0) return null;
 
-      const total = this.routeDetails.reduce((sum, routeDetail) => {
-        const route = routeDetail.route || {};
-        const price = Number(this.firstFieldValue(route, [
-          "priceCheckedBaggage",
-          "PriceCheckedBaggage",
-          "checkedPrice",
-          "CheckedPrice"
-        ]));
-
-        return Number.isFinite(price) ? sum + price : Number.NaN;
+      const total = this.routeDetails.reduce((routeSum, routeDetail) => {
+      const routeCost = this.checkedLuggageTotalForRoute(routeDetail.route);
+      return routeCost === null ? null : routeSum + routeCost;
       }, 0);
 
       return Number.isFinite(total) ? total : null;
-    },
-    checkedLuggageTotalAmount() {
-      if (
-        !Number.isFinite(this.checkedLuggageCount) ||
-        !Number.isFinite(this.checkedLuggageUnitPrice)
-      ) {
-        return null;
-      }
-
-      return this.checkedLuggageCount * this.checkedLuggageUnitPrice;
     },
     carryOnLuggageCountLabel() {
       return this.carryOnLuggageCount === null
@@ -423,6 +406,48 @@ export default {
       return Number.isFinite(value)
         ? this.formatCurrency(value)
         : this.placeholder(placeholderKey);
+    },
+    checkedLuggageTotalForRoute(route) {
+      const unitPrice = Number(this.firstFieldValue(route, [
+        "priceCheckedBaggage",
+        "PriceCheckedBaggage",
+        "checkedPrice",
+        "CheckedPrice"
+      ]));
+      const multiplier = Number(this.firstFieldValue(route, [
+        "checkedBaggagePriceMultiplier",
+        "CheckedBaggagePriceMultiplier"
+      ]));
+
+      if (!Number.isFinite(unitPrice) || !Number.isFinite(multiplier)) {
+        return null;
+      }
+
+      return this.passengers.reduce((passengerSum, passenger) => {
+        const checkedValue = this.firstFieldValue(passenger, [
+          "checkedLuggage",
+          "CheckedLuggage",
+          "checkedBags",
+          "CheckedBags"
+        ]);
+
+        if (checkedValue === undefined || checkedValue === "") {
+          return null;
+        }
+
+        const checkedCount = Number(checkedValue);
+        if (!Number.isFinite(checkedCount) || checkedCount < 0) {
+          return null;
+        }
+
+        return passengerSum + this.checkedLuggageCostForPassenger(checkedCount, unitPrice, multiplier);
+      }, 0);
+    },
+    checkedLuggageCostForPassenger(checkedCount, unitPrice, multiplier) {
+      const bags = Math.floor(checkedCount);
+      if (bags <= 0) return 0;
+
+      return unitPrice * bags + unitPrice * multiplier * (bags * (bags - 1) / 2);
     },
     async loadRouteDetails(routes) {
       if (!Array.isArray(routes) || routes.length === 0) {
