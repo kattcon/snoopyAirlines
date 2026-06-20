@@ -1,4 +1,4 @@
-CREATE FUNCTION [dbo].[GetFlightReportByConfirmation](
+CREATE OR ALTER FUNCTION [dbo].[GetFlightReportByConfirmation](
     @confirmation_code VARCHAR(12),
     @last_name_search  VARCHAR(120)
 )
@@ -43,6 +43,22 @@ RETURN (
     JOIN dbo.airplane ap       ON ap.id          = r.airplane_id
     WHERE
         b.confirmation_code = UPPER(LTRIM(RTRIM(@confirmation_code)))
-        AND b.card_holder_name LIKE
-            '%' + REPLACE(REPLACE(LTRIM(RTRIM(@last_name_search)), '[', '[[]'), '%', '[%]') + '%'
+
+        -- Cada palabra ingresada por el cliente debe existir como palabra
+        -- completa dentro de card_holder_name
+        AND NOT EXISTS (
+            SELECT 1
+            FROM STRING_SPLIT(LTRIM(RTRIM(@last_name_search)), ' ') AS buscado
+            WHERE buscado.value <> ''
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM STRING_SPLIT(b.card_holder_name, ' ') AS existente
+                  WHERE existente.value = buscado.value
+              )
+        )
+
+        -- Evita que un @last_name_search vacío o solo de espacios
+        -- coincida con cualquier reservación.
+        AND LTRIM(RTRIM(@last_name_search)) <> ''
 );
+GO
