@@ -30,8 +30,10 @@
                     empty-message="No hay aeronaves disponibles"
                     >
                     <template #cell-actions="{ item }">
-                        <button class="primaryButton" @click.stop="$router.push(`/admin/edit-aircraft/${item.id}`)">Editar</button>
-                        <button class="dangerButton" @click.stop="confirmDelete(item)">Eliminar</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="primaryButton" @click.stop="$router.push(`/admin/edit-aircraft/${item.id}`)">Editar</button>
+                            <button class="dangerButton" @click.stop="confirmDelete(item)">Eliminar</button>
+                        </div>
                     </template>
                 </AppList>
                 <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
