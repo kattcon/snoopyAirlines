@@ -148,7 +148,12 @@ namespace SnoopyAirlines.Repositories
             {
                 await connection.ExecuteAsync(
                     new CommandDefinition(
-                        "UPDATE dbo.[route] SET is_deleted = 1 WHERE departure_airport_id = @Id OR arrival_airport_id = @Id;",
+                        """
+                        UPDATE dbo.[route]
+                        SET is_deleted = 1
+                        WHERE is_deleted = 0
+                          AND (departure_airport_id = @Id OR arrival_airport_id = @Id);
+                        """,
                         new { Id = airportId }, transaction, cancellationToken: cancellationToken));
 
                 await connection.ExecuteAsync(

@@ -131,7 +131,8 @@ namespace snoopy_airlines_backend.Repositories
                 new CommandDefinition("""
                     SELECT id
                     FROM dbo.[route] WITH (UPDLOCK, HOLDLOCK)
-                    WHERE id IN @RouteIds;
+                    WHERE id IN @RouteIds
+                    AND is_deleted = 0;
                     """,
                     new { RouteIds = routeIds },
                     transaction,

@@ -36,6 +36,7 @@ namespace SnoopyAirlines.Repositories
                     weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
                     checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
                 FROM [route]
+                WHERE is_deleted = 0
                 ORDER BY departure_time;
                 """;
 
@@ -83,7 +84,7 @@ namespace SnoopyAirlines.Repositories
                 INNER JOIN city arrival_city ON arrival_airport.city_id = arrival_city.id
                 """);
 
-            var where = new List<string>();
+            var where = new List<string> { "f.is_deleted = 0" };
             var parameters = new DynamicParameters();
 
             if (!string.IsNullOrWhiteSpace(routeQuery.Origin))
@@ -153,7 +154,8 @@ namespace SnoopyAirlines.Repositories
                 INNER JOIN city departure_city ON departure_airport.city_id = departure_city.id
                 INNER JOIN airport arrival_airport ON f.arrival_airport_id = arrival_airport.id
                 INNER JOIN city arrival_city ON arrival_airport.city_id = arrival_city.id
-                WHERE f.id = @RouteId;
+                WHERE f.id = @RouteId
+                  AND f.is_deleted = 0;
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
@@ -186,7 +188,8 @@ namespace SnoopyAirlines.Repositories
                     weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
                     checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
                 FROM [route]
-                WHERE (@DepartureAirportId IS NULL OR departure_airport_id = @DepartureAirportId)
+                WHERE is_deleted = 0
+                  AND (@DepartureAirportId IS NULL OR departure_airport_id = @DepartureAirportId)
                   AND (@ArrivalAirportId IS NULL OR arrival_airport_id = @ArrivalAirportId)
                   AND (@DepartureDate IS NULL OR CAST(departure_time AS date) = @DepartureDate)
                 ORDER BY departure_time;
@@ -240,7 +243,12 @@ namespace SnoopyAirlines.Repositories
             }
 
             const string sql = """
-                IF @Id > 0 AND EXISTS (SELECT 1 FROM [route] WHERE id = @Id)
+                IF @Id > 0 AND EXISTS (
+                    SELECT 1
+                    FROM [route]
+                    WHERE id = @Id
+                      AND is_deleted = 0
+                )
                 BEGIN
                     UPDATE [route]
                     SET
@@ -258,7 +266,8 @@ namespace SnoopyAirlines.Repositories
                         weight_limit_carry_on_baggage = @WeightLimitCarryOnBaggage,
                         weight_limit_checked_baggage = @WeightLimitCheckedBaggage,
                         checked_baggage_price_multiplier = @CheckedBaggagePriceMultiplier
-                    WHERE id = @Id;
+                    WHERE id = @Id
+                      AND is_deleted = 0;
                 END
                 ELSE
                 BEGIN
