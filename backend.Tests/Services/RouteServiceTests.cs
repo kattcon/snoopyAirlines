@@ -208,5 +208,83 @@ namespace SnoopyAirlines.Tests
             var stopoverFlights = results.Where(f => f.HasStopover && f.StopoverAirport?.Code == "BOG").ToList();
             Assert.DoesNotContain(stopoverFlights, flight => flight.StopoverDuration != null && flight.StopoverDuration.Contains("12:30"));
         }
+
+        [Fact]
+        public async Task SearchFlights_WithNextDayStopoverWithinTwelveHours_ReturnsConnectingFlight()
+        {
+            // Arrange
+            var query = new RouteQuery
+            {
+                Origin = "SJO",
+                Destination = "JFK",
+                EarliestDeparture = new DateTime(2026, 6, 15, 20, 0, 0),
+                LatestDeparture = new DateTime(2026, 6, 15, 23, 59, 0),
+                QuantityOfPassengers = 1,
+                IncludeStopovers = true
+            };
+
+            var firstLeg = new Route
+            {
+                Id = 10,
+                DepartureAirport = new RouteAirport { Code = "SJO", Name = "San Jose", City = "San Jose" },
+                ArrivalAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                DepartureTime = new TimeOnly(22, 30),
+                ArrivalTime = new TimeOnly(1, 0), // llega al dia siguiente
+                DurationMinutes = 150,
+                Frequency = new RouteFrequency { Monday = true },
+                PriceEconomyClass = 300,
+                PriceFirstClass = 600,
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
+            };
+
+            var secondLeg = new Route
+            {
+                Id = 11,
+                DepartureAirport = new RouteAirport { Code = "MIA", Name = "Miami", City = "Miami" },
+                ArrivalAirport = new RouteAirport { Code = "JFK", Name = "John F. Kennedy", City = "New York" },
+                DepartureTime = new TimeOnly(3, 30), // 2h30 despues de arr1
+                ArrivalTime = new TimeOnly(6, 30),
+                DurationMinutes = 180,
+                Frequency = new RouteFrequency { Tuesday = true },
+                PriceEconomyClass = 250,
+                PriceFirstClass = 500,
+                PriceCarryOnBaggage = 0,
+                PriceCheckedBaggage = 25
+            };
+
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Origin == "SJO" && string.IsNullOrWhiteSpace(q.Destination)),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new[] { firstLeg });
+
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Destination == "JFK" && string.IsNullOrWhiteSpace(q.Origin)),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new[] { secondLeg });
+
+            _mockRepository
+                .Setup(r => r.GetRoutesAsync(
+                    It.Is<RouteSearchQuery>(q => q.Origin == "SJO" && q.Destination == "JFK"),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<Route>());
+
+            // Act
+            var results = await _routeService.SearchFlightsAsync(query, CancellationToken.None);
+
+            // Assert
+            var nextDayConnection = results.SingleOrDefault(f =>
+                f.HasStopover
+                && f.DepartureAirport.Code == "SJO"
+                && f.ArrivalAirport.Code == "JFK"
+                && f.StopoverAirport?.Code == "MIA");
+
+            Assert.NotNull(nextDayConnection);
+            Assert.Equal("02:30", nextDayConnection!.StopoverDuration);
+            Assert.Equal(new DateTime(2026, 6, 15, 22, 30, 0), nextDayConnection.DepartureTime);
+            Assert.Equal(new DateTime(2026, 6, 16, 6, 30, 0), nextDayConnection.ArrivalTime);
+        }
     }
 }
