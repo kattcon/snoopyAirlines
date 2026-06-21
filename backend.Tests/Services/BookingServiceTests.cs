@@ -25,7 +25,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task BookAsync_NormalizesRequestAndReturnsBooking()
+        public async Task TestBookAsyncNormalizesRequestAndReturnsBooking()
         {
             // Arrange
             var booking = CreateBooking();
@@ -62,7 +62,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task BookAsync_SendsConfirmationAndItineraryEmails()
+        public async Task TestBookAsyncSendsConfirmationAndItineraryEmails()
         {
             // Arrange
             var booking = CreateBooking(totalAmount: 1234.50m);
@@ -107,7 +107,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task BookAsync_InvalidCardLastFourThrowsArgumentException()
+        public async Task TestBookAsyncInvalidCardLastFourThrowsArgumentException()
         {
             // Arrange
             var service = CreateService();
@@ -135,7 +135,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task BookAsync_WhenPurchaseOrderDetailsMissingThrowsInvalidOperationException()
+        public async Task TestBookAsyncWhenPurchaseOrderDetailsMissingThrowsInvalidOperationException()
         {
             // Arrange
             var booking = CreateBooking();
