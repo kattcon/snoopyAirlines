@@ -21,14 +21,14 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "local-jeshua": {
+    "local": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5187",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "local-jeshua"
+        "ASPNETCORE_ENVIRONMENT": "local"
       }
     }
   }

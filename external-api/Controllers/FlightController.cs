@@ -34,8 +34,8 @@ namespace SnoopyAirlines.External.Controllers
         [HttpGet]
         public async Task<ActionResult<FlightsResponse>> Get(
             [FromQuery(Name = "detination")] string? detination,
-            [FromQuery] string? earliestArrival,
-            [FromQuery] string? latestArrival,
+            [FromQuery] string? earliestDeparture,
+            [FromQuery] string? latestDeparture,
             [FromQuery] string? quantityOfPassengers,
             [FromQuery] string? apiKey,
             CancellationToken cancellationToken
@@ -54,8 +54,8 @@ namespace SnoopyAirlines.External.Controllers
 
             if (!TryCreateRouteQuery(
                 detination,
-                earliestArrival,
-                latestArrival,
+                earliestDeparture,
+                latestDeparture,
                 quantityOfPassengers,
                 out var routeQuery,
                 out var errors))
@@ -74,8 +74,8 @@ namespace SnoopyAirlines.External.Controllers
 
         private static bool TryCreateRouteQuery(
             string? detination,
-            string? earliestArrival,
-            string? latestArrival,
+            string? earliestDeparture,
+            string? latestDeparture,
             string? quantityOfPassengers,
             out RouteQuery routeQuery,
             out IReadOnlyCollection<ValidationError> errors)
@@ -85,26 +85,26 @@ namespace SnoopyAirlines.External.Controllers
 
             ValidateAirportCode("detination", detination, validationErrors);
 
-            var hasEarliestArrival = TryParseRequiredDateTime(
-                nameof(earliestArrival),
-                earliestArrival,
+            var hasEarliestDeparture = TryParseRequiredDateTime(
+                nameof(earliestDeparture),
+                earliestDeparture,
                 validationErrors,
-                out var parsedEarliestArrival);
+                out var parsedEarliestDeparture);
 
-            var hasLatestArrival = TryParseRequiredDateTime(
-                nameof(latestArrival),
-                latestArrival,
+            var hasLatestDeparture = TryParseRequiredDateTime(
+                nameof(latestDeparture),
+                latestDeparture,
                 validationErrors,
-                out var parsedLatestArrival);
+                out var parsedLatestDeparture);
 
-            if (   hasEarliestArrival
-                && hasLatestArrival
-                && parsedLatestArrival < parsedEarliestArrival
+            if (   hasEarliestDeparture
+                && hasLatestDeparture
+                && parsedLatestDeparture < parsedEarliestDeparture
             ){
                 validationErrors.Add(new ValidationError
                 {
-                    Field = nameof(latestArrival),
-                    Message = "latestArrival must be greater than or equal to earliestArrival."
+                    Field = nameof(latestDeparture),
+                    Message = "latestDeparture must be greater than or equal to earliestDeparture."
                 });
             }
 
@@ -140,8 +140,8 @@ namespace SnoopyAirlines.External.Controllers
             routeQuery = new RouteQuery
             {
                 Destination = detination!.Trim().ToUpperInvariant(),
-                EarliestArrival = parsedEarliestArrival,
-                LatestArrival = parsedLatestArrival,
+                EarliestDeparture = parsedEarliestDeparture,
+                LatestDeparture = parsedLatestDeparture,
                 QuantityOfPassengers = parsedQuantityOfPassengers
             };
 

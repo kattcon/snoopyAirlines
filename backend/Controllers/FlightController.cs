@@ -35,6 +35,8 @@ namespace SnoopyAirlines.Controllers
             [FromQuery(Name = "detination")] string? detination,
             [FromQuery] string? earliestDeparture,
             [FromQuery] string? latestDeparture,
+            [FromQuery] string? earliestArrival,
+            [FromQuery] string? latestArrival,
             [FromQuery] string? quantityOfPassengers,
             [FromQuery] string? includeStopovers,
             [FromQuery] string? apiKey,
@@ -45,6 +47,8 @@ namespace SnoopyAirlines.Controllers
                 detination,
                 earliestDeparture,
                 latestDeparture,
+                earliestArrival,
+                latestArrival,
                 quantityOfPassengers,
                 includeStopovers,
                 out var routeQuery,
@@ -70,6 +74,8 @@ namespace SnoopyAirlines.Controllers
             string? detination,
             string? earliestDeparture,
             string? latestDeparture,
+            string? earliestArrival,
+            string? latestArrival,
             string? quantityOfPassengers,
             string? includeStopovers,
             out RouteQuery routeQuery,
@@ -78,27 +84,52 @@ namespace SnoopyAirlines.Controllers
             routeQuery = null!;
             var validationErrors = new List<ValidationError>();
 
-            ValidateAirportCode(nameof(origin), origin, validationErrors);
-            ValidateAirportCode("detination", detination, validationErrors);
+            ValidateOptionalAirportCode(nameof(origin), origin, validationErrors);
+            ValidateOptionalAirportCode("detination", detination, validationErrors);
 
-            var hasEarliestDeparture = TryParseRequiredDateTime(
+            TryParseOptionalDateTime(
                 nameof(earliestDeparture),
                 earliestDeparture,
                 validationErrors,
                 out var parsedEarliestDeparture);
 
-            var hasLatestDeparture = TryParseRequiredDateTime(
+            TryParseOptionalDateTime(
                 nameof(latestDeparture),
                 latestDeparture,
                 validationErrors,
                 out var parsedLatestDeparture);
 
-            if (hasEarliestDeparture && hasLatestDeparture && parsedLatestDeparture < parsedEarliestDeparture)
+            if (parsedEarliestDeparture.HasValue
+                && parsedLatestDeparture.HasValue
+                && parsedLatestDeparture.Value < parsedEarliestDeparture.Value)
             {
                 validationErrors.Add(new ValidationError
                 {
                     Field = nameof(latestDeparture),
                     Message = "latestDeparture must be greater than or equal to earliestDeparture."
+                });
+            }
+
+            TryParseOptionalDateTime(
+                nameof(earliestArrival),
+                earliestArrival,
+                validationErrors,
+                out var parsedEarliestArrival);
+
+            TryParseOptionalDateTime(
+                nameof(latestArrival),
+                latestArrival,
+                validationErrors,
+                out var parsedLatestArrival);
+
+            if (parsedEarliestArrival.HasValue
+                && parsedLatestArrival.HasValue
+                && parsedLatestArrival.Value < parsedEarliestArrival.Value)
+            {
+                validationErrors.Add(new ValidationError
+                {
+                    Field = nameof(latestArrival),
+                    Message = "latestArrival must be greater than or equal to earliestArrival."
                 });
             }
 
@@ -137,6 +168,8 @@ namespace SnoopyAirlines.Controllers
                 Destination = detination?.Trim().ToUpperInvariant(),
                 EarliestDeparture = parsedEarliestDeparture,
                 LatestDeparture = parsedLatestDeparture,
+                EarliestArrival = parsedEarliestArrival,
+                LatestArrival = parsedLatestArrival,
                 QuantityOfPassengers = parsedQuantityOfPassengers,
                 IncludeStopovers = parsedIncludeStopovers
             };
@@ -170,25 +203,55 @@ namespace SnoopyAirlines.Controllers
             }
         }
 
-        private static bool TryParseRequiredDateTime(
+        private static void ValidateOptionalAirportCode(
             string fieldName,
             string? value,
-            ICollection<ValidationError> errors,
-            out DateTime parsedDateTime)
+            ICollection<ValidationError> errors)
         {
-            parsedDateTime = default;
-
             if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            if (!Regex.IsMatch(value.Trim(), "^[A-Za-z]{3}$"))
             {
                 errors.Add(new ValidationError
                 {
                     Field = fieldName,
-                    Message = $"{fieldName} is required."
+                    Message = $"{fieldName} must be exactly 3 letters (A-Z)."
                 });
-                return false;
+            }
+        }
+
+        private static void TryParseOptionalDateTime(
+            string fieldName,
+            string? value,
+            ICollection<ValidationError> errors,
+            out DateTime? parsedDateTime)
+        {
+            parsedDateTime = null;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
             }
 
-            if (DateTime.TryParseExact(
+            if (TryParseDateTime(value, out var dateTime))
+            {
+                parsedDateTime = dateTime;
+                return;
+            }
+
+            errors.Add(new ValidationError
+            {
+                Field = fieldName,
+                Message = $"{fieldName} must be a valid ISO date time."
+            });
+        }
+
+        private static bool TryParseDateTime(string value, out DateTime parsedDateTime)
+        {
+            return DateTime.TryParseExact(
                     value.Trim(),
                     SupportedDateTimeFormats,
                     CultureInfo.InvariantCulture,
@@ -198,17 +261,7 @@ namespace SnoopyAirlines.Controllers
                     value.Trim(),
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind,
-                    out parsedDateTime))
-            {
-                return true;
-            }
-
-            errors.Add(new ValidationError
-            {
-                Field = fieldName,
-                Message = $"{fieldName} must be a valid ISO date time."
-            });
-            return false;
+                    out parsedDateTime);
         }
 
         private class ValidationError

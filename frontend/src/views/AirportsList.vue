@@ -34,6 +34,7 @@
         </template>
         <template #cell-actions="{ item: airport }">
           <button class="primaryButton" @click="$router.push(`/admin/edit-airport/${airport.id}`)">Editar</button>
+          <button class="dangerButton" @click="confirmDelete(airport)">Eliminar</button>
         </template>
       </AppList>
 
@@ -100,6 +101,25 @@ export default {
             this.errorMsg = "Acceso no autorizado";
           }
           console.error("Error cargando aeropuertos:", error);
+        });
+    },
+    confirmDelete(airport) {
+      if (!confirm(`¿Estás seguro de que deseas eliminar el aeropuerto "${airport.name}" (${airport.code})?`)) return;
+      const token = localStorage.getItem("token");
+      axios
+        .delete(`${process.env.VUE_APP_BACKEND_URL}/airport/${airport.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(() => {
+          this.airports = this.airports.filter((a) => a.id !== airport.id);
+        })
+        .catch((error) => {
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            this.errorMsg = "Acceso no autorizado";
+          } else {
+            this.errorMsg = "Error al eliminar el aeropuerto.";
+          }
+          console.error("Error eliminando aeropuerto:", error);
         });
     }
   }

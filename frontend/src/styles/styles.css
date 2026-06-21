@@ -126,6 +126,26 @@
   cursor: not-allowed;
 }
 
+.dangerButton {
+  background-color: #e53935;
+  color: var(--whiteColor);
+  padding: var(--primaryButtonPadding);
+  border-radius: var(--primaryButtonBorderRadius);
+  border: none;
+  cursor: pointer;
+  font-family: var(--primaryFontFamily);
+  font-weight: var(--semiboldFontWeight);
+}
+
+.dangerButton:hover {
+  background-color: #c62828;
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .formInput {
   background-color: var(--inputBackgroundColor);
   border: var(--inputBorder);

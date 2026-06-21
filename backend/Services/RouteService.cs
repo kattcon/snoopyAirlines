@@ -69,7 +69,8 @@ namespace SnoopyAirlines.Services
                 Destination = routeQuery.Destination,
                 QuantityOfPassengers = routeQuery.QuantityOfPassengers,
                 IncludeStopovers = routeQuery.IncludeStopovers,
-                DepartureWindows = CreateDepartureWindows(routeQuery)
+                DepartureWindows = CreateDepartureWindows(routeQuery),
+                ArrivalWindows = CreateArrivalWindows(routeQuery)
             };
         }
 
@@ -105,6 +106,50 @@ namespace SnoopyAirlines.Services
             return windows;
         }
 
+        private static IReadOnlyCollection<RouteArrivalWindow> CreateArrivalWindows(RouteQuery routeQuery)
+        {
+            if (routeQuery.EarliestArrival is null && routeQuery.LatestArrival is null)
+            {
+                return Array.Empty<RouteArrivalWindow>();
+            }
+
+            var startDate = routeQuery.EarliestArrival?.Date
+                ?? routeQuery.EarliestDeparture?.Date
+                ?? routeQuery.LatestArrival!.Value.Date;
+            var endDate = routeQuery.LatestArrival?.Date
+                ?? routeQuery.LatestDeparture?.Date.AddDays(1)
+                ?? routeQuery.EarliestArrival!.Value.Date;
+
+            if (endDate < startDate)
+            {
+                return Array.Empty<RouteArrivalWindow>();
+            }
+
+            var windows = new List<RouteArrivalWindow>();
+            var currentDate = startDate;
+
+            while (currentDate <= endDate)
+            {
+                windows.Add(new RouteArrivalWindow
+                {
+                    SameDayDepartureFrequency = CreateFrequency(currentDate.DayOfWeek),
+                    PreviousDayDepartureFrequency = CreateFrequency(currentDate.AddDays(-1).DayOfWeek),
+                    EarliestArrival = routeQuery.EarliestArrival is { } earliestArrival
+                                      && currentDate == earliestArrival.Date
+                        ? TimeOnly.FromDateTime(earliestArrival)
+                        : TimeOnly.MinValue,
+                    LatestArrival = routeQuery.LatestArrival is { } latestArrival
+                                    && currentDate == latestArrival.Date
+                        ? TimeOnly.FromDateTime(latestArrival)
+                        : new TimeOnly(23, 59, 59)
+                });
+
+                currentDate = currentDate.AddDays(1);
+            }
+
+            return windows;
+        }
+
         private static IReadOnlyCollection<FlightResponse> CreateFlights(
             IReadOnlyCollection<DomainRoute> routes,
             RouteQuery routeQuery)
@@ -130,8 +175,14 @@ namespace SnoopyAirlines.Services
                     }
 
                     var departureTime = currentDate.Add(route.DepartureTime.ToTimeSpan());
+                    var arrivalTime = CalculateArrivalTime(route, departureTime);
 
                     if (departureTime < earliestDeparture || departureTime > latestDeparture)
+                    {
+                        continue;
+                    }
+
+                    if (!IsWithinArrivalBounds(arrivalTime, routeQuery))
                     {
                         continue;
                     }
@@ -150,10 +201,6 @@ namespace SnoopyAirlines.Services
 
         private static FlightResponse CreateFlightResponse(DomainRoute route, DateTime departureTime)
         {
-            var arrivalDate = route.ArrivalTime >= route.DepartureTime
-                ? departureTime.Date
-                : departureTime.Date.AddDays(1);
-
             return new FlightResponse
             {
                 FlightGUID = CreateFlightGuid(route.Id, departureTime.Date),
@@ -163,7 +210,7 @@ namespace SnoopyAirlines.Services
                     CreateFlightRouteResponse(1, route.Id, departureTime)
                 ],
                 DepartureTime = departureTime,
-                ArrivalTime = arrivalDate.Add(route.ArrivalTime.ToTimeSpan()),
+                ArrivalTime = CalculateArrivalTime(route, departureTime),
                 Duration = FormatDuration(route.DurationMinutes),
                 DepartureAirport = new AirportResponse
                 {
@@ -197,6 +244,35 @@ namespace SnoopyAirlines.Services
                 DayOfWeek.Sunday => frequency.Sunday,
                 _ => false
             };
+        }
+
+        private static DateTime CalculateArrivalTime(DomainRoute route, DateTime departureTime)
+        {
+            var arrivalDate = ArrivesNextDay(route)
+                ? departureTime.Date.AddDays(1)
+                : departureTime.Date;
+
+            return arrivalDate.Add(route.ArrivalTime.ToTimeSpan());
+        }
+
+        private static bool ArrivesNextDay(DomainRoute route)
+        {
+            return route.ArrivalTime < route.DepartureTime;
+        }
+
+        private static bool IsWithinArrivalBounds(DateTime arrivalTime, RouteQuery routeQuery)
+        {
+            if (routeQuery.EarliestArrival is { } earliestArrival && arrivalTime < earliestArrival)
+            {
+                return false;
+            }
+
+            if (routeQuery.LatestArrival is { } latestArrival && arrivalTime > latestArrival)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static RouteFrequency CreateFrequency(DayOfWeek dayOfWeek)
@@ -257,7 +333,8 @@ namespace SnoopyAirlines.Services
 
             var secondLegQuery = new RouteSearchQuery
             {
-                Destination = routeQuery.Destination
+                Destination = routeQuery.Destination,
+                ArrivalWindows = CreateArrivalWindows(routeQuery)
             };
 
             var firstDefs = await _routeRepository.GetRoutesAsync(firstLegQuery, cancellationToken);
