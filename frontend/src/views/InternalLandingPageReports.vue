@@ -7,44 +7,22 @@
 
         <div class="reports-selection" v-if="!selectedReport">
             <button
+                v-for="report in reportEntries"
+                :key="report.key"
                 class="report-card"
                 type="button"
-                @click="openReport('detailedFlight')"
+                @click="openReport(report.key)"
             >
                 <div class="report-card-content">
-                    <div class="report-card-icon report-card-icon-flight" aria-hidden="true">
+                    <div class="report-card-icon" :class="report.iconClass" aria-hidden="true">
                         <svg viewBox="0 0 24 24" role="img">
-                            <path d="M22 16v-2l-8-5V3.5A1.5 1.5 0 0 0 12.5 2h-1A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L22 16z" />
+                            <path :d="report.iconPath" />
                         </svg>
                     </div>
-                    <h4 class="report-card-title">Vuelo detallado</h4>
-                    <p class="report-card-description">Consulta información granular de cada vuelo y su comportamiento operativo.</p>
+                    <h4 class="report-card-title">{{ report.title }}</h4>
+                    <p class="report-card-description">{{ report.cardDescription }}</p>
                     <div class="report-tags">
-                        <span class="report-tag">Rutas</span>
-                        <span class="report-tag">Fechas</span>
-                        <span class="report-tag">Asientos</span>
-                    </div>
-                </div>
-                <span class="report-card-arrow" aria-hidden="true">→</span>
-            </button>
-
-            <button
-                class="report-card"
-                type="button"
-                @click="openReport('monthlyRevenue')"
-            >
-                <div class="report-card-content">
-                    <div class="report-card-icon report-card-icon-income" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" role="img">
-                            <path d="M4 21h16v-2H4v2zM6 17h3V9H6v8zm5 0h3V5h-3v12zm5 0h3v-6h-3v6z" />
-                        </svg>
-                    </div>
-                    <h4 class="report-card-title">Ingresos por mes</h4>
-                    <p class="report-card-description">Visualiza la evolución de ingresos mensuales para el seguimiento financiero.</p>
-                    <div class="report-tags">
-                        <span class="report-tag">Ventas</span>
-                        <span class="report-tag">Tendencias</span>
-                        <span class="report-tag">Comparativo</span>
+                        <span class="report-tag" v-for="tag in report.tags" :key="tag">{{ tag }}</span>
                     </div>
                 </div>
                 <span class="report-card-arrow" aria-hidden="true">→</span>
@@ -54,7 +32,7 @@
         <div class="report-detail" v-else>
             <button class="back-link" type="button" @click="goBack">← Volver a reportes</button>
             <h3 class="report-detail-title">{{ reportMeta[selectedReport].title }}</h3>
-            <p class="report-detail-description">{{ reportMeta[selectedReport].description }}</p>
+            <p class="report-detail-description">{{ reportMeta[selectedReport].detailDescription }}</p>
             <div class="report-detail-placeholder">
                 Este reporte se implementará en la siguiente etapa.
             </div>
@@ -70,14 +48,31 @@
                 reportMeta: {
                     detailedFlight: {
                         title: 'Vuelo detallado',
-                        description: 'Espacio reservado para el reporte con filtros y resultados detallados por vuelo.',
+                        cardDescription: 'Consulta información granular de cada vuelo y su comportamiento operativo.',
+                        detailDescription: 'Espacio reservado para el reporte con filtros y resultados detallados por vuelo.',
+                        iconClass: 'report-card-icon-flight',
+                        iconPath: 'M22 16v-2l-8-5V3.5A1.5 1.5 0 0 0 12.5 2h-1A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L22 16z',
+                        tags: ['Rutas', 'Fechas', 'Asientos'],
                     },
                     monthlyRevenue: {
                         title: 'Ingresos por mes',
-                        description: 'Espacio reservado para el reporte con métricas de ingresos consolidadas por mes.',
+                        cardDescription: 'Visualiza la evolución de ingresos mensuales para el seguimiento financiero.',
+                        detailDescription: 'Espacio reservado para el reporte con métricas de ingresos consolidadas por mes.',
+                        iconClass: 'report-card-icon-income',
+                        iconPath: 'M4 21h16v-2H4v2zM6 17h3V9H6v8zm5 0h3V5h-3v12zm5 0h3v-6h-3v6z',
+                        tags: ['Ventas', 'Tendencias', 'Comparativo'],
                     },
                 },
             };
+        },
+
+        computed: {
+            reportEntries() {
+                return Object.entries(this.reportMeta).map(([key, value]) => ({
+                    key,
+                    ...value,
+                }));
+            },
         },
 
         methods: {
