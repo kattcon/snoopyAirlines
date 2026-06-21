@@ -4,15 +4,18 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using snoopy_airlines_backend.Repositories;
 using snoopy_airlines_backend.Services;
+using SnoopyAirlines.Infrastructure.Dapper;
 using SnoopyAirlines.Infrastructure.Json;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
 using System.Text;
+using Dapper;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
 //builder.Configuration.AddJsonFile("appsettings.local-jordan.json", optional: true, reloadOnChange: true);
-
+SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+SqlMapper.AddTypeHandler(new TimeOnlyTypeHandler());
 
 
 builder.Services.AddCors(options =>
@@ -49,9 +52,12 @@ builder.Services.AddScoped<PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<BookingRepository>();
+builder.Services.AddScoped<IFlightSearchRepository, FlightSearchRepository>();
+builder.Services.AddScoped<IFlightSearchService, FlightSearchService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<ConsoleEmailSender>();
+
 builder.Services.AddScoped<IEmailSender>(serviceProvider =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
