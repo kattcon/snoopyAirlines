@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using snoopy_airlines_backend.Domain;
+using System.Text;
 
 namespace snoopy_airlines_backend.Repositories
 {
@@ -18,38 +19,90 @@ namespace snoopy_airlines_backend.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
-            using var transaction = connection.BeginTransaction();
+            using var transaction = connection.BeginTransaction(System.Data.IsolationLevel.Serializable);
 
             try
             {
                 await EnsureRoutesExistAsync(connection, transaction, order.Routes, cancellationToken);
 
-                var orderId = await connection.ExecuteScalarAsync<int>("""
+                // Prepare all batch SQL and parameters
+                var batchSql = new StringBuilder();
+                var batchParameters = new DynamicParameters();
+
+                // 1. Insert PurchaseOrder
+                batchSql.AppendLine("""
                     INSERT INTO PurchaseOrder(seatClass)
                     OUTPUT INSERTED.id
                     VALUES (@SeatClass);
-                    """, new { order.SeatClass }, transaction);
+                    """);
+                batchParameters.Add("@SeatClass", order.SeatClass);
 
-                order.Id = orderId;
-
-                foreach (var route in order.Routes.OrderBy(route => route.SequenceNumber))
+                // 2. Prepare bulk route insert
+                if (order.Routes.Any())
                 {
-                    route.PurchaseOrderId = order.Id;
-                    await connection.ExecuteAsync("""
+                    var routes = order.Routes.OrderBy(route => route.SequenceNumber).ToList();
+                    var routeValuesClauses = string.Join(",", routes.Select((_, i) => 
+                        $"(CAST(IDENT_CURRENT('PurchaseOrder') AS int), @SequenceNumber{i}, @RouteId{i}, @IntendedDate{i})"));
+
+                    batchSql.AppendLine($"""
                         INSERT INTO dbo.PurchaseOrderRoute(PurchaseOrderId, SequenceNumber, RouteId, IntendedDate)
-                        VALUES (@PurchaseOrderId, @SequenceNumber, @RouteId, @IntendedDate);
-                        """, ToParameters(route), transaction);
+                        VALUES {routeValuesClauses};
+                        """);
+
+                    for (int i = 0; i < routes.Count; i++)
+                    {
+                        var route = routes[i];
+                        batchParameters.Add($"@SequenceNumber{i}", route.SequenceNumber);
+                        batchParameters.Add($"@RouteId{i}", route.RouteId);
+                        batchParameters.Add($"@IntendedDate{i}", route.IntendedDate?.ToDateTime(TimeOnly.MinValue));
+                    }
                 }
 
-                foreach (var passenger in order.Passengers)
+                // 3. Prepare bulk passenger insert
+                if (order.Passengers.Any())
                 {
-                    passenger.PurchaseOrderId = order.Id;
-                    var passengerId = await connection.ExecuteScalarAsync<int>("""
+                    var passengerValuesClauses = string.Join(",", order.Passengers.Select((_, i) => 
+                        $"(CAST(IDENT_CURRENT('PurchaseOrder') AS int), @Gender{i}, @FirstName{i}, @LastName{i}, @BirthDay{i}, @BirthMonth{i}, @BirthYear{i}, @Nationality{i}, @CarryOnLuggage{i}, @CheckedLuggage{i})"));
+
+                    batchSql.AppendLine($"""
                         INSERT INTO Passenger(purchaseOrderId, gender, FirstName, LastName, birthDay, birthMonth, birthYear, nationality, CarryOnLuggage, CheckedLuggage)
                         OUTPUT INSERTED.id
-                        VALUES (@PurchaseOrderId, @Gender, @FirstName, @LastName, @BirthDay, @BirthMonth, @BirthYear, @Nationality, @CarryOnLuggage, @CheckedLuggage);
-                        """, passenger, transaction);
-                    passenger.Id = passengerId;
+                        VALUES {passengerValuesClauses};
+                        """);
+
+                    for (int i = 0; i < order.Passengers.Count; i++)
+                    {
+                        var passenger = order.Passengers[i];
+                        batchParameters.Add($"@Gender{i}", passenger.Gender);
+                        batchParameters.Add($"@FirstName{i}", passenger.FirstName);
+                        batchParameters.Add($"@LastName{i}", passenger.LastName);
+                        batchParameters.Add($"@BirthDay{i}", passenger.BirthDay);
+                        batchParameters.Add($"@BirthMonth{i}", passenger.BirthMonth);
+                        batchParameters.Add($"@BirthYear{i}", passenger.BirthYear);
+                        batchParameters.Add($"@Nationality{i}", passenger.Nationality);
+                        batchParameters.Add($"@CarryOnLuggage{i}", passenger.CarryOnLuggage);
+                        batchParameters.Add($"@CheckedLuggage{i}", passenger.CheckedLuggage);
+                    }
+                }
+
+                // Execute all statements in one batch
+                using var results = await connection.QueryMultipleAsync(
+                    new CommandDefinition(batchSql.ToString(), batchParameters, transaction, cancellationToken: cancellationToken));
+
+                order.Id = (await results.ReadAsync<int>()).First();
+
+                if (order.Routes.Any())
+                {
+                    await results.ReadAsync<int>(); // Consume routes batch result
+                }
+
+                if (order.Passengers.Any())
+                {
+                    var passengerIds = (await results.ReadAsync<int>()).ToList();
+                    for (int i = 0; i < order.Passengers.Count; i++)
+                    {
+                        order.Passengers[i].Id = passengerIds[i];
+                    }
                 }
 
                 await transaction.CommitAsync(cancellationToken);
