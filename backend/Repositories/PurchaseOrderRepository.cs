@@ -31,9 +31,13 @@ namespace snoopy_airlines_backend.Repositories
 
                 // 1. Insert PurchaseOrder
                 batchSql.AppendLine("""
+                    DECLARE @PurchaseOrderId int;
+
                     INSERT INTO PurchaseOrder(seatClass)
-                    OUTPUT INSERTED.id
                     VALUES (@SeatClass);
+
+                    SET @PurchaseOrderId = CAST(SCOPE_IDENTITY() AS int);
+                    SELECT @PurchaseOrderId;
                     """);
                 batchParameters.Add("@SeatClass", order.SeatClass);
 
@@ -42,7 +46,7 @@ namespace snoopy_airlines_backend.Repositories
                 {
                     var routes = order.Routes.OrderBy(route => route.SequenceNumber).ToList();
                     var routeValuesClauses = string.Join(",", routes.Select((_, i) => 
-                        $"(CAST(IDENT_CURRENT('PurchaseOrder') AS int), @SequenceNumber{i}, @RouteId{i}, @IntendedDate{i})"));
+                        $"(@PurchaseOrderId, @SequenceNumber{i}, @RouteId{i}, @IntendedDate{i})"));
 
                     batchSql.AppendLine($"""
                         INSERT INTO dbo.PurchaseOrderRoute(PurchaseOrderId, SequenceNumber, RouteId, IntendedDate)
@@ -62,7 +66,7 @@ namespace snoopy_airlines_backend.Repositories
                 if (order.Passengers.Any())
                 {
                     var passengerValuesClauses = string.Join(",", order.Passengers.Select((_, i) => 
-                        $"(CAST(IDENT_CURRENT('PurchaseOrder') AS int), @Gender{i}, @FirstName{i}, @LastName{i}, @BirthDay{i}, @BirthMonth{i}, @BirthYear{i}, @Nationality{i}, @CarryOnLuggage{i}, @CheckedLuggage{i})"));
+                        $"(@PurchaseOrderId, @Gender{i}, @FirstName{i}, @LastName{i}, @BirthDay{i}, @BirthMonth{i}, @BirthYear{i}, @Nationality{i}, @CarryOnLuggage{i}, @CheckedLuggage{i})"));
 
                     batchSql.AppendLine($"""
                         INSERT INTO Passenger(purchaseOrderId, gender, FirstName, LastName, birthDay, birthMonth, birthYear, nationality, CarryOnLuggage, CheckedLuggage)
@@ -90,11 +94,6 @@ namespace snoopy_airlines_backend.Repositories
                     new CommandDefinition(batchSql.ToString(), batchParameters, transaction, cancellationToken: cancellationToken));
 
                 order.Id = (await results.ReadAsync<int>()).First();
-
-                if (order.Routes.Any())
-                {
-                    await results.ReadAsync<int>(); // Consume routes batch result
-                }
 
                 if (order.Passengers.Any())
                 {
