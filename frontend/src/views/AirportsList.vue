@@ -33,8 +33,10 @@
           <span class="iata-badge">{{ value }}</span>
         </template>
         <template #cell-actions="{ item: airport }">
-          <button class="primaryButton" @click="$router.push(`/admin/edit-airport/${airport.id}`)">Editar</button>
-          <button class="dangerButton" @click="confirmDelete(airport)">Eliminar</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="primaryButton" @click="$router.push(`/admin/edit-airport/${airport.id}`)">Editar</button>
+            <button class="dangerButton" @click="confirmDelete(airport)">Eliminar</button>
+          </div>
         </template>
       </AppList>
 
