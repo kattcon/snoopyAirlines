@@ -23,6 +23,7 @@ import EditAircraft from './views/EditAircraft.vue';
 import PurchaseConfirmation from './views/PurchaseConfirmation.vue';
 import OrderConfirmation from './views/OrderConfirmation.vue';
 import EditUser from './views/EditUser.vue';
+import modifyLuggagePopUp from './views/LuggageModifyPopUp.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -33,6 +34,7 @@ const router = createRouter({
         { path: "/booking", name: "Booking", component: PassengerInfo},
         { path: "/purchase-confirmation/:purchaseOrderId?", name: "PurchaseConfirmation", component: PurchaseConfirmation },
         { path: "/order-confirmation/:bookingGuid?", name: "OrderConfirmation", component: OrderConfirmation },
+        { path: "/modify-luggage", name: "ModifyLuggage", component: modifyLuggagePopUp },
         { path: "/admin", children: 
             [ { path: 'routes', component: InternalLandingPageRoutes },
               { path: 'users', component: InternalLandingPageUsers},
