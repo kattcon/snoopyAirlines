@@ -5,7 +5,7 @@ using SnoopyAirlines.Repositories;
 
 namespace SnoopyAirlines.Services
 {
-    public class AirplaneService
+    public class AirplaneService : IAirplaneService
     {
         private readonly IAirplaneRepository _airplaneRepository;
 
@@ -43,6 +43,19 @@ namespace SnoopyAirlines.Services
         public Task UpdateAirplaneCapacitiesAsync(int airplaneId, AirplaneUpdateIntake intake, CancellationToken cancellationToken)
         {
             return _airplaneRepository.UpdateAirplaneCapacitiesAsync(airplaneId, intake, cancellationToken);
+        }
+
+        public async Task DeleteAirplaneAsync(int airplaneId, CancellationToken cancellationToken)
+        {
+            var airplane = await _airplaneRepository.GetAirplaneByIdAsync(airplaneId, cancellationToken)
+                ?? throw new KeyNotFoundException($"No se encontró la aeronave con id {airplaneId}.");
+
+            var hasPurchases = await _airplaneRepository.AirplaneHasPurchasesAsync(airplaneId, cancellationToken);
+
+            if (hasPurchases)
+                await _airplaneRepository.SoftDeleteAirplaneAsync(airplaneId, cancellationToken);
+            else
+                await _airplaneRepository.HardDeleteAirplaneAsync(airplaneId, cancellationToken);
         }
     }
 

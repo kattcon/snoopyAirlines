@@ -10,7 +10,7 @@
         <nav class="nav-menu">
           <a href="#inicio" class="nav-link">Inicio</a>
           <a href="#destinos" class="nav-link">Destinos</a>
-          <a href="#ofertas" class="nav-link">Ofertas</a>
+          <a href="#reserva" class="nav-link">Mi Reserva</a>
           <a href="#ventajas" class="nav-link">¿Por qué nosotros?</a>
         </nav>
         <div class="header-actions">
@@ -146,6 +146,61 @@
       </div>
     </section>
 
+    <!-- Mi reserva -->
+    <section id="reserva" class="reservation">
+      <div class="reservation-container">
+        <div class="reservation-content">
+          <div class="reservation-badge">
+            <span>✈</span>
+            <span>GESTIÓN DE RESERVACIONES</span>
+          </div>
+
+          <h2 class="reservation-title">Consulta tu reservación</h2>
+
+          <p class="reservation-description">
+            Ingresa tu número de reservación y apellidos para ver los detalles de tu viaje,
+            gestionar equipaje o imprimir tu itinerario.
+          </p>
+        </div>
+
+        <div class="reservation-card">
+          <form @submit.prevent="searchReservation" class="reservation-form">
+            <div class="form-group">
+              <label>Número de reservación</label>
+              <input
+                v-model="formData.confirmationNumber"
+                type="text"
+                :class="['reservation-input', { 'input-error': reservationError }]"
+                placeholder="AA0A00AA0AA0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Apellidos del titular</label>
+              <input
+                v-model="formData.lastNames"
+                type="text"
+                placeholder="Ej. García Rodríguez"
+                :class="['reservation-input', { 'input-error': reservationError }]"
+              />
+            </div>
+
+            <button type="submit" class="reservation-button" :disabled="reservationLoading">
+              {{ reservationLoading ? 'Buscando...' : 'Buscar reservación' }}
+            </button>
+            
+            <p v-if="reservationError" class="reservation-error">
+              {{ reservationError }}
+            </p>
+
+            <p class="reservation-help">
+              Encuentra tu número de reservación en el correo de confirmación de compra e itinerario.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <!-- Advantages -->
     <section id="ventajas" class="advantages">
       <div class="section-container">
@@ -215,13 +270,17 @@
 </template>
 
 <script>
-
+import axios from 'axios';
 
 const BACKEND_API_BASE = 'http://localhost:5235';
 export default {
   name: 'LandingPage',
   data() {
     return {
+      formData: {
+                    confirmationNumber: '',
+                    lastNames: ''
+                },
       selectedFlightId: null,
       tripType: 'ida',
       search: {
@@ -235,80 +294,9 @@ export default {
       destinationCities: [],
       searchResults: [],
       loading: false,
+      reservationLoading: false,
+      reservationError: '',
       searchPerformed: false,
-      destinations: [
-        {
-          id: 1,
-          name: 'Nueva York',
-          country: 'Estados Unidos',
-          price: 299,
-          image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop',
-          badge: 'Más popular'
-        },
-        {
-          id: 2,
-          name: 'Londres',
-          country: 'Reino Unido',
-          price: 449,
-          image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop',
-          badge: null
-        },
-        {
-          id: 3,
-          name: 'París',
-          country: 'Francia',
-          price: 379,
-          image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop',
-          badge: 'Best seller'
-        },
-        {
-          id: 4,
-          name: 'Tokio',
-          country: 'Japón',
-          price: 599,
-          image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
-          badge: null
-        },
-        {
-          id: 5,
-          name: 'Miami',
-          country: 'Estados Unidos',
-          price: 249,
-          image: 'https://images.unsplash.com/photo-1535498730771-e735b998cd64?w=400&h=300&fit=crop',
-          badge: 'Oferta'
-        },
-        {
-          id: 6,
-          name: 'Dubai',
-          country: 'Emiratos Árabes',
-          price: 529,
-          image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop',
-          badge: null
-        }
-      ],
-      offers: [
-        {
-          id: 1,
-          title: 'Descuento de Temporada',
-          description: 'Hasta 40% de descuento en vuelos a Europa',
-          route: 'San José → Madrid',
-          discount: 40
-        },
-        {
-          id: 2,
-          title: 'Viaja en Grupo',
-          description: '3era persona gratis viajando en grupo',
-          route: 'Varios destinos',
-          discount: 50
-        },
-        {
-          id: 3,
-          title: 'Early Bird',
-          description: '30% de descuento reservando con 60 días de anticipación',
-          route: 'América Central',
-          discount: 30
-        }
-      ],
       advantages: [
         {
           id: 1,
@@ -522,9 +510,47 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         seatClass: seatClass,
         passengersCount: this.search.passengers
       }})
+    },
+    // SEARCH RESERVATION
+
+    searchReservation() {
+      this.reservationLoading = true;
+      this.reservationError = '';
+
+      axios
+          .get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/search`, { 
+            params: {
+              confirmationNumber: this.formData.confirmationNumber,
+              lastNames: this.formData.lastNames
+            },
+          })
+          .then((response) => {
+              this.$router.push({
+                path: '/client-flight-report',
+                state: { flightReport : response.data}
+              });
+          })
+          .catch((error) => {
+              const status = error.response?.status;
+              const backendMessage = error.response?.data?.message;
+
+              if (status === 400) {
+                  this.reservationError = backendMessage || 'Por favor verifica los datos ingresados.';
+              } else if (status === 404) {
+                  this.reservationError = backendMessage || 'No se encontró ninguna reservación con esos datos.';
+              } else {
+                  this.reservationError = 'Error al buscar reservación. Por favor intenta de nuevo más tarde.';
+              }
+              console.error(error);
+          })
+          .finally(() => {
+              this.reservationLoading = false;
+           });
     }
-  }
+  } 
 };
+
+
 </script>
 
 <style scoped>
@@ -1363,4 +1389,156 @@ input[type="checkbox"] {
   background: #f0f7ff;
   border-color: #4a90e2;
 }
+
+/* Reservation Section */
+.reservation {
+  background: linear-gradient(90deg, #0d3d9f 0%, #2f2ea8 100%);
+  padding: 100px 40px;
+}
+
+.reservation-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.reservation-content {
+  color: white;
+}
+
+.reservation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffc107;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+
+.reservation-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.reservation-description {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 600px;
+}
+
+.reservation-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.reservation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.reservation-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 1rem;
+}
+
+.reservation-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.reservation-input:focus {
+  outline: none;
+  border-color: #ffc107;
+}
+
+.reservation-input.input-error {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.reservation-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ffd6d6;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+
+.reservation-button {
+  text-align: center;
+  text-decoration: none;
+  width: 100%;
+  padding: 16px;
+  background: #ffc107;
+  color: #1f1f1f;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.reservation-button:hover {
+  transform: translateY(-2px);
+}
+
+.reservation-help {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 992px) {
+  .reservation-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .reservation-title {
+    font-size: 2.2rem;
+  }
+
+  .reservation-content {
+    text-align: center;
+  }
+
+  .reservation-description {
+    margin: 0 auto;
+  }
+}
+
 </style>

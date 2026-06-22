@@ -386,12 +386,6 @@ namespace SnoopyAirlines.Services
                             if (connectionMinutes < MinStopoverMinutes || connectionMinutes > MaxStopoverMinutes)
                                 continue;
 
-                            if (dep2 < earliestDeparture || dep2 > latestDeparture)
-                                continue;
-
-                            if (!IsWithinArrivalBounds(arr2, routeQuery))
-                                continue;
-
                             var totalDurationMinutes = (int)(arr2 - dep1).TotalMinutes;
 
                             results.Add(new FlightResponse

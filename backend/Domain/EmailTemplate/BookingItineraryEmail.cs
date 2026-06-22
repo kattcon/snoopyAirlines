@@ -14,7 +14,7 @@ namespace SnoopyAirlines.Domain.EmailTemplate
             var passengerHtml = BuildPassengerHtml(data.Passengers);
 
             return html
-                .Replace("{{PURCHASE_ORDER_ID}}", data.PurchaseOrderId.ToString())
+                .Replace("{{CONFIRMATION_CODE}}", data.ConfirmationCode.ToString())
                 .Replace("{{DEPARTURE_CITY}}", data.DepartureCityName)
                 .Replace("{{DEPARTURE_CODE}}", data.DepartureAirportCode)
                 .Replace("{{DEPARTURE_AIRPORT}}", data.DepartureAirportName)

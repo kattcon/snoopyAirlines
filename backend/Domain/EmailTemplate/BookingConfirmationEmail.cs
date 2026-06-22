@@ -12,7 +12,7 @@ namespace SnoopyAirlines.Domain.EmailTemplate
             var html = LoadTemplate(ResourceName);
 
             return html
-                .Replace("{{PURCHASE_ORDER_ID}}", data.PurchaseOrderId.ToString())
+                .Replace("{{PURCHASE_ORDER_ID}}", data.ConfirmationCode.ToString())
                 .Replace("{{BASE_FARE}}", data.BaseFare)
                 .Replace("{{TAXES}}", data.Taxes)
                 .Replace("{{TRAVEL_INSURANCE}}", data.TravelInsurance)
