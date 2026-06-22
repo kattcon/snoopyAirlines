@@ -132,26 +132,13 @@ import './styles/variables.css'
 
 export default {
   name: 'LuggageModifyPopUp',
-  props: {
-    passengers: {
-        type:Array,
-        required: true,
-        validator:(list) => list.every(passenger => 'id' in passenger && 'name' in passenger && 'currentBags' in passenger)
-    },
-    pricePerBag:{type: Number, default: 50},
-    currency: {type:String, default: 'USD'},
-    availableCapacity: {type: Number, default: 5}
-  },
-  emits: ['payment-success'],
-  expose: ['open', 'close'],
   data() {
     return {
       isOpen: false,
       isProcessing: false,
       paymentSuccess: false,
       errorMessage: '',
-      lastPaidAmount: 0,
-      localPassengers: []
+      lastPaidAmount: 0
     };
   },
   computed: {
