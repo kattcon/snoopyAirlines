@@ -113,8 +113,9 @@
             <button class="primary-button" @click="openLuggageModal">
               Comprar equipaje
             </button>
-            <luggageModifyPopUp 
+            <LuggageModifyPopUp
               v-if="showLuggageModal"
+              :reservation-number="reservationNumber"
               @close="showLuggageModal = false"
             />
           </div>
@@ -161,12 +162,12 @@
 
 <script>
 import { jsPDF } from 'jspdf'
-import luggageModifyPopUp from '../components/LuggageModifyPopUp.vue';
+import LuggageModifyPopUp from '../components/LuggageModifyPopUp.vue';
 
 export default {
   name: 'ClientFlightReport',
   components: {
-    luggageModifyPopUp,
+    LuggageModifyPopUp,
   },
   data() {
     return {
