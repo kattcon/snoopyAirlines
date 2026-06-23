@@ -89,7 +89,7 @@ namespace snoopy_airlines_backend.Repositories
                 BookingRevenue AS (
                     SELECT
                         yb.MonthNumber,
-                        ls.FlightCount,
+                        1 AS FlightCount,
                         CASE WHEN ps.SeatClass = 'firstClass' THEN ps.PassengerCount ELSE 0 END AS FirstClassPassengers,
                         CASE WHEN ps.SeatClass = 'economy' THEN ps.PassengerCount ELSE 0 END AS EconomyPassengers,
                         ps.PassengerCount AS TotalPassengers,

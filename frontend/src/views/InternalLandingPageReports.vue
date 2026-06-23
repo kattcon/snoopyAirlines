@@ -38,7 +38,7 @@
                 <div class="report-toolbar">
                     <div>
                         <p class="report-toolbar-label">Desglose mensual</p>
-                        <p class="report-toolbar-hint">Consulta pasajeros, tramos volados e ingresos por cada mes del año seleccionado.</p>
+                        <p class="report-toolbar-hint">Consulta pasajeros, vuelos e ingresos por cada mes del año seleccionado.</p>
                     </div>
 
                     <label class="year-selector-group">
@@ -124,7 +124,7 @@
                 monthlyRevenueRows: [],
                 monthlyRevenueColumns: [
                     { key: 'monthLabel', label: 'Mes' },
-                    { key: 'flightCount', label: 'Cantidad de tramos' },
+                    { key: 'flightCount', label: 'Cantidad de vuelos' },
                     { key: 'firstClassPassengers', label: 'Primera clase' },
                     { key: 'economyPassengers', label: 'Clase económica' },
                     { key: 'totalPassengers', label: 'Total pasajeros' },
@@ -144,7 +144,7 @@
                     monthlyRevenue: {
                         title: 'Ingresos por mes',
                         cardDescription: 'Visualiza la evolución de ingresos mensuales para el seguimiento financiero.',
-                        detailDescription: 'Explora el rendimiento mensual con un desglose detallado de tramos volados, pasajeros e ingresos.',
+                        detailDescription: 'Explora el rendimiento mensual con un desglose detallado de vuelos, pasajeros e ingresos.',
                         iconClass: 'report-card-icon-income',
                         iconPath: 'M4 21h16v-2H4v2zM6 17h3V9H6v8zm5 0h3V5h-3v12zm5 0h3v-6h-3v6z',
                         tags: ['Ventas', 'Tendencias', 'Comparativo'],
