@@ -54,45 +54,79 @@
                 <div class="monthly-report-table-card">
                     <div v-if="monthlyRevenueLoading" class="report-loading">Cargando desglose mensual...</div>
 
-                    <AppList
-                        v-else
-                        :columns="monthlyRevenueColumns"
-                        :items="monthlyRevenueRows"
-                        item-key="monthNumber"
-                        empty-message="No hay datos disponibles para el año seleccionado."
-                    >
-                        <template #cell-monthLabel="{ value }">
-                            <span class="month-cell">{{ value }}</span>
-                        </template>
+                    <div v-else class="monthly-report-table-scroll">
+                        <AppList
+                            :columns="monthlyRevenueColumns"
+                            :items="monthlyRevenueRows"
+                            :footer-row="monthlyRevenueTotals"
+                            item-key="monthNumber"
+                            empty-message="No hay datos disponibles para el año seleccionado."
+                        >
+                            <template #cell-monthLabel="{ value }">
+                                <span class="month-cell">{{ value }}</span>
+                            </template>
 
-                        <template #cell-flightCount="{ value }">
-                            <span class="report-mono">{{ formatInteger(value) }}</span>
-                        </template>
+                            <template #cell-flightCount="{ value }">
+                                <span class="report-mono">{{ formatInteger(value) }}</span>
+                            </template>
 
-                        <template #cell-firstClassPassengers="{ value }">
-                            <span class="report-mono">{{ formatInteger(value) }}</span>
-                        </template>
+                            <template #cell-firstClassPassengers="{ value }">
+                                <span class="report-mono">{{ formatInteger(value) }}</span>
+                            </template>
 
-                        <template #cell-economyPassengers="{ value }">
-                            <span class="report-mono">{{ formatInteger(value) }}</span>
-                        </template>
+                            <template #cell-economyPassengers="{ value }">
+                                <span class="report-mono">{{ formatInteger(value) }}</span>
+                            </template>
 
-                        <template #cell-totalPassengers="{ value }">
-                            <span class="report-mono">{{ formatInteger(value) }}</span>
-                        </template>
+                            <template #cell-totalPassengers="{ value }">
+                                <span class="report-mono">{{ formatInteger(value) }}</span>
+                            </template>
 
-                        <template #cell-ticketRevenue="{ value }">
-                            <span class="report-mono">{{ formatCurrency(value) }}</span>
-                        </template>
+                            <template #cell-ticketRevenue="{ value }">
+                                <span class="report-mono">{{ formatCurrency(value) }}</span>
+                            </template>
 
-                        <template #cell-luggageRevenue="{ value }">
-                            <span class="report-mono">{{ formatCurrency(value) }}</span>
-                        </template>
+                            <template #cell-luggageRevenue="{ value }">
+                                <span class="report-mono">{{ formatCurrency(value) }}</span>
+                            </template>
 
-                        <template #cell-totalRevenue="{ value }">
-                            <span class="report-mono report-mono-strong">{{ formatCurrency(value) }}</span>
-                        </template>
-                    </AppList>
+                            <template #cell-totalRevenue="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatCurrency(value) }}</span>
+                            </template>
+
+                            <template #footer-monthLabel>
+                                <span class="month-cell">Totales</span>
+                            </template>
+
+                            <template #footer-flightCount="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatInteger(value) }}</span>
+                            </template>
+
+                            <template #footer-firstClassPassengers="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatInteger(value) }}</span>
+                            </template>
+
+                            <template #footer-economyPassengers="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatInteger(value) }}</span>
+                            </template>
+
+                            <template #footer-totalPassengers="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatInteger(value) }}</span>
+                            </template>
+
+                            <template #footer-ticketRevenue="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatCurrency(value) }}</span>
+                            </template>
+
+                            <template #footer-luggageRevenue="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatCurrency(value) }}</span>
+                            </template>
+
+                            <template #footer-totalRevenue="{ value }">
+                                <span class="report-mono report-mono-strong">{{ formatCurrency(value) }}</span>
+                            </template>
+                        </AppList>
+                    </div>
                 </div>
             </div>
 
@@ -156,6 +190,28 @@
         computed: {
             isMonthlyRevenueSelected() {
                 return this.selectedReport === 'monthlyRevenue';
+            },
+
+            monthlyRevenueTotals() {
+                return this.monthlyRevenueRows.reduce((totals, row) => ({
+                    monthLabel: 'Totales',
+                    flightCount: totals.flightCount + Number(row.flightCount ?? 0),
+                    firstClassPassengers: totals.firstClassPassengers + Number(row.firstClassPassengers ?? 0),
+                    economyPassengers: totals.economyPassengers + Number(row.economyPassengers ?? 0),
+                    totalPassengers: totals.totalPassengers + Number(row.totalPassengers ?? 0),
+                    ticketRevenue: totals.ticketRevenue + Number(row.ticketRevenue ?? 0),
+                    luggageRevenue: totals.luggageRevenue + Number(row.luggageRevenue ?? 0),
+                    totalRevenue: totals.totalRevenue + Number(row.totalRevenue ?? 0),
+                }), {
+                    monthLabel: 'Totales',
+                    flightCount: 0,
+                    firstClassPassengers: 0,
+                    economyPassengers: 0,
+                    totalPassengers: 0,
+                    ticketRevenue: 0,
+                    luggageRevenue: 0,
+                    totalRevenue: 0,
+                });
             },
 
             reportEntries() {
@@ -465,6 +521,10 @@
     overflow: hidden;
 }
 
+.monthly-report-table-scroll {
+    overflow-x: auto;
+}
+
 .report-loading,
 .report-error {
     border-radius: 12px;
@@ -501,6 +561,7 @@
 
 :deep(.app-list) {
     font-size: 13px;
+    min-width: 1020px;
 }
 
 :deep(.app-list th) {
@@ -510,6 +571,19 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+
+:deep(.app-list tfoot th) {
+    background-color: #e7effa;
+    border-top: 2px solid #c6d6ea;
+    color: #203a63;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+:deep(.app-list tfoot th:first-child) {
+    text-transform: none;
+    letter-spacing: 0;
 }
 
 :deep(.app-list td) {
@@ -529,6 +603,10 @@
 
     .year-selector {
         width: 100%;
+    }
+
+    :deep(.app-list) {
+        min-width: 900px;
     }
 }
 
