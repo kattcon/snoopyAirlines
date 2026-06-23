@@ -41,12 +41,23 @@
                         <p class="report-toolbar-hint">Consulta pasajeros, vuelos e ingresos por cada mes del año seleccionado.</p>
                     </div>
 
-                    <label class="year-selector-group">
-                        <span class="year-selector-label">Año</span>
-                        <select v-model.number="selectedRevenueYear" class="year-selector" @change="loadMonthlyRevenueReport">
-                            <option v-for="year in revenueYearOptions" :key="year" :value="year">{{ year }}</option>
-                        </select>
-                    </label>
+                    <div class="report-toolbar-actions">
+                        <label class="year-selector-group">
+                            <span class="year-selector-label">Año</span>
+                            <select v-model.number="selectedRevenueYear" class="year-selector" @change="loadMonthlyRevenueReport">
+                                <option v-for="year in revenueYearOptions" :key="year" :value="year">{{ year }}</option>
+                            </select>
+                        </label>
+
+                        <button
+                            class="export-report-button"
+                            type="button"
+                            :disabled="monthlyRevenueLoading"
+                            @click="exportMonthlyRevenueXlsx"
+                        >
+                            Exportar XLSX
+                        </button>
+                    </div>
                 </div>
 
                 <p v-if="monthlyRevenueError" class="report-error">{{ monthlyRevenueError }}</p>
@@ -139,6 +150,7 @@
 
 <script>
     import axios from "axios";
+    import * as XLSX from "xlsx";
     import AppList from "../components/AppList.vue";
 
     export default {
@@ -271,6 +283,67 @@
                 } finally {
                     this.monthlyRevenueLoading = false;
                 }
+            },
+
+            exportMonthlyRevenueXlsx() {
+                const workbook = XLSX.utils.book_new();
+                const worksheetRows = [
+                    this.monthlyRevenueColumns.map((column) => column.label),
+                    ...this.monthlyRevenueRows.map((row) => this.monthlyRevenueColumns.map((column) => this.xlsxCellValue(row, column))),
+                    this.monthlyRevenueColumns.map((column) => this.xlsxFooterCellValue(column)),
+                ];
+                const worksheet = XLSX.utils.aoa_to_sheet(worksheetRows);
+
+                worksheet['!cols'] = [
+                    { wch: 16 },
+                    { wch: 18 },
+                    { wch: 18 },
+                    { wch: 18 },
+                    { wch: 16 },
+                    { wch: 18 },
+                    { wch: 18 },
+                    { wch: 18 },
+                ];
+
+                XLSX.utils.book_append_sheet(workbook, worksheet, `Ingresos ${this.selectedRevenueYear}`);
+
+                const workbookBinary = XLSX.write(workbook, {
+                    bookType: 'xlsx',
+                    type: 'array',
+                });
+
+                const blob = new Blob([workbookBinary], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                });
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+
+                link.href = downloadUrl;
+                link.download = `ingresos-mensuales-${this.selectedRevenueYear}.xlsx`;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+            },
+
+            xlsxCellValue(row, column) {
+                const value = row[column.key];
+
+                if (column.key === 'monthLabel') {
+                    return value;
+                }
+
+                return Number(value ?? 0);
+            },
+
+            xlsxFooterCellValue(column) {
+                if (column.key === 'monthLabel') {
+                    return 'Totales';
+                }
+
+                return this.xlsxCellValue(this.monthlyRevenueTotals, column);
             },
 
             formatCurrency(value) {
@@ -479,6 +552,13 @@
     margin-bottom: 20px;
 }
 
+.report-toolbar-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .report-toolbar-label {
     margin: 0;
     color: #173255;
@@ -512,6 +592,29 @@
     background-color: #ffffff;
     color: #173255;
     font-weight: 600;
+}
+
+.export-report-button {
+    border: 1px solid #2f5ea8;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #3b6bb8 0%, #2f5ea8 100%);
+    color: #ffffff;
+    font-weight: 700;
+    padding: 10px 14px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(47, 94, 168, 0.16);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.export-report-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(47, 94, 168, 0.2);
+}
+
+.export-report-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
 }
 
 .monthly-report-table-card {
@@ -602,6 +705,15 @@
     }
 
     .year-selector {
+        width: 100%;
+    }
+
+    .report-toolbar-actions {
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .export-report-button {
         width: 100%;
     }
 
