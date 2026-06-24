@@ -37,7 +37,7 @@
                             <div>
                             <h2 id="baggageModalTitle" class="baggageModalTitle">Maletas documentadas</h2>
                             <p class="baggageModalSubtitle">
-                                Agrega maletas adicionales por ${{ pricePerBag }} {{ currency }} por maleta
+                                Agrega maletas adicionales por ${{ this.pricePerBag }} {{ this.currency }} por maleta
                             </p>
                             </div>
                         </div>
@@ -158,7 +158,8 @@ export default {
       localPassengers:[],
       pricePerBag: 0,
       currency: 'USD',
-      availableCapacity:0
+      availableCapacity:0,
+      priceMultiplier:0
     };
   },
   computed: {
@@ -183,22 +184,23 @@ export default {
         this.isLoading = true;
         this.loadError = '';
 
-        this.pricePerBag = 45;
-        this.currency = 'USD';
-        this.availableCapacity = 4;
-
         try{
             const response = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/searchPassengers`, {
             params: {
                 confirmationNumber : this.reservationNumber
             }
             })
-            this.localPassengers = response.data.map(p => ({
+            this.localPassengers = response.data.passengers.map(p => ({
             firstName:    p.firstName,
             lastName:     p.lastName,
             originalBags: parseInt(p.checkedLuggage),
             currentBags:  parseInt(p.checkedLuggage)
             }))
+
+            this.pricePerBag       = parseFloat(response.data.luggageInfo.priceCheckedBaggage)
+            this.priceMultiplier = 3 //parseFloat(response.data.luggageInfo.checkedBaggagePriceMultiplier)
+            console.log(response.data.luggageInfo)
+            console.log(this.pricePerBag)
 
         }catch (error){
             if(error.response) {
