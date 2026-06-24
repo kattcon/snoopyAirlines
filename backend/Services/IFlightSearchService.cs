@@ -9,10 +9,5 @@ namespace SnoopyAirlines.Services
             string confirmationNumber,
             string lastNames,
             CancellationToken cancellationToken);
-
-        Task<IReadOnlyCollection<PassengerView>> GetPassengersByConfirmationAsync(
-            string confirmationNumber,
-            CancellationToken cancellationToken
-        );
     }
 }

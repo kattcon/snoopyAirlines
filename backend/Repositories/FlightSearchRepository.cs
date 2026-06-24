@@ -62,19 +62,5 @@ namespace SnoopyAirlines.Repositories
             };
             
         }
-
-        public async Task<IReadOnlyCollection<PassengerView>> GetPassengersByConfirmationAsync(
-            string confirmationNumber,
-            CancellationToken cancellationToken)
-        {
-            using var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken);
-            var CommandDefinition = new CommandDefinition("""
-                SELECT * FROM dbo.GetPassengersByConfirmation(@ConfirmationNumber)
-                """, new { ConfirmationNumber = confirmationNumber}, cancellationToken: cancellationToken
-            );
-            var passengers = await connection.QueryAsync<PassengerView>(CommandDefinition);
-            return passengers.ToList();
-        }
     }
 }
