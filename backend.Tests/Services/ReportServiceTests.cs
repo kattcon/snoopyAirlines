@@ -19,7 +19,7 @@ namespace backend.Tests.Services
 
             // Act + Assert
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-                service.GetMonthlyRevenueReportAsync(year, CancellationToken.None));
+                service.GetMonthlyRevenueReportAsync(year, null, null, null, CancellationToken.None));
         }
 
         [Fact]
@@ -45,13 +45,13 @@ namespace backend.Tests.Services
 
             var mockRepository = new Mock<IReportRepository>();
             mockRepository
-                .Setup(repository => repository.GetMonthlyRevenueBreakdownAsync(selectedYear, It.IsAny<CancellationToken>()))
+                .Setup(repository => repository.GetMonthlyRevenueBreakdownAsync(selectedYear, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(repositoryRows);
 
             var service = new ReportService(mockRepository.Object);
 
             // Act
-            var report = await service.GetMonthlyRevenueReportAsync(selectedYear, CancellationToken.None);
+            var report = await service.GetMonthlyRevenueReportAsync(selectedYear, null, null, null, CancellationToken.None);
 
             // Assert
             Assert.Equal(selectedYear, report.Year);
@@ -69,8 +69,27 @@ namespace backend.Tests.Services
             Assert.Equal(1950.00m, row.TotalRevenue);
 
             mockRepository.Verify(
-                repository => repository.GetMonthlyRevenueBreakdownAsync(selectedYear, It.IsAny<CancellationToken>()),
+                repository => repository.GetMonthlyRevenueBreakdownAsync(selectedYear, null, null, null, It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task GetMonthlyRevenueReportAsync_AllFiltersEmpty_ReturnsReportWithNullYear()
+        {
+            // Arrange
+            var mockRepository = new Mock<IReportRepository>();
+            mockRepository
+                .Setup(repository => repository.GetMonthlyRevenueBreakdownAsync(null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<MonthlyRevenueReportRow>());
+
+            var service = new ReportService(mockRepository.Object);
+
+            // Act
+            var report = await service.GetMonthlyRevenueReportAsync(null, null, null, null, CancellationToken.None);
+
+            // Assert
+            Assert.Null(report.Year);
+            Assert.Empty(report.Rows);
         }
     }
 }

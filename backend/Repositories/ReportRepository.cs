@@ -14,23 +14,86 @@ namespace snoopy_airlines_backend.Repositories
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
+        public async Task<MonthlyRevenueFilterOptions> GetMonthlyRevenueFilterOptionsAsync(CancellationToken cancellationToken)
+        {
+            const string originsSql = """
+                SELECT DISTINCT
+                    origin.id AS Id,
+                    origin.code AS Code,
+                    origin.name AS Name
+                FROM dbo.[route] r
+                JOIN dbo.airport origin ON origin.id = r.departure_airport_id
+                ORDER BY origin.code;
+                """;
+
+            const string destinationsSql = """
+                SELECT DISTINCT
+                    destination.id AS Id,
+                    destination.code AS Code,
+                    destination.name AS Name
+                FROM dbo.[route] r
+                JOIN dbo.airport destination ON destination.id = r.arrival_airport_id
+                ORDER BY destination.code;
+                """;
+
+            const string airlinesSql = """
+                SELECT DISTINCT
+                    airplane.id AS Id,
+                    airplane.model AS Model
+                FROM dbo.[route] r
+                JOIN dbo.airplane airplane ON airplane.id = r.airplane_id
+                ORDER BY airplane.model;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+
+            var origins = await connection.QueryAsync<MonthlyRevenueAirportFilterOption>(
+                new CommandDefinition(originsSql, cancellationToken: cancellationToken));
+            var destinations = await connection.QueryAsync<MonthlyRevenueAirportFilterOption>(
+                new CommandDefinition(destinationsSql, cancellationToken: cancellationToken));
+            var airlines = await connection.QueryAsync<MonthlyRevenueAirlineFilterOption>(
+                new CommandDefinition(airlinesSql, cancellationToken: cancellationToken));
+
+            return new MonthlyRevenueFilterOptions
+            {
+                Origins = origins.ToList(),
+                Destinations = destinations.ToList(),
+                Airlines = airlines.ToList(),
+            };
+        }
+
         public async Task<IReadOnlyCollection<MonthlyRevenueReportRow>> GetMonthlyRevenueBreakdownAsync(
-            int year,
+            int? year,
+            int? originAirportId,
+            int? destinationAirportId,
+            int? airplaneId,
             CancellationToken cancellationToken)
         {
-            var startOfYear = new DateTime(year, 1, 1);
-            var startOfNextYear = startOfYear.AddYears(1);
+            var startOfYear = year.HasValue ? new DateTime(year.Value, 1, 1) : (DateTime?)null;
+            var startOfNextYear = startOfYear?.AddYears(1);
 
             const string sql = """
-                WITH YearBookings AS (
+                WITH FilteredBookings AS (
                     SELECT
                         b.guid              AS BookingGuid,
                         b.purchase_order_id AS PurchaseOrderId,
                         MONTH(b.confirmed_at) AS MonthNumber
                     FROM dbo.booking b
                     WHERE b.status = 'confirmed'
-                      AND b.confirmed_at >= @StartOfYear
-                      AND b.confirmed_at < @StartOfNextYear
+                      AND (
+                            @Year IS NULL
+                            OR (b.confirmed_at >= @StartOfYear AND b.confirmed_at < @StartOfNextYear)
+                          )
+                      AND EXISTS (
+                            SELECT 1
+                            FROM dbo.itinerary i
+                            JOIN dbo.flight f ON f.guid = i.flight_guid
+                            JOIN dbo.[route] r ON r.id = f.route_id
+                            WHERE i.booking_guid = b.guid
+                              AND (@OriginAirportId IS NULL OR r.departure_airport_id = @OriginAirportId)
+                              AND (@DestinationAirportId IS NULL OR r.arrival_airport_id = @DestinationAirportId)
+                              AND (@AirplaneId IS NULL OR r.airplane_id = @AirplaneId)
+                        )
                 ),
                 PassengerStats AS (
                     SELECT
@@ -42,7 +105,7 @@ namespace snoopy_airlines_backend.Repositories
                     JOIN dbo.Passenger p ON p.PurchaseOrderId = po.Id
                     JOIN (
                         SELECT DISTINCT PurchaseOrderId
-                        FROM YearBookings
+                        FROM FilteredBookings
                     ) yb ON yb.PurchaseOrderId = po.Id
                     GROUP BY po.Id, po.SeatClass
                 ),
@@ -58,7 +121,7 @@ namespace snoopy_airlines_backend.Repositories
                             END
                         ), 0) AS TicketUnitPriceTotal,
                         COALESCE(SUM(r.price_carry_on_baggage), 0) AS CarryOnUnitPriceTotal
-                    FROM YearBookings yb
+                    FROM FilteredBookings yb
                     JOIN dbo.PurchaseOrder po ON po.Id = yb.PurchaseOrderId
                     JOIN dbo.itinerary i ON i.booking_guid = yb.BookingGuid
                     JOIN dbo.flight f ON f.guid = i.flight_guid
@@ -78,7 +141,7 @@ namespace snoopy_airlines_backend.Repositories
                                 )
                             )
                         ), 0) AS CheckedRevenue
-                    FROM YearBookings yb
+                    FROM FilteredBookings yb
                     JOIN dbo.itinerary i ON i.booking_guid = yb.BookingGuid
                     JOIN dbo.flight f ON f.guid = i.flight_guid
                     JOIN dbo.[route] r ON r.id = f.route_id
@@ -101,7 +164,7 @@ namespace snoopy_airlines_backend.Repositories
                             + ISNULL(cr.CheckedRevenue, 0)
                             AS DECIMAL(18,2)
                         ) AS TotalRevenue
-                    FROM YearBookings yb
+                    FROM FilteredBookings yb
                     JOIN PassengerStats ps ON ps.PurchaseOrderId = yb.PurchaseOrderId
                     JOIN LegStats ls ON ls.BookingGuid = yb.BookingGuid
                     LEFT JOIN CheckedRevenue cr ON cr.BookingGuid = yb.BookingGuid
@@ -144,7 +207,15 @@ namespace snoopy_airlines_backend.Repositories
             var rows = await connection.QueryAsync<MonthlyRevenueReportRow>(
                 new CommandDefinition(
                     sql,
-                    new { StartOfYear = startOfYear, StartOfNextYear = startOfNextYear },
+                    new
+                    {
+                        Year = year,
+                        StartOfYear = startOfYear,
+                        StartOfNextYear = startOfNextYear,
+                        OriginAirportId = originAirportId,
+                        DestinationAirportId = destinationAirportId,
+                        AirplaneId = airplaneId,
+                    },
                     cancellationToken: cancellationToken));
 
             return rows.ToList();

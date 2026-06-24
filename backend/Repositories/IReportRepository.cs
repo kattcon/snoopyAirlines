@@ -4,6 +4,13 @@ namespace snoopy_airlines_backend.Repositories
 {
     public interface IReportRepository
     {
-        Task<IReadOnlyCollection<MonthlyRevenueReportRow>> GetMonthlyRevenueBreakdownAsync(int year, CancellationToken cancellationToken);
+        Task<MonthlyRevenueFilterOptions> GetMonthlyRevenueFilterOptionsAsync(CancellationToken cancellationToken);
+
+        Task<IReadOnlyCollection<MonthlyRevenueReportRow>> GetMonthlyRevenueBreakdownAsync(
+            int? year,
+            int? originAirportId,
+            int? destinationAirportId,
+            int? airplaneId,
+            CancellationToken cancellationToken);
     }
 }

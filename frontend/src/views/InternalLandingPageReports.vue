@@ -44,8 +44,51 @@
                     <div class="report-toolbar-actions">
                         <label class="year-selector-group">
                             <span class="year-selector-label">Año</span>
-                            <select v-model.number="selectedRevenueYear" class="year-selector" @change="loadMonthlyRevenueReport">
+                            <select v-model="selectedRevenueYear" class="year-selector" @change="loadMonthlyRevenueReport">
+                                <option value="">Todos</option>
                                 <option v-for="year in revenueYearOptions" :key="year" :value="year">{{ year }}</option>
+                            </select>
+                        </label>
+
+                        <label class="year-selector-group">
+                            <span class="year-selector-label">Origen</span>
+                            <select v-model="selectedOriginAirportId" class="year-selector" @change="loadMonthlyRevenueReport">
+                                <option value="">Todos</option>
+                                <option
+                                    v-for="airport in revenueOriginAirportOptions"
+                                    :key="`origin-${airport.id}`"
+                                    :value="String(airport.id)"
+                                >
+                                    {{ airport.code }} - {{ airport.name }}
+                                </option>
+                            </select>
+                        </label>
+
+                        <label class="year-selector-group">
+                            <span class="year-selector-label">Destino</span>
+                            <select v-model="selectedDestinationAirportId" class="year-selector" @change="loadMonthlyRevenueReport">
+                                <option value="">Todos</option>
+                                <option
+                                    v-for="airport in revenueDestinationAirportOptions"
+                                    :key="`destination-${airport.id}`"
+                                    :value="String(airport.id)"
+                                >
+                                    {{ airport.code }} - {{ airport.name }}
+                                </option>
+                            </select>
+                        </label>
+
+                        <label class="year-selector-group">
+                            <span class="year-selector-label">Aerolínea</span>
+                            <select v-model="selectedAirplaneId" class="year-selector" @change="loadMonthlyRevenueReport">
+                                <option value="">Todas</option>
+                                <option
+                                    v-for="airplane in revenueAirlineOptions"
+                                    :key="`airline-${airplane.id}`"
+                                    :value="String(airplane.id)"
+                                >
+                                    {{ airplane.model }}
+                                </option>
                             </select>
                         </label>
 
@@ -164,7 +207,14 @@
             return {
                 selectedReport: null,
                 currentRevenueYear,
-                selectedRevenueYear: currentRevenueYear,
+                selectedRevenueYear: '',
+                selectedOriginAirportId: '',
+                selectedDestinationAirportId: '',
+                selectedAirplaneId: '',
+                revenueOriginAirportOptions: [],
+                revenueDestinationAirportOptions: [],
+                revenueAirlineOptions: [],
+                revenueFilterOptionsLoaded: false,
                 monthlyRevenueLoading: false,
                 monthlyRevenueError: '',
                 monthlyRevenueRows: [],
@@ -243,6 +293,7 @@
                 this.selectedReport = reportKey;
 
                 if (reportKey === 'monthlyRevenue') {
+                    await this.loadRevenueFilterOptions();
                     await this.loadMonthlyRevenueReport();
                 }
             },
@@ -254,6 +305,23 @@
 
             async loadMonthlyRevenueReport() {
                 const token = localStorage.getItem('token');
+                const requestParams = {};
+
+                if (this.selectedRevenueYear !== '') {
+                    requestParams.year = Number(this.selectedRevenueYear);
+                }
+
+                if (this.selectedOriginAirportId !== '') {
+                    requestParams.originAirportId = Number(this.selectedOriginAirportId);
+                }
+
+                if (this.selectedDestinationAirportId !== '') {
+                    requestParams.destinationAirportId = Number(this.selectedDestinationAirportId);
+                }
+
+                if (this.selectedAirplaneId !== '') {
+                    requestParams.airplaneId = Number(this.selectedAirplaneId);
+                }
 
                 this.monthlyRevenueLoading = true;
                 this.monthlyRevenueError = '';
@@ -262,7 +330,7 @@
                     const response = await axios.get(
                         `${process.env.VUE_APP_BACKEND_URL}/reports/monthly-revenue`,
                         {
-                            params: { year: this.selectedRevenueYear },
+                            params: requestParams,
                             headers: { Authorization: `Bearer ${token}` },
                         }
                     );
@@ -282,6 +350,40 @@
                     console.error('Error cargando reporte mensual de ingresos:', error);
                 } finally {
                     this.monthlyRevenueLoading = false;
+                }
+            },
+
+            async loadRevenueFilterOptions() {
+                if (this.revenueFilterOptionsLoaded) {
+                    return;
+                }
+
+                const token = localStorage.getItem('token');
+
+                try {
+                    const response = await axios.get(
+                        `${process.env.VUE_APP_BACKEND_URL}/reports/monthly-revenue/filters`,
+                        {
+                            headers: { Authorization: `Bearer ${token}` },
+                        }
+                    );
+
+                    this.revenueOriginAirportOptions = (response.data?.origins ?? [])
+                        .filter((airport) => airport?.id)
+                        .sort((left, right) => String(left.code ?? '').localeCompare(String(right.code ?? '')));
+
+                    this.revenueDestinationAirportOptions = (response.data?.destinations ?? [])
+                        .filter((airport) => airport?.id)
+                        .sort((left, right) => String(left.code ?? '').localeCompare(String(right.code ?? '')));
+
+                    this.revenueAirlineOptions = (response.data?.airlines ?? [])
+                        .filter((airplane) => airplane?.id)
+                        .sort((left, right) => String(left.model ?? '').localeCompare(String(right.model ?? '')));
+
+                    this.revenueFilterOptionsLoaded = true;
+                } catch (error) {
+                    console.error('Error cargando opciones de filtros del reporte:', error);
+                    this.monthlyRevenueError = 'No fue posible cargar los filtros del reporte.';
                 }
             },
 
@@ -305,7 +407,8 @@
                     { wch: 18 },
                 ];
 
-                XLSX.utils.book_append_sheet(workbook, worksheet, `Ingresos ${this.selectedRevenueYear}`);
+                const yearLabel = this.selectedRevenueYear === '' ? 'Todos' : this.selectedRevenueYear;
+                XLSX.utils.book_append_sheet(workbook, worksheet, `Ingresos ${yearLabel}`);
 
                 const workbookBinary = XLSX.write(workbook, {
                     bookType: 'xlsx',
@@ -319,7 +422,7 @@
                 const link = document.createElement('a');
 
                 link.href = downloadUrl;
-                link.download = `ingresos-mensuales-${this.selectedRevenueYear}.xlsx`;
+                link.download = `ingresos-mensuales-${yearLabel}.xlsx`;
                 link.style.display = 'none';
                 document.body.appendChild(link);
                 link.click();

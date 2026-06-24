@@ -15,14 +15,33 @@ namespace snoopy_airlines_backend.Services
             _reportRepository = reportRepository;
         }
 
-        public async Task<MonthlyRevenueReport> GetMonthlyRevenueReportAsync(int year, CancellationToken cancellationToken)
+        public Task<MonthlyRevenueFilterOptions> GetMonthlyRevenueFilterOptionsAsync(CancellationToken cancellationToken)
         {
-            if (year < 1 || year > 9999)
+            return _reportRepository.GetMonthlyRevenueFilterOptionsAsync(cancellationToken);
+        }
+
+        public async Task<MonthlyRevenueReport> GetMonthlyRevenueReportAsync(
+            int? year,
+            int? originAirportId,
+            int? destinationAirportId,
+            int? airplaneId,
+            CancellationToken cancellationToken)
+        {
+            if (year.HasValue && (year.Value < 1 || year.Value > 9999))
             {
                 throw new ArgumentOutOfRangeException(nameof(year), "year must be between 1 and 9999.");
             }
 
-            var rows = await _reportRepository.GetMonthlyRevenueBreakdownAsync(year, cancellationToken);
+            ValidatePositiveIdIfProvided(originAirportId, nameof(originAirportId));
+            ValidatePositiveIdIfProvided(destinationAirportId, nameof(destinationAirportId));
+            ValidatePositiveIdIfProvided(airplaneId, nameof(airplaneId));
+
+            var rows = await _reportRepository.GetMonthlyRevenueBreakdownAsync(
+                year,
+                originAirportId,
+                destinationAirportId,
+                airplaneId,
+                cancellationToken);
             var normalizedRows = rows
                 .Select(row => new MonthlyRevenueReportRow
                 {
@@ -43,6 +62,14 @@ namespace snoopy_airlines_backend.Services
                 Year = year,
                 Rows = normalizedRows,
             };
+        }
+
+        private static void ValidatePositiveIdIfProvided(int? id, string parameterName)
+        {
+            if (id.HasValue && id.Value <= 0)
+            {
+                throw new ArgumentOutOfRangeException(parameterName, $"{parameterName} must be greater than 0.");
+            }
         }
     }
 }
