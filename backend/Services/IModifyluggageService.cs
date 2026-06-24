@@ -8,5 +8,15 @@ namespace snoopy_airlines_backend.Services
             string confirmationNumber,
             CancellationToken cancellationToken
         );
+
+        Task<FlightLuggageView> GetFlightLuggageInfoByConfirmationAsync(
+            string confirmationNumber,
+            CancellationToken cancellationToken
+        );
+
+        Task<ModifyLuggageInfo> GetLuggageInfoAsync(
+            string confirmationNumber,
+            CancellationToken cancellationToken
+        );
     }
 }

@@ -21,11 +21,11 @@ namespace snoopy_airlines_backend.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
-            var CommandDefinition = new CommandDefinition("""
+            var commandDefinition = new CommandDefinition("""
                 SELECT * FROM dbo.GetPassengersByConfirmation(@ConfirmationNumber)
                 """, new { ConfirmationNumber = confirmationNumber }, cancellationToken: cancellationToken
             );
-            var passengers = await connection.QueryAsync<PassengerView>(CommandDefinition);
+            var passengers = await connection.QueryAsync<PassengerView>(commandDefinition);
             return passengers.ToList();
         }
     }

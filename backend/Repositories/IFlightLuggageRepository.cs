@@ -5,7 +5,7 @@ namespace snoopy_airlines_backend.Repositories
 {
     public interface IFlightLuggageRepository
     {
-        Task<IReadOnlyCollection<PassengerView>> GetFlightLuggageInfoByConfirmationAsync(
+        Task<FlightLuggageView> GetFlightLuggageInfoByConfirmationAsync(
             string confirmationNumber,
             CancellationToken cancellationToken
         );
