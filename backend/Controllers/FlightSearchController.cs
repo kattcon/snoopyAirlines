@@ -48,14 +48,14 @@ namespace SnoopyAirlines.Controllers
 
         [AllowAnonymous]
         [HttpGet("searchPassengers")]
-        public async Task<ActionResult<IReadOnlyCollection<PassengerView>>> searchPassengers(
+        public async Task<ActionResult<ModifyLuggageInfo>>searchLuggageInfo(
             [FromQuery] string confirmationNumber,
             CancellationToken cancellationToken)
         {
             try
             {
-                var passengersList = await _ModifyLuggageService.GetPassengersByConfirmationAsync(confirmationNumber, cancellationToken);
-                return Ok(passengersList);
+                var modifyLuggageInfo = await _ModifyLuggageService.GetLuggageInfoAsync(confirmationNumber, cancellationToken);
+                return Ok(modifyLuggageInfo);
             }
             catch (ArgumentException ex)
             {
