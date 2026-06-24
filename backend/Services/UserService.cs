@@ -3,7 +3,8 @@ using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using System.Security.Cryptography;
 using SnoopyAirlines.Domain.Intake;
-using SnoopyAirlines.Domain.EmailTemplate;
+using SnoopyAirlines.Util.Email;
+using SnoopyAirlines.Util.Email.Templates;
 using System.Text;
 
 namespace SnoopyAirlines.Services
@@ -66,14 +67,13 @@ namespace SnoopyAirlines.Services
             CancellationToken cancellationToken)
         {
             var registrationUrl = $"https://snoopyairlines.com/register?key={Uri.EscapeDataString(registrationKey)}";
-            var htmlBody = RegistrationEmailTemplate.Build(registrationUrl);
+            var data = new RegistrationEmailData(registrationUrl);
 
             return _emailSender.SendAsync(
                 email,
-                "Bienvenido a Snoopy Airlines",
-                htmlBody,
-                cancellationToken,
-                isHtml: true);
+                new RegistrationEmailTemplate(),
+                data,
+                cancellationToken);
         }
 
         public async Task<UserView?> RegisterPendingUserAsync(

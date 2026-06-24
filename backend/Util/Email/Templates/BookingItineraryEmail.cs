@@ -1,31 +1,30 @@
-using System.Reflection;
 using System.Text;
 using snoopy_airlines_backend.Domain;
 
-namespace SnoopyAirlines.Domain.EmailTemplate
+namespace SnoopyAirlines.Util.Email.Templates
 {
-    public static class BookingItineraryEmail
+    public sealed class BookingItineraryEmail : IEmailTemplate<PurchaseOrderEmailData>
     {
-        private const string ResourceName = "snoopy_airlines_backend.Resources.Emails.itineraryEmail.html";
+        public string TemplateName => "snoopy_airlines_backend.Resources.Emails.itineraryEmail.html";
+        public string Subject => "Itinerario de viaje - Snoopy Airlines";
 
-        public static string Build(PurchaseOrderEmailData data)
+        public IReadOnlyList<EmailTemplateParameter> GetParameters(PurchaseOrderEmailData data)
         {
-            var html = LoadTemplate(ResourceName);
-            var passengerHtml = BuildPassengerHtml(data.Passengers);
-
-            return html
-                .Replace("{{CONFIRMATION_CODE}}", data.ConfirmationCode.ToString())
-                .Replace("{{DEPARTURE_CITY}}", data.DepartureCityName)
-                .Replace("{{DEPARTURE_CODE}}", data.DepartureAirportCode)
-                .Replace("{{DEPARTURE_AIRPORT}}", data.DepartureAirportName)
-                .Replace("{{ARRIVAL_CITY}}", data.ArrivalCityName)
-                .Replace("{{ARRIVAL_CODE}}", data.ArrivalAirportCode)
-                .Replace("{{ARRIVAL_AIRPORT}}", data.ArrivalAirportName)
-                .Replace("{{DEPARTURE_DATE}}", data.DepartureAt.ToString("dd MMM yyyy"))
-                .Replace("{{DEPARTURE_TIME}}", data.DepartureAt.ToString("hh:mm tt"))
-                .Replace("{{ARRIVAL_TIME}}", data.ArrivalAt.ToString("hh:mm tt"))
-                .Replace("{{SEAT_CLASS}}", data.SeatClass)
-                .Replace("{{PASSENGERS_HTML}}", passengerHtml);
+            return
+            [
+                new EmailTemplateParameter("CONFIRMATION_CODE", data.ConfirmationCode.ToString()),
+                new EmailTemplateParameter("DEPARTURE_CITY", data.DepartureCityName),
+                new EmailTemplateParameter("DEPARTURE_CODE", data.DepartureAirportCode),
+                new EmailTemplateParameter("DEPARTURE_AIRPORT", data.DepartureAirportName),
+                new EmailTemplateParameter("ARRIVAL_CITY", data.ArrivalCityName),
+                new EmailTemplateParameter("ARRIVAL_CODE", data.ArrivalAirportCode),
+                new EmailTemplateParameter("ARRIVAL_AIRPORT", data.ArrivalAirportName),
+                new EmailTemplateParameter("DEPARTURE_DATE", data.DepartureAt.ToString("dd MMM yyyy")),
+                new EmailTemplateParameter("DEPARTURE_TIME", data.DepartureAt.ToString("hh:mm tt")),
+                new EmailTemplateParameter("ARRIVAL_TIME", data.ArrivalAt.ToString("hh:mm tt")),
+                new EmailTemplateParameter("SEAT_CLASS", data.SeatClass),
+                new EmailTemplateParameter("PASSENGERS_HTML", BuildPassengerHtml(data.Passengers))
+            ];
         }
 
         private static string BuildPassengerHtml(IEnumerable<PassengerEmailData> passengers)
@@ -61,19 +60,6 @@ namespace SnoopyAirlines.Domain.EmailTemplate
             }
 
             return sb.ToString();
-        }
-
-        private static string LoadTemplate(string resourceName)
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-
-            using var stream = assembly.GetManifestResourceStream(resourceName)
-                ?? throw new InvalidOperationException(
-                    $"Email template not found as embedded resource: '{resourceName}'. " +
-                    $"Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
-
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
         }
     }
 }

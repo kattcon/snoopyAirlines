@@ -3,6 +3,8 @@ using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Util.Email;
+using SnoopyAirlines.Util.Email.Templates;
 using Xunit;
 
 namespace backend.Tests.Services
@@ -17,10 +19,9 @@ namespace backend.Tests.Services
             _emailSender
                 .Setup(s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()))
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
         }
 
@@ -66,7 +67,7 @@ namespace backend.Tests.Services
         {
             // Arrange
             var booking = CreateBooking(totalAmount: 1234.50m);
-            var sentMessages = new List<(string To, string Subject, string Body, bool IsHtml)>();
+            var sentMessages = new List<(string To, IEmailTemplate<PurchaseOrderEmailData> Template, PurchaseOrderEmailData Data)>();
 
             SetupBooking(booking);
             SetupBookingItineraryDetails(booking.Guid, booking.PurchaseOrderId);
@@ -74,12 +75,11 @@ namespace backend.Tests.Services
             _emailSender
                 .Setup(s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()))
-                .Callback<string, string, string, CancellationToken, bool>(
-                    (to, subject, body, _, isHtml) => sentMessages.Add((to, subject, body, isHtml)))
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<string, IEmailTemplate<PurchaseOrderEmailData>, PurchaseOrderEmailData, CancellationToken>(
+                    (to, template, data, _) => sentMessages.Add((to, template, data)))
                 .Returns(Task.CompletedTask);
 
             var service = CreateService();
@@ -92,18 +92,19 @@ namespace backend.Tests.Services
             Assert.All(sentMessages, message =>
             {
                 Assert.Equal(booking.Email, message.To);
-                Assert.True(message.IsHtml);
             });
 
             Assert.Contains(sentMessages, message =>
-                message.Subject.Contains("reserva")
-                && message.Body.Contains("1,234.50")
-                && message.Body.Contains(booking.Guid.ToString()));
+                message.Template is BookingConfirmationEmail
+                && message.Template.Subject == "Confirmaci\u00f3n de reserva - Snoopy Airlines"
+                && GetTemplateParameter(message.Template, message.Data, "TOTAL") == "1,234.50"
+                && GetTemplateParameter(message.Template, message.Data, "TRANSACTION_ID") == booking.Guid.ToString());
 
             Assert.Contains(sentMessages, message =>
-                message.Subject == "Itinerario de viaje - Snoopy Airlines"
-                && message.Body.Contains("San Jose")
-                && message.Body.Contains("Jane Doe"));
+                message.Template is BookingItineraryEmail
+                && message.Template.Subject == "Itinerario de viaje - Snoopy Airlines"
+                && GetTemplateParameter(message.Template, message.Data, "DEPARTURE_CITY") == "San Jose"
+                && GetTemplateParameter(message.Template, message.Data, "PASSENGERS_HTML").Contains("Jane Doe"));
         }
 
         [Fact]
@@ -127,10 +128,9 @@ namespace backend.Tests.Services
             _emailSender.Verify(
                 s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 
@@ -153,10 +153,9 @@ namespace backend.Tests.Services
             _emailSender.Verify(
                 s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 
@@ -260,5 +259,15 @@ namespace backend.Tests.Services
             };
         }
 
+        private static string GetTemplateParameter<T>(
+            IEmailTemplate<T> template,
+            T data,
+            string name)
+        {
+            return template
+                .GetParameters(data)
+                .Single(parameter => parameter.Name == name)
+                .Value;
+        }
     }
 }

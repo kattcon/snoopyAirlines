@@ -8,6 +8,7 @@ using SnoopyAirlines.Infrastructure.Dapper;
 using SnoopyAirlines.Infrastructure.Json;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Util.Email;
 using System.Text;
 using Dapper;
 
