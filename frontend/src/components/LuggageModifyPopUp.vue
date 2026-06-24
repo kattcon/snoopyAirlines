@@ -63,7 +63,7 @@
                                         <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" />
                                     </svg>
                                     </div>
-                                    <p class="baggagePassengerName">{{ passenger.name }}</p>
+                                    <p class="baggagePassengerName">{{ passenger.firstName }} {{ passenger.lastName }}</p>
                                 </div>
 
                                 <div class="baggageCounter">
@@ -137,7 +137,7 @@
 </template>
 
 <script>
-//import axios from 'axios'
+import axios from 'axios'
 import '../styles/styles.css'
 export default {
   name: 'LuggageModifyPopUp',
@@ -172,7 +172,7 @@ export default {
         if(this.lastPaidAmount === 0) {
             return 'Tu equipaje fue actualizado sin costo adicional.';
         }
-        return 'Se cobraron $${this.lastPaidAmount} ${this.currency}. Tu equipaje documentado fue actualizado';
+        return `Se cobraron $${this.lastPaidAmount} ${this.currency}. Tu equipaje documentado fue actualizado`;
     }
   },
   mounted() {
@@ -183,43 +183,37 @@ export default {
         this.isLoading = true;
         this.loadError = '';
 
-        try {
-            const mockResponse = {
-                    passengers: [
-                        { id: 1, name: 'Juan Pérez',    currentBags: 1 },
-                        { id: 2, name: 'María García',  currentBags: 1 },
-                        { id: 3, name: 'Carlos López',  currentBags: 0 }
-                    ],
-                    pricePerBag:       45,
-                    currency:          'USD',
-                    availableCapacity: 4   // máximo de maletas extra permitidas en total
-                };
+        this.pricePerBag = 45;
+        this.currency = 'USD';
+        this.availableCapacity = 4;
 
-                this.pricePerBag       = mockResponse.pricePerBag;
-                this.currency          = mockResponse.currency;
-                this.availableCapacity = mockResponse.availableCapacity;
-                this.localPassengers   = mockResponse.passengers.map(p => ({
-                    id:           p.id,
-                    name:         p.name,
-                    originalBags: p.currentBags,
-                    currentBags:  p.currentBags
-                }));
+        try{
+            const response = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/searchPassengers`, {
+            params: {
+                confirmationNumber : this.reservationNumber
+            }
+            })
+            this.localPassengers = response.data.map(p => ({
+            firstName:    p.firstName,
+            lastName:     p.lastName,
+            originalBags: parseInt(p.checkedLuggage),
+            currentBags:  parseInt(p.checkedLuggage)
+            }))
 
-        } catch(error) {
-            const status          = error.response?.status;
-                const backendMessage  = error.response?.data?.message;
-
-                if (status === 404) {
-                    this.loadError = backendMessage || 'No se encontró información de equipaje para esta reservación.';
-                } else if (status === 400) {
-                    this.loadError = backendMessage || 'Número de reservación inválido.';
-                } else {
-                    this.loadError = 'Error al cargar la información. Por favor intenta de nuevo.';
+        }catch (error){
+            if(error.response) {
+                if (error.response.status ===400) {
+                    this.errorMessage = 'Código de confirmación inválido'
                 }
-                console.error('[LuggageModifyPopUp] fetchReservationData:', error);
-            } finally {
-                this.isLoading = false;
-
+                if (error.response.status === 404) {
+                    this.errorMessage = 'No se encontró ninguna reservación con ese código'
+                }
+                if (error.response.status === 500) {
+                    this.errorMessage = 'Error en el servidor. Inténtelo de nuevo más tarde'
+                }
+            }
+        }finally {
+            this.isLoading = false
         }
     },
     extrabagsFor(passenger) {
