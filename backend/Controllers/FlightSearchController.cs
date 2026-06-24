@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using snoopy_airlines_backend.Domain.View;
+using snoopy_airlines_backend.Services;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Services;
 
@@ -11,10 +12,11 @@ namespace SnoopyAirlines.Controllers
     public class FlightSearchController : ControllerBase
     {
         private readonly IFlightSearchService _flightSearchService;
-
-        public FlightSearchController(IFlightSearchService flightSearchService)
+        private readonly IModifyluggageService _ModifyLuggageService;
+        public FlightSearchController(IFlightSearchService flightSearchService, IModifyluggageService modifyluggageService)
         {
             _flightSearchService = flightSearchService;
+            _ModifyLuggageService = modifyluggageService;
         }
 
         [AllowAnonymous]
@@ -52,7 +54,7 @@ namespace SnoopyAirlines.Controllers
         {
             try
             {
-                var passengersList = await _flightSearchService.GetPassengersByConfirmationAsync(confirmationNumber, cancellationToken);
+                var passengersList = await _ModifyLuggageService.GetPassengersByConfirmationAsync(confirmationNumber, cancellationToken);
                 return Ok(passengersList);
             }
             catch (ArgumentException ex)
