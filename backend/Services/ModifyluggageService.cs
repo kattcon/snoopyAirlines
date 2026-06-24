@@ -6,12 +6,12 @@ using System;
 
 namespace snoopy_airlines_backend.Services
 {
-    public class ModifyluggageService: IModifyluggageService
+    public class ModifyLuggageService: IModifyLuggageService
     {
         private readonly IPassengerLuggageRepository _PassengerLuggageRepository;
         private readonly IFlightLuggageRepository _flightLuggageRepository;
 
-        public ModifyluggageService(IPassengerLuggageRepository passengerLuggageRepository, IFlightLuggageRepository flightLuggageRepository)
+        public ModifyLuggageService(IPassengerLuggageRepository passengerLuggageRepository, IFlightLuggageRepository flightLuggageRepository)
         {
             _PassengerLuggageRepository = passengerLuggageRepository;
             _flightLuggageRepository = flightLuggageRepository;
@@ -62,13 +62,15 @@ namespace snoopy_airlines_backend.Services
             CancellationToken cancellationToken)
 
             {
-            var passengers = await GetPassengersByConfirmationAsync(confirmationNumber, cancellationToken);
-            var flightLuggage = await GetFlightLuggageInfoByConfirmationAsync(confirmationNumber, cancellationToken);
+            var passengersTask = GetPassengersByConfirmationAsync(confirmationNumber, cancellationToken);
+            var flightLuggageTask = GetFlightLuggageInfoByConfirmationAsync(confirmationNumber, cancellationToken);
+
+            await Task.WhenAll(passengersTask, flightLuggageTask);
 
             return new ModifyLuggageInfo
             {
-                Passengers = passengers,
-                LuggageInfo = flightLuggage
+                Passengers = passengersTask.Result,
+                LuggageInfo = flightLuggageTask.Result
             };
         }
     }

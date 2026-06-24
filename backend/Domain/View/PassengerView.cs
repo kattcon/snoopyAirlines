@@ -6,6 +6,6 @@ namespace snoopy_airlines_backend.Domain.View
     {
         [Required] public string FirstName { get; set; }
         [Required] public string LastName { get; set; }
-        [Required] public string CheckedLuggage { get; set; }
+        [Required] public int CheckedLuggage { get; set; }
     }
 }

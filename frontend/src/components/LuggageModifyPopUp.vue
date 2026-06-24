@@ -185,7 +185,7 @@ export default {
         this.loadError = '';
 
         try{
-            const response = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/searchPassengers`, {
+            const response = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/modify-luggage/getLuggageInfo`, {
             params: {
                 confirmationNumber : this.reservationNumber
             }

@@ -4,7 +4,7 @@ namespace snoopy_airlines_backend.Domain.View
 {
     public class FlightLuggageView
     {
-        [Required] public float PriceCheckedBaggage { get; set; }
-        [Required] public float CheckedBaggagePriceMultiplier { get; set; }
+        public decimal PriceCheckedBaggage { get; set; }
+        public decimal CheckedBaggagePriceMultiplier { get; set; }
     }
 }
