@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using snoopy_airlines_backend.Domain.View;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Services;
 
@@ -41,6 +42,27 @@ namespace SnoopyAirlines.Controllers
                 return NotFound(new { message = ex.Message });
             }
             
+        }
+
+        [AllowAnonymous]
+        [HttpGet("searchPassengers")]
+        public async Task<ActionResult<IReadOnlyCollection<PassengerView>>> searchPassengers(
+            [FromQuery] string confirmationNumber,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var passengersList = await _flightSearchService.GetPassengersByConfirmationAsync(confirmationNumber, cancellationToken);
+                return Ok(passengersList);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
 }
