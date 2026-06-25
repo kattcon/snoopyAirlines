@@ -14,7 +14,7 @@ namespace SnoopyAirlines.Repositories
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
+        public async Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,
             CancellationToken cancellationToken)
