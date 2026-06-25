@@ -34,7 +34,8 @@ namespace SnoopyAirlines.Repositories
                     price_checked_baggage AS PriceCheckedBaggage,
                     weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
                     weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
-                    checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
+                    checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier,
+                    flight_code AS FlightCode
                 FROM [route]
                 ORDER BY departure_time;
                 """;
@@ -147,7 +148,8 @@ namespace SnoopyAirlines.Repositories
                     f.price_checked_baggage AS PriceCheckedBaggage,
                     f.weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
                     f.weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
-                    f.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
+                    f.checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier,
+                    f.flight_code AS FlightCode
                 FROM [route] f
                 INNER JOIN airport departure_airport ON f.departure_airport_id = departure_airport.id
                 INNER JOIN city departure_city ON departure_airport.city_id = departure_city.id
@@ -184,7 +186,8 @@ namespace SnoopyAirlines.Repositories
                     price_checked_baggage AS PriceCheckedBaggage,
                     weight_limit_carry_on_baggage AS WeightLimitCarryOnBaggage,
                     weight_limit_checked_baggage AS WeightLimitCheckedBaggage,
-                    checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier
+                    checked_baggage_price_multiplier AS CheckedBaggagePriceMultiplier,
+                    flight_code AS FlightCode
                 FROM [route]
                 WHERE (@DepartureAirportId IS NULL OR departure_airport_id = @DepartureAirportId)
                   AND (@ArrivalAirportId IS NULL OR arrival_airport_id = @ArrivalAirportId)
@@ -319,7 +322,8 @@ namespace SnoopyAirlines.Repositories
                 PriceCheckedBaggage = route.PriceCheckedBaggage,
                 WeightLimitCarryOnBaggage = route.WeightLimitCarryOnBaggage,
                 WeightLimitCheckedBaggage = route.WeightLimitCheckedBaggage,
-                CheckedBaggagePriceMultiplier = route.CheckedBaggagePriceMultiplier
+                CheckedBaggagePriceMultiplier = route.CheckedBaggagePriceMultiplier,
+                FlightCode = route.FlightCode
             };
         }
 
@@ -342,6 +346,7 @@ namespace SnoopyAirlines.Repositories
                 WeightLimitCarryOnBaggage = route.WeightLimitCarryOnBaggage,
                 WeightLimitCheckedBaggage = route.WeightLimitCheckedBaggage,
                 CheckedBaggagePriceMultiplier = route.CheckedBaggagePriceMultiplier,
+                FlightCode = route.FlightCode,
                 DepartureAirport = new RouteAirport
                 {
                     Code = route.DepartureAirportCode,
@@ -496,6 +501,7 @@ namespace SnoopyAirlines.Repositories
             public int WeightLimitCarryOnBaggage { get; set; }
             public int WeightLimitCheckedBaggage { get; set; }
             public decimal CheckedBaggagePriceMultiplier { get; set; }
+            public string? FlightCode { get; set; }
         }
 
         private class RouteSearchRecord
@@ -521,6 +527,7 @@ namespace SnoopyAirlines.Repositories
             public int WeightLimitCarryOnBaggage { get; set; }
             public int WeightLimitCheckedBaggage { get; set; }
             public decimal CheckedBaggagePriceMultiplier { get; set; }
+            public string? FlightCode { get; set; }
         }
     }
 }
