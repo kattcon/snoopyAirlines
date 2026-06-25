@@ -78,7 +78,7 @@
 
               <div class="flight-center">
                 <div>{{ formatDuration(leg.durationMinutes) }}</div>
-                <small>Directo</small>
+                
               </div>
 
               <div class="airport airport-right">
@@ -363,7 +363,6 @@ export default {
       doc.setFontSize(9);
       doc.setTextColor(31, 143, 71);
       doc.setFont('helvetica', 'bold');
-      doc.text('DIRECTO', pageWidth / 2, bodyTextY + 12, { align: 'center' });
 
 
       const rightX = margin + cardWidth - bodyPadding;
