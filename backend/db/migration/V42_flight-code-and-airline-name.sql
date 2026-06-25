@@ -1,6 +1,3 @@
--- Agrega código amigable de vuelo a la tabla de rutas (ej. KV503)
--- y nombre de aerolínea a la reserva (por defecto 'Snoopy Airlines').
-
 ALTER TABLE dbo.[route]
 ADD flight_code VARCHAR(20) NULL;
 GO
