@@ -18,6 +18,7 @@ namespace SnoopyAirlines.Domain
         public int WeightLimitCarryOnBaggage { get; set; }
         public int WeightLimitCheckedBaggage { get; set; }
         public decimal CheckedBaggagePriceMultiplier { get; set; }
+        public string? FlightCode { get; set; }
         public RouteAirport? DepartureAirport { get; set; }
         public RouteAirport? ArrivalAirport { get; set; }
     }
