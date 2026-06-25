@@ -7,7 +7,6 @@
         </a>
     </div>
 
-    <!-- Empty state: no llegaron datos (ej. recarga de página) -->
     <div v-if="!hasReport" class="empty-state">
       <p>No hay información de reservación para mostrar.</p>
       <p>Por favor busca tu reservación nuevamente desde la página de inicio.</p>
@@ -51,7 +50,7 @@
       <section class="content">
         <!-- Left Column -->
         <div class="left-column">
-          <!-- Una tarjeta por cada tramo de la reservación -->
+          <!-- Una tarjeta por cada tramo de la reservacion -->
           <div class="flight-card" v-for="leg in flightLegs" :key="leg.sequenceNumber">
             <div class="flight-header">
               <div>
@@ -78,7 +77,7 @@
 
               <div class="flight-center">
                 <div>{{ formatDuration(leg.durationMinutes) }}</div>
-                
+                <small>Directo</small>
               </div>
 
               <div class="airport airport-right">
@@ -124,8 +123,8 @@
             </button>
           </div>
 
-          <button class="pdf-button" :disabled="generatingPdf" @click="generatePdf">
-            {{ generatingPdf ? 'Generando PDF...' : 'Imprimir itinerario (PDF)' }}
+          <button class="pdf-button" @click="printItinerary">
+            Imprimir itinerario (PDF)
           </button>
 
           <div class="passenger-card">
@@ -157,22 +156,21 @@
 </template>
 
 <script>
-import { jsPDF } from 'jspdf';
-
 export default {
   name: 'ClientFlightReport',
   data() {
     return {
-      // Los tramos llegan por state desde LandingPage.vue, de la busqueda
+      // Datos que llegan por state desde LandingPage.vue.
       flightLegs: [],
-      generatingPdf: false,
+      passengers: [],
     };
   },
   created() {
-    const stateReport = window.history.state?.flightReport;
+    const state = window.history.state?.flightReport;
 
-    if (Array.isArray(stateReport) && stateReport.length > 0) {
-      this.flightLegs = [...stateReport].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+    if (state?.legs?.length > 0) {
+      this.flightLegs = [...state.legs].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+      this.passengers = state.passengers ?? [];
     }
   },
   computed: {
@@ -209,7 +207,6 @@ export default {
       const departureDate = this.firstLeg.departureDate;
       if (!departureDate) return null;
 
-      // Comparar solo fechas (sin horas) para evitar resultados parciales por zona horaria
       const today = new Date();
       const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const departure = new Date(`${departureDate}T00:00:00`);
@@ -237,12 +234,12 @@ export default {
       return `TRAMO ${leg.sequenceNumber}`;
     },
     formatTime(value) {
-      // El backend envía TimeOnly serializado como "HH:mm:ss"
+      // El backend envia TimeOnly serializado como "HH:mm:ss"
       return value ? String(value).slice(0, 5) : '';
     },
     formatDate(value) {
       if (!value) return '';
-      // El backend envía DateOnly serializado como "YYYY-MM-DD"
+      // El backend envia DateOnly serializado como "YYYY-MM-DD"
       return new Date(`${value}T00:00:00`).toLocaleDateString('es-ES', {
         weekday: 'long',
         day: 'numeric',
@@ -258,175 +255,208 @@ export default {
     },
 
     /**
-     * Generar PDF con una tarjeta por cada tramo
-     * del itinerario, usando los mismos datos ya cargados en la página
+     * Abre una ventana nueva con el HTML del correo de itinerario ya relleno
+     * con los datos reales (vuelos + pasajeros + equipaje) y usa window.print().
      */
-    generatePdf() {
-      this.generatingPdf = true;
-
-      try {
-        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-
-        this.flightLegs.forEach((leg, index) => {
-          if (index > 0) {
-            doc.addPage();
-          }
-          this.drawBoardingPass(doc, leg);
-        });
-
-        const fileName = `Itinerario_${this.reservationNumber || 'SnoopyAirlines'}.pdf`;
-        doc.save(fileName);
-      } catch (error) {
-        console.error('Error generando el PDF del itinerario:', error);
-      } finally {
-        this.generatingPdf = false;
+    printItinerary() {
+      const html = this.buildItineraryHtml();
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        console.error('No se pudo abrir la ventana de impresión. Revisa los bloqueadores de pop-ups.');
+        return;
       }
+
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      };
     },
 
     /**
-     * Dibuja una tarjeta de boarding pass para un tramo en la página
-     * actual del documento jsPDF.
+     * Construye el HTML del itinerario (basado en itineraryEmail.html)
+     * reemplazando los placeholders con los datos reales de la reservacion.
+     * Incluye una sección de vuelos por tramo, pasajeros y equipaje.
      */
-    drawBoardingPass(doc, leg) {
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 40;
-      const cardWidth = pageWidth - margin * 2;
+    buildItineraryHtml() {
 
-      const brandBlueDark = [0, 59, 122];   // #003b7a
-      const brandBlueLight = [10, 94, 176];  // #0a5eb0
-      const brandGold = [255, 193, 7];       // #ffc107
-      const textGray = [90, 90, 90];
-      const textDark = [30, 30, 30];
+      return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Itinerario de Viaje - Snoopy Airlines</title>
+  <style>
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    body { margin:0; padding:0; background-color:#f0f4f8; font-family:'Segoe UI',Arial,sans-serif; }
+  </style>
+</head>
+<body>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0"
+          style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-      let y = 50;
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#1a2b4a;padding:28px 40px;text-align:center;">
+              <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.3px;">Snoopy Airlines</span>
+              <br /><br />
+              <span style="color:#ffffff;font-size:16px;font-weight:600;">Itinerario de Viaje</span>
+            </td>
+          </tr>
 
-      // ---- Encabezado de marca ----
-      doc.setFontSize(20);
-      doc.setTextColor(...brandBlueDark);
-      doc.setFont('helvetica', 'bold');
-      doc.text('SNOOPY AIRLINES', margin, y);
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 48px 32px 48px;">
+              <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#111827;">Tu Itinerario de Viaje</h1>
+              <p style="margin:0 0 28px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                A continuación encontrarás toda la información de tu vuelo, pasajeros y equipaje.
+              </p>
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...textGray);
-      doc.text('ITINERARIO', margin, y + 16);
+              <!-- Número de reserva -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:28px;">
+                <tr>
+                  <td style="background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;text-align:center;">
+                    <p style="margin:0 0 4px 0;font-size:12px;color:#6b7280;">Número de Reserva</p>
+                    <p style="margin:0;font-size:26px;font-weight:700;color:#1a2b4a;">${this.reservationNumber}</p>
+                  </td>
+                </tr>
+              </table>
 
-      y += 40;
+              <!-- ✈ Tramos de vuelo -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:8px;">
+                <tr><td style="padding-bottom:12px;">
+                  <span style="font-size:16px;font-weight:700;color:#111827;">✈ Información del Vuelo</span>
+                </td></tr>
+              </table>
 
-      // ---- Tarjeta principal (header degradado simulado con rect sólido) ----
-      const headerHeight = 70;
-      doc.setFillColor(...brandBlueDark);
-      doc.roundedRect(margin, y, cardWidth, headerHeight, 10, 10, 'F');
-      doc.setFillColor(...brandBlueLight);
-      doc.rect(margin, y + headerHeight - 12, cardWidth, 12, 'F');
+              ${this.flightLegs.map(leg => `
+              <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;">
+                <tr>
+                  <td colspan="3" style="padding:10px 20px;background-color:#1a2b4a;border-radius:8px 8px 0 0;">
+                    <span style="color:#ffffff;font-size:13px;font-weight:600;">${this.legLabel(leg)} — Tramo ${leg.sequenceNumber}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">📍 Origen</p>
+                    <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">${leg.departureCity} (${leg.departureAirportCode})</p>
+                  </td>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;border-left:1px solid #e5e7eb;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">📍 Destino</p>
+                    <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">${leg.arrivalCity} (${leg.arrivalAirportCode})</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;" width="33%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">📅 Fecha</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${this.formatDate(leg.departureDate)}</p>
+                  </td>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;border-left:1px solid #e5e7eb;" width="33%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">🕐 Salida</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${this.formatTime(leg.departureTime)}</p>
+                  </td>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;border-left:1px solid #e5e7eb;" width="33%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">🕐 Llegada</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${this.formatTime(leg.arrivalTime)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="3" style="padding:14px 20px;">
+                    <span style="font-size:13px;color:#4b5563;"><strong>Aeronave:</strong> ${leg.airplaneModel}</span>
+                    <span style="font-size:13px;color:#4b5563;margin-left:16px;">|</span>
+                    <span style="font-size:13px;color:#4b5563;margin-left:16px;"><strong>Duración:</strong> ${this.formatDuration(leg.durationMinutes)}</span>
+                  </td>
+                </tr>
+              </table>
+              `).join('')}
 
-      doc.setFontSize(11);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'normal');
-      doc.text(this.legLabel(leg), margin + 20, y + 26);
+              <!-- 👤 Pasajeros -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:8px;margin-top:8px;">
+                <tr><td style="padding-bottom:12px;">
+                  <span style="font-size:16px;font-weight:700;color:#111827;">👤 Información del Pasajero</span>
+                </td></tr>
+              </table>
 
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${leg.departureCity} -> ${leg.arrivalCity}`, margin + 20, y + 48);
+              ${this.passengers.map(p => `
+              <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:12px;">
+                <tr>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">Nombre completo</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${p.firstName} ${p.lastName}</p>
+                  </td>
+                  <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;border-left:1px solid #e5e7eb;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">Género</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${p.gender}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">Fecha de nacimiento</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${p.birthDay} ${p.birthMonth} ${p.birthYear}</p>
+                  </td>
+                  <td style="padding:16px 20px;border-left:1px solid #e5e7eb;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">Nacionalidad</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${p.nationality}</p>
+                  </td>
+                </tr>
+              </table>
+              `).join('')}
 
-      doc.setFontSize(14);
-      doc.text(`Tramo ${leg.sequenceNumber}`, margin + cardWidth - 90, y + 40);
+              <!-- 🧳 Equipaje -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:8px;margin-top:24px;">
+                <tr><td style="padding-bottom:12px;">
+                  <span style="font-size:16px;font-weight:700;color:#111827;">🧳 Equipaje</span>
+                </td></tr>
+              </table>
 
-      y += headerHeight;
+              ${this.passengers.map(p => `
+              <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:12px;">
+                <tr>
+                  <td colspan="2" style="padding:12px 20px;background-color:#f8fafc;border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0;font-size:13px;font-weight:600;color:#1a2b4a;">👤 ${p.firstName} ${p.lastName}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">🎒 Equipaje de mano</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${p.carryOnLuggage} pieza${p.carryOnLuggage === 1 ? '' : 's'}</p>
+                  </td>
+                  <td style="padding:16px 20px;border-left:1px solid #e5e7eb;" width="50%">
+                    <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">🧳 Equipaje de bodega</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${p.checkedLuggage} pieza${p.checkedLuggage === 1 ? '' : 's'}</p>
+                  </td>
+                </tr>
+              </table>
+              `).join('')}
 
-      // ---- Cuerpo: aeropuertos y horarios ----
-      const bodyHeight = 90;
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(225, 225, 225);
-      doc.rect(margin, y, cardWidth, bodyHeight, 'FD');
+            </td>
+          </tr>
 
-      const bodyPadding = 24;
-      const bodyTextY = y + 40;
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc;padding:20px 48px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0 0 4px 0;font-size:12px;color:#9ca3af;">
+                Este documento fue generado automáticamente. Número de reserva: ${this.reservationNumber}
+              </p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;">© 2026 Snoopy Airlines. Todos los derechos reservados.</p>
+            </td>
+          </tr>
 
-      doc.setTextColor(...textDark);
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.text(this.formatTime(leg.departureTime), margin + bodyPadding, bodyTextY);
-
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(leg.departureAirportCode || '', margin + bodyPadding, bodyTextY + 18);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...textGray);
-      doc.text(leg.departureCity || '', margin + bodyPadding, bodyTextY + 32);
-
-
-      doc.setTextColor(...textDark);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text(this.formatDuration(leg.durationMinutes), pageWidth / 2, bodyTextY - 4, { align: 'center' });
-      doc.setFontSize(9);
-      doc.setTextColor(31, 143, 71);
-      doc.setFont('helvetica', 'bold');
-
-
-      const rightX = margin + cardWidth - bodyPadding;
-      doc.setTextColor(...textDark);
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.text(this.formatTime(leg.arrivalTime), rightX, bodyTextY, { align: 'right' });
-
-      doc.setFontSize(11);
-      doc.text(leg.arrivalAirportCode || '', rightX, bodyTextY + 18, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...textGray);
-      doc.text(leg.arrivalCity || '', rightX, bodyTextY + 32, { align: 'right' });
-
-      y += bodyHeight;
-
-
-      const footerHeight = 50;
-      doc.setFillColor(250, 250, 250);
-      doc.setDrawColor(225, 225, 225);
-      doc.rect(margin, y, cardWidth, footerHeight, 'FD');
-
-      doc.setFontSize(8);
-      doc.setTextColor(...textGray);
-      doc.setFont('helvetica', 'normal');
-      doc.text('FECHA', margin + bodyPadding, y + 18);
-      doc.text('AERONAVE', margin + cardWidth / 2, y + 18);
-
-      doc.setFontSize(10);
-      doc.setTextColor(...textDark);
-      doc.setFont('helvetica', 'bold');
-      doc.text(this.formatDate(leg.departureDate), margin + bodyPadding, y + 34);
-      doc.text(leg.airplaneModel || 'N/D', margin + cardWidth / 2, y + 34);
-
-      y += footerHeight + 30;
-
-
-      doc.setDrawColor(...brandGold);
-      doc.setLineWidth(1.5);
-      doc.line(margin, y, margin + cardWidth, y);
-      y += 24;
-
-      doc.setFontSize(9);
-      doc.setTextColor(...textGray);
-      doc.setFont('helvetica', 'normal');
-      doc.text('TITULAR DE LA RESERVACIÓN', margin, y);
-      doc.text('NÚMERO DE RESERVACIÓN', margin + cardWidth / 2, y);
-
-      y += 16;
-      doc.setFontSize(12);
-      doc.setTextColor(...textDark);
-      doc.setFont('helvetica', 'bold');
-      doc.text(this.cardHolderName, margin, y);
-      doc.text(this.reservationNumber, margin + cardWidth / 2, y);
-
-      y += 24;
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...textGray);
-      doc.text(
-        `${this.passengerCount} pasajero${this.passengerCount === 1 ? '' : 's'} · ${this.tripTypeLabel}`,
-        margin,
-        y
-      );
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
     },
   },
 };
