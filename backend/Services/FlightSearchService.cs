@@ -33,7 +33,7 @@ namespace SnoopyAirlines.Services
                 lastNames,
                 cancellationToken);
 
-            if (flightReport == null || flightReport.Count == 0)
+            if (flightReport == null || flightReport.Legs.Count == 0)
             {
                 throw new InvalidOperationException("No se encontró ningún reporte de vuelo para el número de reservación y apellidos proporcionados.");
             }
