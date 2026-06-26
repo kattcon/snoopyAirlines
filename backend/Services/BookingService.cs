@@ -4,6 +4,7 @@ using SnoopyAirlines.Domain;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Email.Templates;
+using SnoopyAirlines.Util.Pdf;
 
 namespace SnoopyAirlines.Services
 {
@@ -11,15 +12,18 @@ namespace SnoopyAirlines.Services
     {
         private readonly IBookingRepository _bookingRepository;
         private readonly IEmailSender _emailSender;
+        private readonly IInvoicePdfGenerator _invoicePdfGenerator;
         private readonly BookingConfirmationEmail _bookingConfirmationEmail;
         private readonly BookingItineraryEmail _bookingItineraryEmail;
 
         public BookingService(
             IBookingRepository bookingRepository,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IInvoicePdfGenerator invoicePdfGenerator)
         {
             _bookingRepository = bookingRepository;
             _emailSender = emailSender;
+            _invoicePdfGenerator = invoicePdfGenerator;
             _bookingConfirmationEmail = new BookingConfirmationEmail();
             _bookingItineraryEmail = new BookingItineraryEmail();
         }
@@ -50,11 +54,13 @@ namespace SnoopyAirlines.Services
                 cancellationToken);
 
             ApplyBookingDetails(data, booking);
+            var invoice = _invoicePdfGenerator.GenerateInvoice(data);
 
             await _emailSender.SendAsync(
                 booking.Email,
                 _bookingConfirmationEmail,
                 data,
+                invoice,
                 cancellationToken);
 
             await _emailSender.SendAsync(

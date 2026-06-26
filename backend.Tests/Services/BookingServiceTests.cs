@@ -5,6 +5,7 @@ using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Email.Templates;
+using SnoopyAirlines.Util.Pdf;
 using Xunit;
 
 namespace backend.Tests.Services
@@ -13,6 +14,7 @@ namespace backend.Tests.Services
     {
         private readonly Mock<IBookingRepository> _bookingRepository = new();
         private readonly Mock<IEmailSender> _emailSender = new();
+        private readonly Mock<IInvoicePdfGenerator> _invoicePdfGenerator = new();
 
         public BookingServiceTests()
         {
@@ -23,6 +25,19 @@ namespace backend.Tests.Services
                     It.IsAny<PurchaseOrderEmailData>(),
                     It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+
+            _emailSender
+                .Setup(s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            _invoicePdfGenerator
+                .Setup(generator => generator.GenerateInvoice(It.IsAny<PurchaseOrderEmailData>()))
+                .Returns(CreateInvoiceAttachment());
         }
 
         [Fact]
@@ -67,7 +82,7 @@ namespace backend.Tests.Services
         {
             // Arrange
             var booking = CreateBooking(totalAmount: 1234.50m);
-            var sentMessages = new List<(string To, IEmailTemplate<PurchaseOrderEmailData> Template, PurchaseOrderEmailData Data)>();
+            var sentMessages = new List<(string To, IEmailTemplate<PurchaseOrderEmailData> Template, PurchaseOrderEmailData Data, Attachment? Attachment)>();
 
             SetupBooking(booking);
             SetupBookingItineraryDetails(booking.Guid, booking.PurchaseOrderId);
@@ -79,7 +94,18 @@ namespace backend.Tests.Services
                     It.IsAny<PurchaseOrderEmailData>(),
                     It.IsAny<CancellationToken>()))
                 .Callback<string, IEmailTemplate<PurchaseOrderEmailData>, PurchaseOrderEmailData, CancellationToken>(
-                    (to, template, data, _) => sentMessages.Add((to, template, data)))
+                    (to, template, data, _) => sentMessages.Add((to, template, data, null)))
+                .Returns(Task.CompletedTask);
+
+            _emailSender
+                .Setup(s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<string, IEmailTemplate<PurchaseOrderEmailData>, PurchaseOrderEmailData, Attachment, CancellationToken>(
+                    (to, template, data, attachment, _) => sentMessages.Add((to, template, data, attachment)))
                 .Returns(Task.CompletedTask);
 
             var service = CreateService();
@@ -96,15 +122,25 @@ namespace backend.Tests.Services
 
             Assert.Contains(sentMessages, message =>
                 message.Template is BookingConfirmationEmail
+                && message.Attachment is not null
+                && message.Attachment.FileName == "Factura-SA-123456.pdf"
+                && message.Attachment.Format == "application/pdf"
                 && message.Template.Subject == "Confirmaci\u00f3n de reserva - Snoopy Airlines"
                 && GetTemplateParameter(message.Template, message.Data, "TOTAL") == "1,234.50"
                 && GetTemplateParameter(message.Template, message.Data, "TRANSACTION_ID") == booking.Guid.ToString());
 
             Assert.Contains(sentMessages, message =>
                 message.Template is BookingItineraryEmail
+                && message.Attachment is null
                 && message.Template.Subject == "Itinerario de viaje - Snoopy Airlines"
                 && GetTemplateParameter(message.Template, message.Data, "DEPARTURE_CITY") == "San Jose"
                 && GetTemplateParameter(message.Template, message.Data, "PASSENGERS_HTML").Contains("Jane Doe"));
+
+            _invoicePdfGenerator.Verify(
+                generator => generator.GenerateInvoice(It.Is<PurchaseOrderEmailData>(
+                    data => data.ConfirmationCode == booking.ConfirmationCode
+                        && data.Total == "1,234.50")),
+                Times.Once);
         }
 
         [Fact]
@@ -132,6 +168,17 @@ namespace backend.Tests.Services
                     It.IsAny<PurchaseOrderEmailData>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
+            _emailSender.Verify(
+                s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _invoicePdfGenerator.Verify(
+                generator => generator.GenerateInvoice(It.IsAny<PurchaseOrderEmailData>()),
+                Times.Never);
         }
 
         [Fact]
@@ -157,13 +204,25 @@ namespace backend.Tests.Services
                     It.IsAny<PurchaseOrderEmailData>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
+            _emailSender.Verify(
+                s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _invoicePdfGenerator.Verify(
+                generator => generator.GenerateInvoice(It.IsAny<PurchaseOrderEmailData>()),
+                Times.Never);
         }
 
         private BookingService CreateService()
         {
             return new BookingService(
                 _bookingRepository.Object,
-                _emailSender.Object);
+                _emailSender.Object,
+                _invoicePdfGenerator.Object);
         }
 
         private void SetupBooking(Booking booking)
@@ -268,6 +327,14 @@ namespace backend.Tests.Services
                 .GetParameters(data)
                 .Single(parameter => parameter.Name == name)
                 .Value;
+        }
+
+        private static Attachment CreateInvoiceAttachment()
+        {
+            return Attachment.FromBytes(
+                "Factura-SA-123456.pdf",
+                "application/pdf",
+                [0x25, 0x50, 0x44, 0x46]);
         }
     }
 }
