@@ -54,8 +54,8 @@
                         <th>Origen</th>
                         <th>Destino</th>
                         <th># Vuelo</th>
-                        <th>Pas. 1ra clase</th>
-                        <th>Pas. económica</th>
+                        <th class="th-multiline">Pasajeros<br>primera<br>clase</th>
+                        <th class="th-multiline">Pasajeros<br>clase<br>económica</th>
                         <th>Aerolínea</th>
                         <th>Venta pasajeros</th>
                         <th>Venta equipajes</th>
@@ -160,7 +160,7 @@ export default {
         exportToExcel() {
             const headers = [
                 'Fecha', 'Origen', 'Destino', '# Vuelo',
-                'Pas. 1ra clase', 'Pas. económica', 'Aerolínea',
+                'Pasajeros primera clase', 'Pasajeros clase económica', 'Aerolínea',
                 'Venta pasajeros', 'Venta equipajes', 'Total venta',
             ];
 
@@ -195,8 +195,8 @@ export default {
 
         formatDate(dateStr) {
             if (!dateStr) return '';
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const [year, month, day] = dateStr.slice(0, 10).split('-');
+            return `${day}/${month}/${year}`;
         },
 
         formatCurrency(value) {
@@ -341,6 +341,12 @@ export default {
     padding: 11px 14px;
     text-align: left;
     white-space: nowrap;
+}
+
+.report-table th.th-multiline {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.4;
 }
 
 .report-table td {

@@ -331,7 +331,21 @@ BEGIN
     -- Precio total de carry-on sumado a través de todos los tramos
     SELECT @total_carry_on_price = COALESCE(SUM(carry_on_price), 0) FROM @legs;
 
-    -- Costo de equipaje: un registro por pasajero para el viaje completo
+    -- Pre-calcular factores de checked baggage del viaje completo en escalares
+    -- para evitar referencias cruzadas outer/inner en el SUM del INSERT.
+    DECLARE @sum_checked_price DECIMAL(18, 4);
+    DECLARE @sum_checked_multiplier DECIMAL(18, 4);
+    DECLARE @sum_checked_price_x_multiplier DECIMAL(18, 4);
+
+    SELECT
+        @sum_checked_price              = COALESCE(SUM(checked_price), 0),
+        @sum_checked_multiplier         = COALESCE(SUM(checked_multiplier), 0),
+        @sum_checked_price_x_multiplier = COALESCE(SUM(checked_price * checked_multiplier), 0)
+    FROM @legs;
+
+    -- Costo de equipaje: un registro por pasajero para el viaje completo.
+    -- checked_total = qty * sum_price + qty*(qty-1)/2 * sum_price_x_multiplier
+    -- (equivalente matemático a la fórmula del SP dbo.book por pierna)
     INSERT INTO dbo.invoice_luggage (
         invoice_id,
         passenger_id,
@@ -350,17 +364,10 @@ BEGIN
         @total_carry_on_price,
         p.CarryOnLuggage * @total_carry_on_price,
         p.CheckedLuggage,
-        (SELECT COALESCE(SUM(l.checked_price), 0) FROM @legs l),
-        (SELECT COALESCE(SUM(l.checked_multiplier), 0) FROM @legs l),
-        (
-            SELECT COALESCE(SUM(
-                l.checked_price * (
-                    CAST(p.CheckedLuggage AS DECIMAL(18,4))
-                    + l.checked_multiplier * (CAST(p.CheckedLuggage AS DECIMAL(18,4)) * (CAST(p.CheckedLuggage AS DECIMAL(18,4)) - 1) / 2.0)
-                )
-            ), 0)
-            FROM @legs l
-        )
+        @sum_checked_price,
+        @sum_checked_multiplier,
+        CAST(p.CheckedLuggage AS DECIMAL(18,4)) * @sum_checked_price
+        + (CAST(p.CheckedLuggage AS DECIMAL(18,4)) * (CAST(p.CheckedLuggage AS DECIMAL(18,4)) - 1) / 2.0) * @sum_checked_price_x_multiplier
     FROM dbo.Passenger p
     WHERE p.PurchaseOrderId = @purchase_order_id;
 
