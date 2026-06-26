@@ -76,27 +76,17 @@ namespace SnoopyAirlines.Controllers
                 return Unauthorized();
             }
 
-            try
+            var result = await _userService.DeleteUserAsync(actorUserId, id, cancellationToken);
+
+            return result switch
             {
-                await _userService.DeleteUserAsync(actorUserId, id, cancellationToken);
-                return NoContent();
-            }
-            catch (InvalidOperationException exception) when (exception.Message.Contains("cannot delete your own user", StringComparison.OrdinalIgnoreCase))
-            {
-                return Conflict(new { Message = exception.Message });
-            }
-            catch (InvalidOperationException exception) when (exception.Message.Contains("initial admin user cannot be deleted", StringComparison.OrdinalIgnoreCase))
-            {
-                return Conflict(new { Message = exception.Message });
-            }
-            catch (InvalidOperationException exception) when (exception.Message.Contains("User not found", StringComparison.OrdinalIgnoreCase))
-            {
-                return NotFound(new { Message = exception.Message, SearchedId = id });
-            }
-            catch (InvalidOperationException exception) when (exception.Message.Contains("Only admin users can delete users", StringComparison.OrdinalIgnoreCase))
-            {
-                return Forbid();
-            }
+                DeleteUserResult.Success => NoContent(),
+                DeleteUserResult.SelfDelete => Conflict(new { Message = "You cannot delete your own user." }),
+                DeleteUserResult.ProtectedInitialAdmin => Conflict(new { Message = "The initial admin user cannot be deleted." }),
+                DeleteUserResult.NotFound => NotFound(new { Message = "User not found.", SearchedId = id }),
+                DeleteUserResult.Forbidden => Forbid(),
+                _ => StatusCode(StatusCodes.Status500InternalServerError)
+            };
         }
 
         private static bool TryMapRole(string? roleValue, out UserRole role)

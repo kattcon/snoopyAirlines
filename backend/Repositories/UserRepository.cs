@@ -553,7 +553,7 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
         }
 
-        public async Task DeleteUserAsync(int actorUserId, int targetUserId, CancellationToken cancellationToken)
+        public async Task<DeleteUserResult> DeleteUserAsync(int actorUserId, int targetUserId, CancellationToken cancellationToken)
         {
             const string sql = """
                 SET XACT_ABORT ON;
@@ -561,7 +561,9 @@ namespace SnoopyAirlines.Repositories
 
                 IF @ActorUserId = @TargetUserId
                 BEGIN
-                    THROW 50000, 'You cannot delete your own user.', 1;
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(2 AS INT);
+                    RETURN;
                 END;
 
                 IF NOT EXISTS (
@@ -571,7 +573,9 @@ namespace SnoopyAirlines.Repositories
                       AND type = 'AD'
                 )
                 BEGIN
-                    THROW 50000, 'Only admin users can delete users.', 1;
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(1 AS INT);
+                    RETURN;
                 END;
 
                 IF EXISTS (
@@ -581,7 +585,9 @@ namespace SnoopyAirlines.Repositories
                       AND email = 'admin@snoopyairlines.com'
                 )
                 BEGIN
-                    THROW 50000, 'The initial admin user cannot be deleted.', 1;
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(3 AS INT);
+                    RETURN;
                 END;
 
                 DELETE FROM dbo.[user]
@@ -589,30 +595,36 @@ namespace SnoopyAirlines.Repositories
 
                 IF @@ROWCOUNT = 0
                 BEGIN
-                    THROW 50000, 'User not found.', 1;
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(4 AS INT);
+                    RETURN;
                 END;
 
                 COMMIT TRANSACTION;
+                SELECT CAST(0 AS INT);
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
 
-            try
+            var resultCode = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        ActorUserId = actorUserId,
+                        TargetUserId = targetUserId
+                    },
+                    cancellationToken: cancellationToken));
+
+            return resultCode switch
             {
-                await connection.ExecuteAsync(
-                    new CommandDefinition(
-                        sql,
-                        new
-                        {
-                            ActorUserId = actorUserId,
-                            TargetUserId = targetUserId
-                        },
-                        cancellationToken: cancellationToken));
-            }
-            catch (SqlException exception) when (exception.Number == 50000)
-            {
-                throw new InvalidOperationException(exception.Message, exception);
-            }
+                0 => DeleteUserResult.Success,
+                1 => DeleteUserResult.Forbidden,
+                2 => DeleteUserResult.SelfDelete,
+                3 => DeleteUserResult.ProtectedInitialAdmin,
+                4 => DeleteUserResult.NotFound,
+                _ => throw new InvalidOperationException($"Unexpected delete user result code: {resultCode}.")
+            };
         }
     }
 }

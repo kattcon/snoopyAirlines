@@ -254,7 +254,7 @@ namespace SnoopyAirlines.Services
         public Task<UserView?> AdminUpdateUserAsync(int id, AdminUserUpdateIntake intake, CancellationToken cancellationToken)
             => _userRepository.AdminUpdateAsync(id, intake, cancellationToken);
 
-        public Task DeleteUserAsync(int actorUserId, int targetUserId, CancellationToken cancellationToken)
+        public Task<DeleteUserResult> DeleteUserAsync(int actorUserId, int targetUserId, CancellationToken cancellationToken)
             => _userRepository.DeleteUserAsync(actorUserId, targetUserId, cancellationToken);
     }
 }
