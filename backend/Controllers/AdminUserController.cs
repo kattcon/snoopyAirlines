@@ -4,6 +4,7 @@ using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Services;
+using System.Security.Claims;
 
 namespace SnoopyAirlines.Controllers
 {
@@ -66,6 +67,38 @@ namespace SnoopyAirlines.Controllers
             return Ok(updatedUser);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+        {
+            if (!TryGetAuthenticatedUserId(out var actorUserId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                await _userService.DeleteUserAsync(actorUserId, id, cancellationToken);
+                return NoContent();
+            }
+            catch (InvalidOperationException exception) when (exception.Message.Contains("cannot delete your own user", StringComparison.OrdinalIgnoreCase))
+            {
+                return Conflict(new { Message = exception.Message });
+            }
+            catch (InvalidOperationException exception) when (exception.Message.Contains("initial admin user cannot be deleted", StringComparison.OrdinalIgnoreCase))
+            {
+                return Conflict(new { Message = exception.Message });
+            }
+            catch (InvalidOperationException exception) when (exception.Message.Contains("User not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(new { Message = exception.Message, SearchedId = id });
+            }
+            catch (InvalidOperationException exception) when (exception.Message.Contains("Only admin users can delete users", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+        }
+
         private static bool TryMapRole(string? roleValue, out UserRole role)
         {
             switch (roleValue?.Trim().ToLowerInvariant())
@@ -80,6 +113,19 @@ namespace SnoopyAirlines.Controllers
                     role = default;
                     return false;
             }
+        }
+
+        private bool TryGetAuthenticatedUserId(out int userId)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(claim, out userId))
+            {
+                return true;
+            }
+
+            userId = default;
+            return false;
         }
     }
 }

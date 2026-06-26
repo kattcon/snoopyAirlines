@@ -552,5 +552,67 @@ namespace SnoopyAirlines.Repositories
             return await connection.QuerySingleOrDefaultAsync<UserView>(
                 new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
         }
+
+        public async Task DeleteUserAsync(int actorUserId, int targetUserId, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SET XACT_ABORT ON;
+                BEGIN TRANSACTION;
+
+                IF @ActorUserId = @TargetUserId
+                BEGIN
+                    THROW 50000, 'You cannot delete your own user.', 1;
+                END;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.[user] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id = @ActorUserId
+                      AND type = 'AD'
+                )
+                BEGIN
+                    THROW 50000, 'Only admin users can delete users.', 1;
+                END;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM dbo.[user] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id = @TargetUserId
+                      AND email = 'admin@snoopyairlines.com'
+                )
+                BEGIN
+                    THROW 50000, 'The initial admin user cannot be deleted.', 1;
+                END;
+
+                DELETE FROM dbo.[user]
+                WHERE id = @TargetUserId;
+
+                IF @@ROWCOUNT = 0
+                BEGIN
+                    THROW 50000, 'User not found.', 1;
+                END;
+
+                COMMIT TRANSACTION;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+
+            try
+            {
+                await connection.ExecuteAsync(
+                    new CommandDefinition(
+                        sql,
+                        new
+                        {
+                            ActorUserId = actorUserId,
+                            TargetUserId = targetUserId
+                        },
+                        cancellationToken: cancellationToken));
+            }
+            catch (SqlException exception) when (exception.Number == 50000)
+            {
+                throw new InvalidOperationException(exception.Message, exception);
+            }
+        }
     }
 }
