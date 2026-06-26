@@ -113,15 +113,20 @@
                             >
                             {{ confirmButtonLabel }}
                         </button>
+
+                        <div v-if="showDecreaseWarning" class="warning-modal">
+                            <div class="warning-modal-card">
+                                <p>Estás reduciendo la cantidad de maletas. Este cambio es irreversible. ¿Deseas continuar?</p>
+                                <button type="button" class="primaryButton" @click="confirmDecreasedAndPay">Sí, confirmar</button>
+                                <button type="button" class="primaryButton" @click="cancelDecreased">Cancelar</button>
+                            </div>
+                        </div>
                         
                     </template>
                 <template v-if="paymentSuccess">
                     <div class="baggageSuccessState">
                         <div class="baggageSuccesIcon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="m9 12 2 2 4-4"/>
-                            </svg>
+                            <img src="@/assets/snoopyPay.png" alt="Snoopy" class="baggageSnoopyImage" />
                         </div>
                         <h2 class="baggageModalTitle">Pago realizado</h2>
                         <p class="baggageModalSubtitle">{{ successMessage }}</p>
@@ -321,9 +326,14 @@ export default {
       }
     },
     handleConfirmClick(){
+        if (!this.hasIncrease && !this.hasDecrease) {
+            this.lastPaidAmount = 0;
+            this.paymentSuccess = true;
+            return;
+        }
         if (this.hasDecrease) {
-        this.showDecreaseWarning = true;
-        return;
+            this.showDecreaseWarning = true;
+            return;
         }
         this.handlePay();
     },
