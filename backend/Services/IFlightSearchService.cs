@@ -4,7 +4,7 @@ namespace SnoopyAirlines.Services
 {
     public interface IFlightSearchService
     {
-        Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
+        Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,
             CancellationToken cancellationToken);

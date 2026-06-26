@@ -78,22 +78,14 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetFlightReportRepositoryReturnsNull()
+        public async Task TestGetFlightReportRepositoryReturnsEmptyLegs()
         {
             // Arrange
-            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", null);
-            var service = CreateService();
-
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                service.GetFlightReportByConfirmationAsync("69314F9CF6F9", "Cruz Ruiz", CancellationToken.None));
-        }
-
-        [Fact]
-        public async Task TestGetFlightReportRepositoryReturnsEmptyList()
-        {
-            // Arrange
-            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", Array.Empty<FlightReportView>());
+            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new FlightSearchResult
+            {
+                Legs = [],
+                Passengers = []
+            });
             var service = CreateService();
 
             // Act & Assert
@@ -106,7 +98,11 @@ namespace backend.Tests.Services
         {
             // Arrange
             var expectedLeg = CreateFlightReportView();
-            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new[] { expectedLeg });
+            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new FlightSearchResult
+            {
+                Legs = [expectedLeg],
+                Passengers = []
+            });
             var service = CreateService();
 
             // Act
@@ -114,9 +110,9 @@ namespace backend.Tests.Services
                 "69314F9CF6F9", "Cruz Ruiz", CancellationToken.None);
 
             // Assert
-            Assert.Single(result);
-            Assert.Equal(expectedLeg.ReservationNumber, result.First().ReservationNumber);
-            Assert.Equal(expectedLeg.CardHolderName, result.First().CardHolderName);
+            Assert.Single(result.Legs);
+            Assert.Equal(expectedLeg.ReservationNumber, result.Legs.First().ReservationNumber);
+            Assert.Equal(expectedLeg.CardHolderName, result.Legs.First().CardHolderName);
         }
 
         [Fact]
@@ -125,7 +121,11 @@ namespace backend.Tests.Services
             // Arrange
             var firstLeg = CreateFlightReportView(sequenceNumber: 1);
             var secondLeg = CreateFlightReportView(sequenceNumber: 2);
-            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new[] { firstLeg, secondLeg });
+            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new FlightSearchResult
+            {
+                Legs = [firstLeg, secondLeg],
+                Passengers = []
+            });
             var service = CreateService();
 
             // Act
@@ -133,16 +133,43 @@ namespace backend.Tests.Services
                 "69314F9CF6F9", "Cruz Ruiz", CancellationToken.None);
 
             // Assert
-            Assert.Equal(2, result.Count);
-            Assert.Equal(1, result.First().SequenceNumber);
-            Assert.Equal(2, result.Last().SequenceNumber);
+            Assert.Equal(2, result.Legs.Count);
+            Assert.Equal(1, result.Legs.First().SequenceNumber);
+            Assert.Equal(2, result.Legs.Last().SequenceNumber);
+        }
+
+        [Fact]
+        public async Task TestGetFlightReportIncludesPassengers()
+        {
+            // Arrange
+            var leg = CreateFlightReportView();
+            var passenger = CreatePassengerReportView();
+            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new FlightSearchResult
+            {
+                Legs = [leg],
+                Passengers = [passenger]
+            });
+            var service = CreateService();
+
+            // Act
+            var result = await service.GetFlightReportByConfirmationAsync(
+                "69314F9CF6F9", "Cruz Ruiz", CancellationToken.None);
+
+            // Assert
+            Assert.Single(result.Passengers);
+            Assert.Equal(passenger.FirstName, result.Passengers.First().FirstName);
+            Assert.Equal(passenger.LastName, result.Passengers.First().LastName);
         }
 
         [Fact]
         public async Task TestGetFlightReportCallsRepositoryWithCorrectParameters()
         {
             // Arrange
-            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new[] { CreateFlightReportView() });
+            SetupRepositoryResult("69314F9CF6F9", "Cruz Ruiz", new FlightSearchResult
+            {
+                Legs = [CreateFlightReportView()],
+                Passengers = []
+            });
             var service = CreateService();
 
             // Act
@@ -162,12 +189,12 @@ namespace backend.Tests.Services
         private void SetupRepositoryResult(
             string confirmationNumber,
             string lastNames,
-            IReadOnlyCollection<FlightReportView>? result)
+            FlightSearchResult result)
         {
             _flightSearchRepository
                 .Setup(r => r.GetFlightReportByConfirmationAsync(
                     confirmationNumber, lastNames, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(result!);
+                .ReturnsAsync(result);
         }
 
         private static FlightReportView CreateFlightReportView(int sequenceNumber = 1)
@@ -188,6 +215,22 @@ namespace backend.Tests.Services
                 DurationMinutes = 255,
                 AirplaneModel = "Boeing 737-800",
                 PassengerCount = 2
+            };
+        }
+
+        private static PassengerReportView CreatePassengerReportView()
+        {
+            return new PassengerReportView
+            {
+                FirstName = "Javier",
+                LastName = "Cruz Ruiz",
+                Gender = "M",
+                Nationality = "Costa Rica",
+                BirthDay = "01",
+                BirthMonth = "01",
+                BirthYear = "2000",
+                CarryOnLuggage = 1,
+                CheckedLuggage = 1
             };
         }
     }
