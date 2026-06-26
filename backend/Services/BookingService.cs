@@ -1,9 +1,10 @@
 using System.Globalization;
 using snoopy_airlines_backend.Domain;
-using snoopy_airlines_backend.Repositories;
 using SnoopyAirlines.Domain;
-using SnoopyAirlines.Domain.EmailTemplate;
 using SnoopyAirlines.Repositories;
+using SnoopyAirlines.Util.Email;
+using SnoopyAirlines.Util.Email.Templates;
+using SnoopyAirlines.Util.Pdf;
 
 namespace SnoopyAirlines.Services
 {
@@ -11,13 +12,20 @@ namespace SnoopyAirlines.Services
     {
         private readonly IBookingRepository _bookingRepository;
         private readonly IEmailSender _emailSender;
+        private readonly IInvoicePdfGenerator _invoicePdfGenerator;
+        private readonly BookingConfirmationEmail _bookingConfirmationEmail;
+        private readonly BookingItineraryEmail _bookingItineraryEmail;
 
         public BookingService(
             IBookingRepository bookingRepository,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IInvoicePdfGenerator invoicePdfGenerator)
         {
             _bookingRepository = bookingRepository;
             _emailSender = emailSender;
+            _invoicePdfGenerator = invoicePdfGenerator;
+            _bookingConfirmationEmail = new BookingConfirmationEmail();
+            _bookingItineraryEmail = new BookingItineraryEmail();
         }
 
         public async Task<Booking> BookAsync(
@@ -46,23 +54,20 @@ namespace SnoopyAirlines.Services
                 cancellationToken);
 
             ApplyBookingDetails(data, booking);
-
-            var confirmationHtml = BookingConfirmationEmail.Build(data);
-            var itineraryHtml = BookingItineraryEmail.Build(data);
+            var invoice = _invoicePdfGenerator.GenerateInvoice(data);
 
             await _emailSender.SendAsync(
                 booking.Email,
-                "Confirmación de reserva - Snoopy Airlines",
-                confirmationHtml,
-                cancellationToken,
-                isHtml: true);
+                _bookingConfirmationEmail,
+                data,
+                invoice,
+                cancellationToken);
 
             await _emailSender.SendAsync(
                 booking.Email,
-                "Itinerario de viaje - Snoopy Airlines",
-                itineraryHtml,
-                cancellationToken,
-                isHtml: true);
+                _bookingItineraryEmail,
+                data,
+                cancellationToken);
         }
 
         private async Task<PurchaseOrderEmailData> GetPurchaseOrderEmailDataAsync(
@@ -88,6 +93,8 @@ namespace SnoopyAirlines.Services
             data.PaymentMethod = FormatPaymentMethod(booking);
             data.PurchaseDate = FormatPurchaseDate(booking);
             data.TransactionId = booking.Guid.ToString();
+            data.Email = booking.Email;
+            data.ConfirmationCode = booking.ConfirmationCode;
         }
 
         private static string FormatMoney(decimal amount)

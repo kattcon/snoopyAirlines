@@ -1,9 +1,10 @@
 using System.Net;
 using System.Net.Mail;
-using System.Text;
 using System.Net.Mime;
+using System.Text;
+using MailAttachment = System.Net.Mail.Attachment;
 
-namespace SnoopyAirlines.Services
+namespace SnoopyAirlines.Util.Email
 {
     public class SmtpEmailSender : IEmailSender
     {
@@ -14,12 +15,31 @@ namespace SnoopyAirlines.Services
             _configuration = configuration;
         }
 
-        public async Task SendAsync(
+        public Task SendAsync<T>(
             string to,
-            string subject,
-            string body,
-            CancellationToken cancellationToken,
-            bool isHtml = false)
+            IEmailTemplate<T> template,
+            T data,
+            CancellationToken cancellationToken = default)
+        {
+            return SendRenderedAsync(to, template, data, attachment: null, cancellationToken);
+        }
+
+        public Task SendAsync<T>(
+            string to,
+            IEmailTemplate<T> template,
+            T data,
+            Attachment attachment,
+            CancellationToken cancellationToken = default)
+        {
+            return SendRenderedAsync(to, template, data, attachment, cancellationToken);
+        }
+
+        private async Task SendRenderedAsync<T>(
+            string to,
+            IEmailTemplate<T> template,
+            T data,
+            Attachment? attachment,
+            CancellationToken cancellationToken)
         {
             var host = GetRequiredSetting("Email:Host");
             var fromAddress = GetRequiredSetting("Email:FromAddress");
@@ -28,40 +48,51 @@ namespace SnoopyAirlines.Services
             var password = _configuration["Email:Password"];
             var port = GetPort();
             var enableSsl = GetEnableSsl();
+            var email = EmailTemplateRenderer.Render(template, data);
 
             using var message = new MailMessage
             {
                 From = new MailAddress(fromAddress, fromName),
-                Subject = subject,
+                Subject = email.Subject,
                 SubjectEncoding = Encoding.UTF8,
                 BodyEncoding = Encoding.UTF8
             };
 
             message.To.Add(to);
 
-            if (isHtml)
-            {
-                var htmlView = AlternateView.CreateAlternateViewFromString(body, Encoding.UTF8, MediaTypeNames.Text.Html);
-                var logoPath = Path.Combine(AppContext.BaseDirectory, "frontend", "src","assets", "logoSA.png");
+            var htmlView = AlternateView.CreateAlternateViewFromString(
+                email.Body,
+                Encoding.UTF8,
+                MediaTypeNames.Text.Html);
 
-                if (File.Exists(logoPath))
+            var logoPath = Path.Combine(
+                AppContext.BaseDirectory,
+                "frontend",
+                "src",
+                "assets",
+                "logoSA.png");
+
+            if (File.Exists(logoPath))
+            {
+                var logo = new LinkedResource(logoPath, MediaTypeNames.Image.Png)
                 {
-                    var logo = new LinkedResource(logoPath, MediaTypeNames.Image.Png)
-                    {
-                        ContentId = "logoSA",
-                        TransferEncoding = TransferEncoding.Base64
-                    };
+                    ContentId = "logoSA",
+                    TransferEncoding = TransferEncoding.Base64
+                };
 
-                    logo.ContentType.Name = "logoSA.png";
-                    htmlView.LinkedResources.Add(logo);
-                }
-
-                message.AlternateViews.Add(htmlView);
+                logo.ContentType.Name = "logoSA.png";
+                htmlView.LinkedResources.Add(logo);
             }
-            else
+
+            message.AlternateViews.Add(htmlView);
+
+            if (attachment is not null)
             {
-                message.Body = body;
-                message.IsBodyHtml = false;
+                var attachmentStream = attachment.OpenRead();
+                message.Attachments.Add(new MailAttachment(
+                    attachmentStream,
+                    attachment.FileName,
+                    attachment.Format));
             }
 
             using var client = new SmtpClient(host, port)
