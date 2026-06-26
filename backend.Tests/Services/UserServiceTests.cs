@@ -4,6 +4,7 @@ using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Util.Email;
 using Xunit;
 
 namespace backend.Tests.Services

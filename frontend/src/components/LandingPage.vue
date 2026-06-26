@@ -85,7 +85,7 @@
             <div>
               <h3>Vuelos disponibles</h3>
               <div class="flights-grid">
-                <div class="flight-card" v-for="flight in searchResults" :key="flight.id" @click="toggleFlight(flight.id)" style="cursor:pointer">
+                <div class="flight-card" v-for="flight in searchResults" :key="flight.id">
                   <div class="flight-header">
                     <div class="flight-route">
                       <span class="airport-code">{{ search.origin }}</span>
@@ -124,13 +124,13 @@
                     </div>
                   </div>
                   <div class="flight-prices">
-                    <div v-if="selectedFlightId === flight.id" class="seat-options">
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'economy')">
+                    <div class="seat-options">
+                      <div class="seat-option" @click="selectSeatClass(flight, 'economy')">
                         <span class="class-name">Económica</span>
                         <span class="price">${{ flight.priceEconomyClass }}</span>
       
                       </div>
-                      <div class="seat-option" @click.stop="selectSeatClass(flight, 'firstClass')">
+                      <div class="seat-option" @click="selectSeatClass(flight, 'firstClass')">
                         <span class="class-name">Primera clase</span>
                         <span class="price">${{ flight.priceFirstClass }}</span>
                       </div>
@@ -281,7 +281,6 @@ export default {
                     confirmationNumber: '',
                     lastNames: ''
                 },
-      selectedFlightId: null,
       tripType: 'ida',
       search: {
         origin: '',
@@ -491,12 +490,6 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
           this.loading = false;
         });
     },
-
-    toggleFlight(flightId) {
-      this.selectedFlightId = this.selectedFlightId === flightId ? null : flightId;
-    },
-
-
 
     selectSeatClass(flight, seatClass) {
       const routes = this.normalizeFlightRoutes(flight);

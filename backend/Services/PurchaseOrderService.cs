@@ -1,4 +1,4 @@
-using snoopy_airlines_backend.Domain;
+﻿using snoopy_airlines_backend.Domain;
 using snoopy_airlines_backend.Repositories;
 
 namespace snoopy_airlines_backend.Services
@@ -36,18 +36,20 @@ namespace snoopy_airlines_backend.Services
 
         private static PurchaseOrder NormalizeAndValidate(PurchaseOrder order)
         {
+
+
             var seatClass = order.SeatClass.Trim();
             if (string.IsNullOrWhiteSpace(seatClass))
             {
                 throw new ArgumentException("seatClass is required.");
             }
 
-            if (order.Routes.Count == 0)
+            if (order.Routes == null || order.Routes.Count == 0)
             {
                 throw new ArgumentException("At least one route is required.");
             }
 
-            if (order.Passengers.Count == 0)
+            if (order.Passengers == null || order.Passengers.Count == 0)
             {
                 throw new ArgumentException("At least one passenger is required.");
             }
