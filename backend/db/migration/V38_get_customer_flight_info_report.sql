@@ -8,6 +8,7 @@ RETURN (
     SELECT
         b.confirmation_code                AS ReservationNumber,
         b.card_holder_name                 AS CardHolderName,
+        b.status                           AS BookingStatus,
         i.sequence_number                  AS SequenceNumber,
 
         dc.name                            AS DepartureCity,
