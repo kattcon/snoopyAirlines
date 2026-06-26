@@ -5,6 +5,7 @@ RETURNS TABLE
 AS
 RETURN(
 	SELECT
+		p.Id AS Id,
 		p.firstName AS FirstName,
 		p.LastName AS LastName,
 		p.CheckedLuggage AS CheckedLuggage

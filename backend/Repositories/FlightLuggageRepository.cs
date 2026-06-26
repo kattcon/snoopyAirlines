@@ -18,7 +18,7 @@ namespace SnoopyAirlines.Repositories
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
         }
 
-        public async Task<FlightLuggageView> GetFlightLuggageInfoByConfirmationAsync(
+        public async Task<IReadOnlyCollection<FlightLuggageView>> GetFlightLuggageInfoByConfirmationAsync(
             string confirmationNumber,
             CancellationToken cancellationToken)
         {
@@ -28,8 +28,13 @@ namespace SnoopyAirlines.Repositories
             SELECT * FROM dbo.GetBaggageInfoByConfirmation(@ConfirmationNumber)
             """, new { ConfirmationNumber = confirmationNumber }, cancellationToken: cancellationToken
             );
+            var result = (await connection.QueryAsync<FlightLuggageView>(commandDefinition)).ToList();
             var flightLuggageInfo = await connection.QueryFirstOrDefaultAsync<FlightLuggageView>(commandDefinition);
-            return flightLuggageInfo;
+            if (result.Count == 0)
+            {
+                throw new InvalidOperationException("No se encontro informacion de equipaje");
+            }
+            return result;
         }
     }
 }

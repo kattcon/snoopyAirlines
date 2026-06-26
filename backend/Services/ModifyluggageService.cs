@@ -1,4 +1,6 @@
-﻿using snoopy_airlines_backend.Domain.View;
+﻿using Microsoft.AspNetCore.Mvc;
+using snoopy_airlines_backend.Domain.Intake;
+using snoopy_airlines_backend.Domain.View;
 using snoopy_airlines_backend.Repositories;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
@@ -10,11 +12,14 @@ namespace snoopy_airlines_backend.Services
     {
         private readonly IPassengerLuggageRepository _PassengerLuggageRepository;
         private readonly IFlightLuggageRepository _flightLuggageRepository;
+        private readonly IModifyLuggageRepository _modifyLuggageRepository;
 
-        public ModifyLuggageService(IPassengerLuggageRepository passengerLuggageRepository, IFlightLuggageRepository flightLuggageRepository)
+        public ModifyLuggageService(IPassengerLuggageRepository passengerLuggageRepository, IFlightLuggageRepository flightLuggageRepository,
+            IModifyLuggageRepository modifyLuggageRepository)
         {
             _PassengerLuggageRepository = passengerLuggageRepository;
             _flightLuggageRepository = flightLuggageRepository;
+            _modifyLuggageRepository = modifyLuggageRepository;
         }
 
         public async Task<IReadOnlyCollection<PassengerView>> GetPassengersByConfirmationAsync(
@@ -38,7 +43,7 @@ namespace snoopy_airlines_backend.Services
             return passengers;
         }
 
-        public async Task<FlightLuggageView> GetFlightLuggageInfoByConfirmationAsync(
+        public async Task<IReadOnlyCollection<FlightLuggageView>> GetFlightLuggageInfoByConfirmationAsync(
             string confirmationNumber,
             CancellationToken cancellationToken)
         {
@@ -47,14 +52,10 @@ namespace snoopy_airlines_backend.Services
                 throw new ArgumentException("El número de reservación es obligatorio.", nameof(confirmationNumber));
             }
 
-            var flightInfo = await _flightLuggageRepository.GetFlightLuggageInfoByConfirmationAsync(
+            return await _flightLuggageRepository.GetFlightLuggageInfoByConfirmationAsync(
                 confirmationNumber,
                 cancellationToken
             );
-
-            return flightInfo == null
-                ? throw new InvalidOperationException("No se encontró ningún pasajero con el número de reservación proporcionados.")
-                : flightInfo;
         }
 
         public async Task<ModifyLuggageInfo> GetLuggageInfoAsync(
@@ -72,6 +73,29 @@ namespace snoopy_airlines_backend.Services
                 Passengers = passengersTask.Result,
                 LuggageInfo = flightLuggageTask.Result
             };
+        }
+
+        public async Task UpdateLuggageAsync(
+            ModifyLuggageRequest modifyLuggageRequest,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(modifyLuggageRequest.ConfirmationNumber))
+                throw new ArgumentException("El numero de confirmacion es obligatorio.");
+
+            if (modifyLuggageRequest.Passengers == null || modifyLuggageRequest.Passengers.Count == 0)
+                throw new ArgumentException("Debe incluir al menor un pasajero.");
+
+            try
+            {
+                await _modifyLuggageRepository.UpdateLuggageAsync(modifyLuggageRequest, cancellationToken);
+
+            } catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50001)
+            {
+                throw new InvalidOperationException("No se encontro ninguna reservacion con ese código");
+            } catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50002)
+            {
+                throw new InvalidOperationException("Uno o mas pasajeros no pertenecen a esta reservación");
+            }
         }
     }
 }

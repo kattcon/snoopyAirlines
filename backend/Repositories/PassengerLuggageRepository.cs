@@ -26,7 +26,12 @@ namespace snoopy_airlines_backend.Repositories
                 """, new { ConfirmationNumber = confirmationNumber }, cancellationToken: cancellationToken
             );
             var passengers = await connection.QueryAsync<PassengerView>(commandDefinition);
-            return passengers.ToList();
+            var result = passengers.ToList();
+            if (result.Count == 0)
+            {
+                throw new InvalidOperationException("No se encontraron pasajeros para ese número de confirmación.");
+            }
+            return result;
         }
     }
 }

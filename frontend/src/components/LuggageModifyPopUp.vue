@@ -37,7 +37,7 @@
                             <div>
                             <h2 id="baggageModalTitle" class="baggageModalTitle">Maletas documentadas</h2>
                             <p class="baggageModalSubtitle">
-                                Agrega maletas adicionales por ${{ this.pricePerBag }} {{ this.currency }} por maleta
+                                Agrega maletas adicionales
                             </p>
                             </div>
                         </div>
@@ -108,28 +108,28 @@
                         <button
                             type="button"
                             class="primaryButton baggagePayButton"
-                            :disabled="isProcessing || totalExtraBags === 0"
-                            @click="handlePay"
+                            @click="handleConfirmClick"
+                            :disabled="isProcessing"
                             >
-                            {{ isProcessing ? 'Procesando...' : 'Pagar' }}
+                            {{ confirmButtonLabel }}
                         </button>
+                        
                     </template>
-
-                    <template v-else>
-                        <div class="baggageSuccessState">
-                            <div class="baggageSuccesIcon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="m9 12 2 2 4-4"/>
-                                </svg>
-                            </div>
-                            <h2 class="baggageModalTitle">Pago realizado</h2>
-                            <p class="baggageModalSubtitle">{{ successMessage }}</p>
-                            <button type="button" class="primaryButton baggagePayButton" @click="closeModal">
-                                Listo
-                            </button>
+                <template v-if="paymentSuccess">
+                    <div class="baggageSuccessState">
+                        <div class="baggageSuccesIcon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
                         </div>
-                    </template>                    
+                        <h2 class="baggageModalTitle">Pago realizado</h2>
+                        <p class="baggageModalSubtitle">{{ successMessage }}</p>
+                        <button type="button" class="primaryButton baggagePayButton" @click="closeModal">
+                            Listo
+                        </button>
+                    </div>
+                </template>             
                 </div>
             </div>
         </Transition>
@@ -147,6 +147,7 @@ export default {
       required: true
     }
   },
+  emits: ['close', 'payment-success'],
   data() {
     return {
       isLoading: false,
@@ -156,10 +157,10 @@ export default {
       errorMessage: '',
       lastPaidAmount: 0,
       localPassengers:[],
-      pricePerBag: 0,
+      routes:[],
       currency: 'USD',
       availableCapacity:0,
-      priceMultiplier:0
+      showDecreaseWarning: false
     };
   },
   computed: {
@@ -167,13 +168,33 @@ export default {
       return this.localPassengers.reduce((sum, p) => sum + this.extrabagsFor(p), 0);
     },
     totalToPay() {
-      return this.totalExtraBags * this.pricePerBag;
+        const totalAmount = this.localPassengers.reduce((sum, p) => {
+            const newCost = this.totalCostForPassenger(p);
+            const originalCost = this.originalCostForPassenger(p);
+            return sum + (newCost - originalCost); 
+        }, 0);
+        return Math.max(0, totalAmount);
     },
     successMessage() {
         if(this.lastPaidAmount === 0) {
             return 'Tu equipaje fue actualizado sin costo adicional.';
         }
         return `Se cobraron $${this.lastPaidAmount} ${this.currency}. Tu equipaje documentado fue actualizado`;
+    },
+    hasDecrease(){
+        return this.localPassengers.some(p => p.currentBags < p.originalBags);
+    },
+    hasIncrease(){
+        return this.localPassengers.some(p => p.currentBags > p.originalBags);
+    },
+    confirmButtonLabel() {
+        if (this.hasIncrease && this.hasDecrease) {
+            return `Pagar $${this.totalToPay} ${this.currency} y confirmar`;
+        }
+        if (this.hasIncrease) {
+            return `Pagar $${this.totalToPay} ${this.currency}`;
+        }
+        return 'Confirmar';
     }
   },
   mounted() {
@@ -183,6 +204,7 @@ export default {
     async fetchReservationData() {
         this.isLoading = true;
         this.loadError = '';
+        this.availableCapacity = 4;
 
         try{
             const response = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/modify-luggage/getLuggageInfo`, {
@@ -191,32 +213,51 @@ export default {
             }
             })
             this.localPassengers = response.data.passengers.map(p => ({
-            firstName:    p.firstName,
-            lastName:     p.lastName,
+            id: p.id,
+            firstName: p.firstName,
+            lastName: p.lastName,
             originalBags: parseInt(p.checkedLuggage),
-            currentBags:  parseInt(p.checkedLuggage)
+            currentBags: parseInt(p.checkedLuggage)
             }))
 
-            this.pricePerBag       = parseFloat(response.data.luggageInfo.priceCheckedBaggage)
-            this.priceMultiplier = 3 //parseFloat(response.data.luggageInfo.checkedBaggagePriceMultiplier)
-            console.log(response.data.luggageInfo)
-            console.log(this.pricePerBag)
+            this.routes = response.data.luggageInfo.map(route=> ({
+                pricePerBag: parseFloat(route.priceCheckedBaggage),
+                multiplier: parseFloat(route.checkedBaggagePriceMultiplier)
+            }))
 
         }catch (error){
             if(error.response) {
-                if (error.response.status ===400) {
-                    this.errorMessage = 'Código de confirmación inválido'
-                }
-                if (error.response.status === 404) {
-                    this.errorMessage = 'No se encontró ninguna reservación con ese código'
-                }
-                if (error.response.status === 500) {
-                    this.errorMessage = 'Error en el servidor. Inténtelo de nuevo más tarde'
-                }
+              if (error.response.status === 400) this.loadError = 'Código de confirmación inválido'
+              else if (error.response.status === 404) this.loadError = 'No se encontró ninguna reservación con ese código'
+              else this.loadError = 'Error en el servidor. Inténtelo de nuevo más tarde'
+            } else {
+              this.loadError = 'No se pudo conectar al servidor. Verifica tu conexión'
             }
         }finally {
             this.isLoading = false
         }
+    },
+    checkedLuggageCostForPassenger(bags, unitPrice, multiplier) {
+        if (bags <= 0) return 0;
+        return unitPrice * bags + unitPrice * multiplier * (bags * (bags - 1) / 2);
+    },
+    totalCostForPassenger(passenger){
+        return this.routes.reduce((sum, route) => {
+            return sum + this.checkedLuggageCostForPassenger(
+                passenger.currentBags,
+                route.pricePerBag,
+                route.multiplier
+            );
+        }, 0);
+    },
+    originalCostForPassenger(passenger) {
+        return this.routes.reduce((sum, route) => {
+            return sum + this.checkedLuggageCostForPassenger(
+                passenger.originalBags,
+                route.pricePerBag,
+                route.multiplier
+            );
+        }, 0);
     },
     extrabagsFor(passenger) {
       return Math.max(0, passenger.currentBags - passenger.originalBags);
@@ -247,22 +288,51 @@ export default {
       this.errorMessage = '';
 
       try {
-        this.lastPaidAmount = this.totalToPay;
-                this.localPassengers.forEach(p => { p.originalBags = p.currentBags; });
-                this.paymentSuccess = true;
 
-                this.$emit('payment-success', {
-                    passengers:  this.localPassengers.map(p => ({ id: p.id, totalBags: p.currentBags })),
-                    amountPaid:  this.lastPaidAmount,
-                    currency:    this.currency
-                });
+        const payload = {
+          confirmationNumber: this.reservationNumber,
+          totalAmountPaid: this.totalToPay,
+          passengers: this.localPassengers
+                .filter(p => p.currentBags !== p.originalBags)
+                .map(p => ({
+                    id:        p.id,
+                    newCheckedLuggage: p.currentBags
+                })) 
+        };
+        console.log('payload:', JSON.stringify(payload));
+        await axios.post(
+          `${process.env.VUE_APP_BACKEND_URL}/modify-luggage/newLuggageInfo`,
+          payload
+        );
+        this.lastPaidAmount= this.totalToPay;
+        this.localPassengers.forEach(p => { p.originalBags = p.currentBags; });
+        this.paymentSuccess = true;
+
+        this.$emit('payment-success', {
+          passenger: this.localPassengers.map(p => ({ id: p.id, newCheckedLuggage: p.currentBags })),
+          amountPaid: this.lastPaidAmount,
+          currency : this.currency
+        });
       } catch(error) {
         this.errorMessage = 'Error al procesar el pago. Por favor intenta de nuevo';
         console.error('[LuggageModifyPopUp] handlePay:', error);
       } finally {
-
         this.isProcessing = false;
       }
+    },
+    handleConfirmClick(){
+        if (this.hasDecrease) {
+        this.showDecreaseWarning = true;
+        return;
+        }
+        this.handlePay();
+    },
+    confirmDecreasedAndPay(){
+        this.showDecreaseWarning = false;
+        this.handlePay();
+    },
+    cancelDecreased(){
+        this.showDecreaseWarning = false;
     },
     closeModal() {
         if (this.isProcessing) return;
@@ -560,4 +630,30 @@ export default {
     padding: var(--largeSpacing);
   }
 }
+
+.warning-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.warning-modal-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+}
+
 </style>

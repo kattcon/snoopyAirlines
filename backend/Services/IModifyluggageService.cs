@@ -1,4 +1,5 @@
-﻿using snoopy_airlines_backend.Domain.View;
+﻿using snoopy_airlines_backend.Domain.Intake;
+using snoopy_airlines_backend.Domain.View;
 
 namespace snoopy_airlines_backend.Services
 {
@@ -6,6 +7,11 @@ namespace snoopy_airlines_backend.Services
     {
         Task<ModifyLuggageInfo> GetLuggageInfoAsync(
             string confirmationNumber,
+            CancellationToken cancellationToken
+        );
+
+        Task UpdateLuggageAsync(
+            ModifyLuggageRequest modifyLuggageRequest,
             CancellationToken cancellationToken
         );
     }

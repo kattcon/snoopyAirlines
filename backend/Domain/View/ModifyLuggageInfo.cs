@@ -7,6 +7,6 @@ namespace snoopy_airlines_backend.Domain.View
         [Required]
         public IReadOnlyCollection<PassengerView> Passengers { get; set; }
         [Required]
-        public FlightLuggageView LuggageInfo { get; set; }
+        public IReadOnlyCollection<FlightLuggageView> LuggageInfo { get; set; }
     }
 }

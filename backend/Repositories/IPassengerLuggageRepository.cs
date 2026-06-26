@@ -1,4 +1,6 @@
-﻿using snoopy_airlines_backend.Domain.View;
+﻿using Microsoft.AspNetCore.Mvc;
+using snoopy_airlines_backend.Domain.Intake;
+using snoopy_airlines_backend.Domain.View;
 using SnoopyAirlines.Domain.View;
 
 namespace snoopy_airlines_backend.Repositories
