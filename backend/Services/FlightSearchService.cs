@@ -1,16 +1,15 @@
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
-using System;
 
 namespace SnoopyAirlines.Services
 {
     public class FlightSearchService : IFlightSearchService
     {
-        private readonly IFlightSearchRepository _flightSearchRepository;
+        private readonly IFlightRepository _flightRepository;
 
-        public FlightSearchService(IFlightSearchRepository flightSearchRepository)
+        public FlightSearchService(IFlightRepository flightRepository)
         {
-            _flightSearchRepository = flightSearchRepository;
+            _flightRepository = flightRepository;
         }
 
         public async Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
@@ -28,7 +27,7 @@ namespace SnoopyAirlines.Services
                 throw new ArgumentException("Los apellidos son obligatorios.", nameof(lastNames));
             }
 
-            var flightReport = await _flightSearchRepository.GetFlightReportByConfirmationAsync(
+            var flightReport = await _flightRepository.GetFlightReportByConfirmationAsync(
                 confirmationNumber,
                 lastNames,
                 cancellationToken);
