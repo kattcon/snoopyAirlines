@@ -64,8 +64,8 @@ namespace SnoopyAirlines.Controllers
             return Ok(new { message = "Si la reservación existe, se ha enviado un correo de confirmación." });
         }
 
-        [HttpGet("cancel")]
         [AllowAnonymous]
+        [HttpGet("cancel-booking")]
         public async Task<IActionResult> ConfirmCancellation(
             [FromQuery] string token,
             CancellationToken cancellationToken)
