@@ -53,5 +53,33 @@ namespace SnoopyAirlines.Controllers
                 return BadRequest(new { Message = exception.Message });
             }
         }
+
+        [HttpPost("{confirmationCode}/cancellation-request")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RequestCancellation(
+            string confirmationCode,
+            CancellationToken cancellationToken)
+        {
+            await _bookingService.RequestCancellationAsync(confirmationCode, cancellationToken);
+            return Ok(new { message = "Si la reservación existe, se ha enviado un correo de confirmación." });
+        }
+
+        [HttpGet("cancel")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ConfirmCancellation(
+            [FromQuery] string token,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest();
+            }
+
+            var success = await _bookingService.ConfirmCancellationAsync(token, cancellationToken);
+
+            return Redirect(success
+                ? $"https://snoopyairlines.com/cancellation-result?success=true"
+                : $"https://snoopyairlines.com/cancellation-result?success=false");
+        }
     }
 }

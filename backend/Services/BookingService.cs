@@ -199,7 +199,7 @@ namespace SnoopyAirlines.Services
             CancellationToken cancellationToken)
         {
             var cancelUrl = 
-                $"https://snoopyairlines.com/Booking/cancel?token={rawToken}";
+                $"https://snoopyairlines.com/Booking/cancel?token={Uri.EscapeDataString(rawToken)}";
 
             var data = new CancellationRequestEmailData(confirmationCode, cancelUrl);
 
