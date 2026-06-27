@@ -15,6 +15,7 @@ namespace SnoopyAirlines.Services
         private readonly IInvoicePdfGenerator _invoicePdfGenerator;
         private readonly BookingConfirmationEmail _bookingConfirmationEmail;
         private readonly BookingItineraryEmail _bookingItineraryEmail;
+        private readonly CancellationRequestEmail _cancellationRequestEmail;
 
         public BookingService(
             IBookingRepository bookingRepository,
@@ -26,6 +27,7 @@ namespace SnoopyAirlines.Services
             _invoicePdfGenerator = invoicePdfGenerator;
             _bookingConfirmationEmail = new BookingConfirmationEmail();
             _bookingItineraryEmail = new BookingItineraryEmail();
+            _cancellationRequestEmail = new CancellationRequestEmail();
         }
 
         public async Task<Booking> BookAsync(
