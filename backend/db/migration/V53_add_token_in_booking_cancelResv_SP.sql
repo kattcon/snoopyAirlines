@@ -17,7 +17,7 @@ BEGIN
         FROM   dbo.booking
         WHERE  cancellation_token            = @token_hash
           AND  cancellation_token_expires_at > SYSDATETIME()
-          AND  [status]                     <> 'Cancelada';
+          AND  [status]                     <> 'cancelled';
 
         IF @booking_guid IS NULL
         BEGIN
@@ -27,7 +27,7 @@ BEGIN
         END;
 
         UPDATE dbo.booking
-        SET    [status]                      = 'Cancelada',
+        SET    [status]                      = 'cancelled',
                cancellation_token            = NULL,
                cancellation_token_expires_at = NULL
         WHERE  guid = @booking_guid;
