@@ -94,12 +94,13 @@
                             type="number"
                             v-model.number="passenger.CarryOnLuggage"
                             min="0"
-                            max="10"
-                            :class="{'input-error': errors[index]?.CarryOnLuggage}"
+                            max="routeLimits.maxCarryOn"
+                            :class="{'input-error': errors[index]?.CarryOnLuggage || luggageErrors[index]?.carryOn}"
                             @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
                             placeholder="0"
                         />
                         <span class="error-msg" v-if="errors[index]?.CarryOnLuggage">❗ Obligatorio</span>
+                        <span class="error-msg" v-if="luggageErrors[index]?.carryOn">❗ {{ luggageErrors[index].carryOn }}</span>
                     </div>
                     <div class="form-field">
                         <label>Cantidad de equipaje documentado</label>
@@ -107,12 +108,13 @@
                             type="number"
                             v-model.number="passenger.checkedLuggage"
                             min="0"
-                            max="10"
-                            :class="{'input-error': errors[index]?.checkedLuggage}"
+                            max="routeLimits.maxChecked"
+                            :class="{'input-error': errors[index]?.checkedLuggage || luggageErrors[index]?.checked}"
                             @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
                             placeholder="0"
                         />
                         <span class="error-msg" v-if="errors[index]?.checkedLuggage">❗ Obligatorio</span>
+                        <span class="error-msg" v-if="luggageErrors[index]?.checked">❗ {{ luggageErrors[index].checked }}</span>
                     </div>
                 </div>
                 
@@ -164,6 +166,10 @@ export default {
         const passengerCount = parseInt(this.$route.query.passengersCount);
         
         return {
+            routeLimits: {
+                maxCarryOn: Infinity,
+                maxChecked: Infinity
+            },
             showBanner:true,
             openPassenger:0,
             openHolder: false,
@@ -192,7 +198,20 @@ export default {
         years() {
             const current = new Date().getFullYear();
             return Array.from({length:100}, (_,i) => current - i);
+        },
+        luggageErrors() {
+            return this.passengers.map(p => ({
+                carryOn: p.CarryOnLuggage > this.routeLimits.maxCarryOn
+                    ? `Máximo ${this.routeLimits.maxCarryOn} maleta(s) de mano permitidas`
+                    : null,
+                checked: p.checkedLuggage > this.routeLimits.maxChecked
+                    ? `Máximo ${this.routeLimits.maxChecked} maleta(s) documentadas permitidas`
+                    : null,
+            }));
         }
+    },
+    async mounted() {
+        await this.fetchRouteLimits();
     },
 
     methods: {
@@ -211,6 +230,10 @@ export default {
             return this.holder.firstName && this.holder.lastName && this.holder.email;
         },
         submitPassengers() {
+            const hasLuggageErrors = this.luggageErrors.some(
+                e => e.carryOn !== null || e.checked !== null
+            );
+            if (hasLuggageErrors) return;
             this.errors = this.passengers.map(passenger => ({
                 firstName: !passenger.firstName,
                 lastName: !passenger.lastName,
@@ -304,6 +327,27 @@ export default {
             } catch (error) {
                 console.error("Error leyendo los tramos del vuelo:", error);
                 return [];
+            }
+        },
+        async fetchRouteLimits() {
+            try {
+                const routes = this.bookingRoutes();
+                if (routes.length === 0) return;
+
+                const responses = await Promise.all(
+                    routes.map(route =>
+                        axios.get(`${process.env.VUE_APP_BACKEND_URL}/route/${route.routeId}`)
+                    )
+                );
+
+                this.routeLimits.maxCarryOn = Math.min(
+                    ...responses.map(r => Math.floor(r.data.weightLimitCarryOnBaggage / 7))
+                );
+                this.routeLimits.maxChecked = Math.min(
+                    ...responses.map(r => Math.floor(r.data.weightLimitCheckedBaggage / 23))
+                );
+            } catch (error) {
+                console.error('Error cargando límites de equipaje:', error);
             }
         }
     }
