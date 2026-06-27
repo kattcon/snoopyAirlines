@@ -209,7 +209,6 @@ export default {
     async fetchReservationData() {
         this.isLoading = true;
         this.loadError = '';
-        this.availableCapacity = 4;
 
         try{
             const response = await axios.get(`${process.env.VUE_APP_BACKEND_URL}/modify-luggage/getLuggageInfo`, {
@@ -227,9 +226,13 @@ export default {
 
             this.routes = response.data.luggageInfo.map(route=> ({
                 pricePerBag: parseFloat(route.priceCheckedBaggage),
-                multiplier: parseFloat(route.checkedBaggagePriceMultiplier)
+                multiplier: parseFloat(route.checkedBaggagePriceMultiplier),
+                weightLimit: parseInt(route.weightLimitCheckedBaggage)
             }))
 
+            this.availableCapacity = Math.min(...response.data.luggageInfo.map(route =>
+                Math.floor(parseInt(route.weightLimitCheckedBaggage) / 23)
+            ))
         }catch (error){
             if(error.response) {
               if (error.response.status === 400) this.loadError = 'Código de confirmación inválido'

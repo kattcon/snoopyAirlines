@@ -6,7 +6,8 @@ AS
 RETURN (
     SELECT
         r.price_checked_baggage             AS PriceCheckedBaggage,
-        r.checked_baggage_price_multiplier  AS CheckedBaggagePriceMultiplier
+        r.checked_baggage_price_multiplier  AS CheckedBaggagePriceMultiplier,
+        r.weight_limit_checked_baggage AS WeightLimitCheckedBaggage
 
     FROM dbo.booking b
     JOIN dbo.PurchaseOrder po  ON po.Id          = b.purchase_order_id
