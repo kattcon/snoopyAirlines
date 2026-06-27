@@ -297,10 +297,11 @@ export default {
                 return routes
                     .map((route, index) => ({
                         sequenceNumber: Number(route.sequenceNumber) || index + 1,
+                        flightGuid: route.flightGuid,
                         routeId: Number(route.routeId),
                         intendedDate: route.intendedDate,
                     }))
-                    .filter(route => route.routeId > 0 && route.intendedDate);
+                    .filter(route => route.flightGuid && route.routeId > 0 && route.intendedDate);
             } catch (error) {
                 console.error("Error leyendo los tramos del vuelo:", error);
                 return [];

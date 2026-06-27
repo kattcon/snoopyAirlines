@@ -23,7 +23,7 @@ namespace snoopy_airlines_backend.Repositories
 
             try
             {
-                await EnsureRoutesExistAsync(connection, transaction, order.Routes, cancellationToken);
+                await EnsureFlightsExistAsync(connection, transaction, order.Routes, cancellationToken);
 
                 // Prepare all batch SQL and parameters
                 var batchSql = new StringBuilder();
@@ -41,15 +41,15 @@ namespace snoopy_airlines_backend.Repositories
                     """);
                 batchParameters.Add("@SeatClass", order.SeatClass);
 
-                // 2. Prepare bulk route insert
+                // 2. Prepare bulk flight insert
                 if (order.Routes.Any())
                 {
                     var routes = order.Routes.OrderBy(route => route.SequenceNumber).ToList();
                     var routeValuesClauses = string.Join(",", routes.Select((_, i) => 
-                        $"(@PurchaseOrderId, @SequenceNumber{i}, @RouteId{i}, @IntendedDate{i})"));
+                        $"(@PurchaseOrderId, @SequenceNumber{i}, @FlightGuid{i})"));
 
                     batchSql.AppendLine($"""
-                        INSERT INTO dbo.PurchaseOrderRoute(PurchaseOrderId, SequenceNumber, RouteId, IntendedDate)
+                        INSERT INTO dbo.purchaseOrder_flight(PurchaseOrderId, SequenceNumber, FlightGuid)
                         VALUES {routeValuesClauses};
                         """);
 
@@ -57,8 +57,7 @@ namespace snoopy_airlines_backend.Repositories
                     {
                         var route = routes[i];
                         batchParameters.Add($"@SequenceNumber{i}", route.SequenceNumber);
-                        batchParameters.Add($"@RouteId{i}", route.RouteId);
-                        batchParameters.Add($"@IntendedDate{i}", route.IntendedDate?.ToDateTime(TimeOnly.MinValue));
+                        batchParameters.Add($"@FlightGuid{i}", route.FlightGuid);
                     }
                 }
 
@@ -115,33 +114,33 @@ namespace snoopy_airlines_backend.Repositories
 
         }
 
-        private static async Task EnsureRoutesExistAsync(
+        private static async Task EnsureFlightsExistAsync(
             SqlConnection connection,
             SqlTransaction transaction,
             IReadOnlyCollection<PurchaseOrderRoute> routes,
             CancellationToken cancellationToken)
         {
-            var routeIds = routes
-                .Select(route => route.RouteId)
+            var flightGuids = routes
+                .Select(route => route.FlightGuid)
                 .Distinct()
                 .ToArray();
 
-            var existingRouteIds = await connection.QueryAsync<int>(
+            var existingFlightGuids = await connection.QueryAsync<Guid>(
                 new CommandDefinition("""
-                    SELECT id
-                    FROM dbo.[route] WITH (UPDLOCK, HOLDLOCK)
-                    WHERE id IN @RouteIds
-                    AND is_deleted = 0;
+                    SELECT guid
+                    FROM dbo.flight WITH (UPDLOCK, HOLDLOCK)
+                    WHERE guid IN @FlightGuids
+                      AND status = 'scheduled';
                     """,
-                    new { RouteIds = routeIds },
+                    new { FlightGuids = flightGuids },
                     transaction,
                     cancellationToken: cancellationToken));
 
-            var missingRouteIds = routeIds.Except(existingRouteIds).ToArray();
-            if (missingRouteIds.Length > 0)
+            var missingFlightGuids = flightGuids.Except(existingFlightGuids).ToArray();
+            if (missingFlightGuids.Length > 0)
             {
                 throw new InvalidOperationException(
-                    $"Route(s) not found: {string.Join(", ", missingRouteIds)}.");
+                    $"Flight(s) not found or unavailable: {string.Join(", ", missingFlightGuids)}.");
             }
         }
 
@@ -160,9 +159,14 @@ namespace snoopy_airlines_backend.Repositories
                 SELECT
                     PurchaseOrderId AS PurchaseOrderId,
                     SequenceNumber AS SequenceNumber,
-                    RouteId AS RouteId,
-                    IntendedDate AS IntendedDate
-                FROM dbo.PurchaseOrderRoute
+                    FlightGuid AS FlightGuid,
+                    flight_internal.route_id AS RouteId,
+                    CAST(flight.departure_at AS date) AS IntendedDate
+                FROM dbo.purchaseOrder_flight purchase_order_flight
+                INNER JOIN dbo.flight flight
+                    ON flight.guid = purchase_order_flight.FlightGuid
+                LEFT JOIN dbo.flight_internal flight_internal
+                    ON flight_internal.flight_guid = flight.guid
                 ORDER BY PurchaseOrderId, SequenceNumber;
                 """, cancellationToken: cancellationToken));
 
@@ -193,9 +197,14 @@ namespace snoopy_airlines_backend.Repositories
                 SELECT
                     PurchaseOrderId AS PurchaseOrderId,
                     SequenceNumber AS SequenceNumber,
-                    RouteId AS RouteId,
-                    IntendedDate AS IntendedDate
-                FROM dbo.PurchaseOrderRoute
+                    FlightGuid AS FlightGuid,
+                    flight_internal.route_id AS RouteId,
+                    CAST(flight.departure_at AS date) AS IntendedDate
+                FROM dbo.purchaseOrder_flight purchase_order_flight
+                INNER JOIN dbo.flight flight
+                    ON flight.guid = purchase_order_flight.FlightGuid
+                LEFT JOIN dbo.flight_internal flight_internal
+                    ON flight_internal.flight_guid = flight.guid
                 WHERE PurchaseOrderId = @Id
                 ORDER BY SequenceNumber;
 
@@ -243,6 +252,7 @@ namespace snoopy_airlines_backend.Repositories
             {
                 route.PurchaseOrderId,
                 route.SequenceNumber,
+                route.FlightGuid,
                 route.RouteId,
                 IntendedDate = route.IntendedDate?.ToDateTime(TimeOnly.MinValue)
             };
@@ -263,6 +273,7 @@ namespace snoopy_airlines_backend.Repositories
             {
                 PurchaseOrderId = route.PurchaseOrderId,
                 SequenceNumber = route.SequenceNumber,
+                FlightGuid = route.FlightGuid,
                 RouteId = route.RouteId,
                 IntendedDate = route.IntendedDate.HasValue ? DateOnly.FromDateTime(route.IntendedDate.Value) : null
             };
@@ -278,7 +289,8 @@ namespace snoopy_airlines_backend.Repositories
         {
             public int PurchaseOrderId { get; set; }
             public int SequenceNumber { get; set; }
-            public int RouteId { get; set; }
+            public Guid FlightGuid { get; set; }
+            public int? RouteId { get; set; }
             public DateTime? IntendedDate { get; set; }
         }
     }
