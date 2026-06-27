@@ -58,20 +58,16 @@ namespace snoopy_airlines_backend.Services
                 .OrderBy(route => route.SequenceNumber)
                 .Select((route, index) =>
                 {
-                    if (route.RouteId <= 0)
+                    if (route.FlightGuid == Guid.Empty)
                     {
-                        throw new ArgumentException("routeId must be greater than 0.");
-                    }
-
-                    if (route.IntendedDate is null)
-                    {
-                        throw new ArgumentException("intendedDate is required for every route.");
+                        throw new ArgumentException("flightGuid is required for every route.");
                     }
 
                     return new PurchaseOrderRoute
                     {
                         PurchaseOrderId = route.PurchaseOrderId,
                         SequenceNumber = index + 1,
+                        FlightGuid = route.FlightGuid,
                         RouteId = route.RouteId,
                         IntendedDate = route.IntendedDate
                     };
