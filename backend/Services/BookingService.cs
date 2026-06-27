@@ -200,8 +200,8 @@ namespace SnoopyAirlines.Services
             string rawToken,
             CancellationToken cancellationToken)
         {
-            var cancelUrl = 
-                $"https://snoopyairlines.com/Booking/cancel-booking?token={Uri.EscapeDataString(rawToken)}";
+            var cancelUrl = $"https://snoopyairlines.com/confirm-cancellation?token={Uri.EscapeDataString(rawToken)}";
+
 
             var data = new CancellationRequestEmailData(confirmationCode, cancelUrl);
 
