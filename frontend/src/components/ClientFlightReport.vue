@@ -43,6 +43,12 @@
               {{ countdownLabel }}
             </div>
           </div>
+
+          <div v-else-if="bookingStatus === 'Cancelada'" class="countdown-card cancelled-card">
+            <div class="countdown-number" style="font-size:2rem;">✕</div>
+            <div class="countdown-text">Reservación cancelada</div>
+          </div>
+
         </div>
       </section>
 
@@ -117,8 +123,15 @@
 
           <div class="action-card">
             <h3>Cancelar reservación</h3>
+            <p v-if="bookingStatus === 'Cancelada'"
+                style="color:#d62828;font-weight:600;margin:0;">
+              Esta reservación ya fue cancelada.
+            </p>
 
-            <button class="danger-button">
+            <button 
+              v-else
+              class="danger-button"
+              @click="showCancelConfirm = true">
               Cancelar reservación
             </button>
           </div>
@@ -153,9 +166,51 @@
       </section>
     </template>
   </div>
+
+    <!-- Modal de confirmación -->
+  <div v-if="showCancelConfirm" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-icon">⚠️</div>
+      <h2>¿Cancelar reservación?</h2>
+      <p>
+        Esta acción cancelará todos los vuelos de la reservación
+        <strong>{{ reservationNumber }}</strong>.
+      </p>
+      <button
+        class="danger-button-solid"
+        @click="requestCancellation"
+        :disabled="cancelLoading">
+        {{ cancelLoading ? 'Enviando...' : 'Sí, cancelar reservación' }}
+      </button>
+      <button
+        class="back-button-modal"
+        @click="showCancelConfirm = false">
+        Volver
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de éxito -->
+  <div v-if="showCancelSuccess" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-icon">✅</div>
+      <h2>Correo enviado</h2>
+      <p>
+        Hemos enviado un correo al titular de la reservación con las
+        instrucciones para confirmar la cancelación.
+      </p>
+      <button
+        class="close-button-modal"
+        @click="showCancelSuccess = false">
+        Cerrar
+      </button>
+    </div>
+  </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'ClientFlightReport',
   data() {
@@ -163,9 +218,14 @@ export default {
       // Datos que llegan por state desde LandingPage.vue.
       flightLegs: [],
       passengers: [],
+      bookingStatus: '',
+      showCancelConfirm: false,
+      showCancelSuccess: false,
+      cancelLoading: false,
     };
   },
   created() {
+    this.bookingStatus = state.status ?? '';
     const state = window.history.state?.flightReport;
 
     if (state?.legs?.length > 0) {
@@ -215,6 +275,7 @@ export default {
       return Math.round((departure - todayDateOnly) / msPerDay);
     },
     countdownLabel() {
+      if (this.bookingStatus === 'Cancelada') return 'Reservación cancelada';
       if (this.daysUntilDeparture === 0) return 'tu vuelo es hoy';
       if (this.daysUntilDeparture > 0) return 'días para viajar';
       return 'días desde tu vuelo';
@@ -252,6 +313,20 @@ export default {
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
       return `${hours}h ${remainingMinutes}min`;
+    },
+
+    async requestCancellation() {
+      this.cancelLoading = true;
+      try {
+        await axios.post(`${process.env.VUE_APP_BACKEND_URL}/Booking/${this.reservationNumber}/cancellation-request`);
+        this.showCancelConfirm = false;
+        this.showCancelSuccess = true;
+      } catch (e) {
+        console.error('Error al solicitar cancelación', e);
+        alert('Ocurrió un error. Por favor intenta de nuevo.');
+      } finally {
+        this.cancelLoading = false;
+      }
     },
 
     /**
@@ -685,6 +760,11 @@ export default {
   margin-bottom: 16px;
 }
 
+.cancelled-card {
+  background: rgba(214, 40, 40, 0.15);
+  border: 1px solid rgba(214, 40, 40, 0.3);
+}
+
 .primary-button,
 .danger-button,
 .pdf-button {
@@ -752,6 +832,83 @@ export default {
   font-weight: bold;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+}
+
+.modal-box h2 {
+  margin: 16px 0 8px;
+  font-size: 1.3rem;
+  color: #111;
+}
+
+.modal-box p {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.modal-icon {
+  font-size: 2.5rem;
+}
+
+.danger-button-solid {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #d62828;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.danger-button-solid:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.back-button-modal {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #f0f0f0;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.close-button-modal {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #111827;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .hero-content {
     flex-direction: column;
@@ -777,5 +934,6 @@ export default {
   .hero-title {
     font-size: 2rem;
   }
+
 }
 </style>

@@ -78,8 +78,8 @@ namespace SnoopyAirlines.Controllers
             var success = await _bookingService.ConfirmCancellationAsync(token, cancellationToken);
 
             return Redirect(success
-                ? $"https://snoopyairlines.com/cancellation-result?success=true"
-                : $"https://snoopyairlines.com/cancellation-result?success=false");
+                ? "https://snoopyairlines.com/cancellation-result?success=true"
+                : "https://snoopyairlines.com/cancellation-result?success=false");
         }
     }
 }
