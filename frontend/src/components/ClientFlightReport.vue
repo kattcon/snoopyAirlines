@@ -225,8 +225,8 @@ export default {
     };
   },
   created() {
-    this.bookingStatus = state.status ?? '';
     const state = window.history.state?.flightReport;
+    this.bookingStatus = state.status ?? '';
 
     if (state?.legs?.length > 0) {
       this.flightLegs = [...state.legs].sort((a, b) => a.sequenceNumber - b.sequenceNumber);

@@ -178,7 +178,7 @@ namespace SnoopyAirlines.Repositories
             
             await using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
-            using var email = await connection.QuerySingleOrDefaultAsync<string>(
+            var email = await connection.QuerySingleOrDefaultAsync<string>(
                 new CommandDefinition(sql, new { ConfirmationCode = confirmationCode.ToUpper() },
                 cancellationToken: cancellationToken));
 
@@ -200,7 +200,7 @@ namespace SnoopyAirlines.Repositories
 
             var parameters = new { ConfirmationCode = confirmationCode,
                                     TokenHash = tokenHash,
-                                    ExpiresAt = expiresAt}
+                                    ExpiresAt = expiresAt};
             
             await using var connection = new SqlConnection(_connectionString);
             await connection.ExecuteAsync(

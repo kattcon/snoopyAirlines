@@ -5,6 +5,8 @@ using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Email.Templates;
 using SnoopyAirlines.Util.Pdf;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SnoopyAirlines.Services
 {
