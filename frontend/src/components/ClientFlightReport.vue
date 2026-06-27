@@ -127,6 +127,10 @@
                 style="color:#d62828;font-weight:600;margin:0;">
               Esta reservación ya fue cancelada.
             </p>
+            <p v-else-if="daysUntilDeparture !== null && daysUntilDeparture < 0"
+                style="color:#888;font-weight:600;margin:0;">
+              Este vuelo ya ocurrió.
+            </p>
 
             <button 
               v-else
