@@ -128,6 +128,119 @@ namespace SnoopyAirlines.Repositories
                     cancellationToken: cancellationToken));
         }
 
+        public async Task<Guid> MaterializeExternalFlightAsync(
+            ExternalFlight flight,
+            CancellationToken cancellationToken)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+
+            return await connection.ExecuteScalarAsync<Guid>(
+                new CommandDefinition(
+                    """
+                    SET XACT_ABORT ON;
+                    SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+                    BEGIN TRY
+                        IF @FlightGuid IS NULL OR @FlightGuid = '00000000-0000-0000-0000-000000000000'
+                        BEGIN
+                            THROW 50000, 'FlightGuid is required for an external flight.', 1;
+                        END;
+
+                        BEGIN TRANSACTION;
+
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM dbo.flight flight WITH (UPDLOCK, HOLDLOCK)
+                            WHERE flight.guid = @FlightGuid
+                        )
+                        BEGIN
+                            INSERT INTO dbo.flight (
+                                guid,
+                                departure_at,
+                                arrival_at
+                            )
+                            VALUES (
+                                @FlightGuid,
+                                @DepartureAt,
+                                @ArrivalAt
+                            );
+
+                            INSERT INTO dbo.flight_external (
+                                flight_guid,
+                                partner_airline_id,
+                                departure_airport_code,
+                                departure_airport_name,
+                                departure_city,
+                                arrival_airport_code,
+                                arrival_airport_name,
+                                arrival_city,
+                                tourist_price,
+                                first_class_price,
+                                carry_on_price,
+                                checked_price
+                            )
+                            VALUES (
+                                @FlightGuid,
+                                @PartnerAirlineId,
+                                @DepartureAirportCode,
+                                @DepartureAirportName,
+                                @DepartureCity,
+                                @ArrivalAirportCode,
+                                @ArrivalAirportName,
+                                @ArrivalCity,
+                                @TouristPrice,
+                                @FirstClassPrice,
+                                @CarryOnPrice,
+                                @CheckedPrice
+                            );
+                        END
+                        ELSE IF NOT EXISTS (
+                            SELECT 1
+                            FROM dbo.flight_external external_flight WITH (UPDLOCK, HOLDLOCK)
+                            WHERE external_flight.flight_guid = @FlightGuid
+                              AND external_flight.partner_airline_id = @PartnerAirlineId
+                        )
+                        BEGIN
+                            THROW 50000, 'External flight guid already exists for another flight owner.', 1;
+                        END;
+
+                        COMMIT TRANSACTION;
+
+                        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+                        SELECT @FlightGuid;
+                    END TRY
+                    BEGIN CATCH
+                        IF XACT_STATE() <> 0
+                        BEGIN
+                            ROLLBACK TRANSACTION;
+                        END;
+
+                        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+                        THROW;
+                    END CATCH;
+                    """,
+                    new
+                    {
+                        FlightGuid = flight.Guid,
+                        flight.PartnerAirlineId,
+                        flight.DepartureAt,
+                        flight.ArrivalAt,
+                        DepartureAirportCode = flight.DepartureAirport.Code,
+                        DepartureAirportName = flight.DepartureAirport.Name,
+                        DepartureCity = flight.DepartureAirport.City,
+                        ArrivalAirportCode = flight.ArrivalAirport.Code,
+                        ArrivalAirportName = flight.ArrivalAirport.Name,
+                        ArrivalCity = flight.ArrivalAirport.City,
+                        flight.TouristPrice,
+                        flight.FirstClassPrice,
+                        flight.CarryOnPrice,
+                        flight.CheckedPrice
+                    },
+                    cancellationToken: cancellationToken));
+        }
+
         public async Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,
