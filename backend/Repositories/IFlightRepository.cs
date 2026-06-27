@@ -15,6 +15,10 @@ namespace SnoopyAirlines.Repositories
             DateTime departureAt,
             CancellationToken cancellationToken);
 
+        Task<Guid> MaterializeExternalFlightAsync(
+            ExternalFlight flight,
+            CancellationToken cancellationToken);
+
         Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,

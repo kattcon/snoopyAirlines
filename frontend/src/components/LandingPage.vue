@@ -427,7 +427,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
             flightGuid: this.fieldValue(route, 'flightGuid', 'FlightGuid'),
             intendedDate: this.dateOnly(this.fieldValue(route, 'intendedDate', 'IntendedDate')),
           }))
-          .filter(route => route.routeId > 0 && route.intendedDate);
+          .filter(route => route.flightGuid);
       }
 
       const routeId = Number(this.fieldValue(flight, 'routeId', 'RouteId'));

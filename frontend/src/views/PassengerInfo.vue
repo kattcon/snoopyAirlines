@@ -301,7 +301,7 @@ export default {
                         routeId: Number(route.routeId),
                         intendedDate: route.intendedDate,
                     }))
-                    .filter(route => route.flightGuid && route.routeId > 0 && route.intendedDate);
+                    .filter(route => route.flightGuid);
             } catch (error) {
                 console.error("Error leyendo los tramos del vuelo:", error);
                 return [];

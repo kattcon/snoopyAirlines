@@ -1,6 +1,7 @@
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
+using SnoopyAirlines.Services.PartnerAirlines;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
 namespace SnoopyAirlines.Services
@@ -9,13 +10,16 @@ namespace SnoopyAirlines.Services
     {
         private readonly IRouteService _routeService;
         private readonly IFlightRepository _flightRepository;
+        private readonly IExternalFlightSearchService _externalFlightSearchService;
 
         public FlightService(
             IRouteService routeService,
-            IFlightRepository flightRepository)
+            IFlightRepository flightRepository,
+            IExternalFlightSearchService externalFlightSearchService)
         {
             _routeService = routeService;
             _flightRepository = flightRepository;
+            _externalFlightSearchService = externalFlightSearchService;
         }
 
         public async Task<IReadOnlyCollection<FlightResponse>> Search(
@@ -32,9 +36,13 @@ namespace SnoopyAirlines.Services
             }
 
             var connectingFlights = await CreateConnectingFlightsAsync(flightQuery, cancellationToken);
+            var externalConnectingFlights = await _externalFlightSearchService.SearchConnectionsAsync(
+                flightQuery,
+                cancellationToken);
 
             return directFlights
                 .Concat(connectingFlights)
+                .Concat(externalConnectingFlights)
                 .OrderBy(flight => flight.DepartureTime)
                 .ThenBy(flight => flight.RouteId)
                 .ToList();

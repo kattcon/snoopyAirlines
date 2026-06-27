@@ -8,6 +8,7 @@ using SnoopyAirlines.Infrastructure.Dapper;
 using SnoopyAirlines.Infrastructure.Json;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Services.PartnerAirlines;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Pdf;
 using System.Text;
@@ -33,6 +34,7 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -56,6 +58,8 @@ builder.Services.AddScoped<PurchaseOrderService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<BookingRepository>();
 builder.Services.AddScoped<IFlightRepository, FlightRepository>();
+builder.Services.AddScoped<IPartnerAirlineRepository, PartnerAirlineRepository>();
+builder.Services.AddScoped<IExternalFlightSearchService, ExternalFlightSearchService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IFlightSearchService, FlightSearchService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
