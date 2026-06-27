@@ -44,7 +44,7 @@
             </div>
           </div>
 
-          <div v-else-if="bookingStatus === 'Cancelada'" class="countdown-card cancelled-card">
+          <div v-else-if="bookingStatus === 'cancelled'" class="countdown-card cancelled-card">
             <div class="countdown-number" style="font-size:2rem;">✕</div>
             <div class="countdown-text">Reservación cancelada</div>
           </div>
@@ -123,7 +123,7 @@
 
           <div class="action-card">
             <h3>Cancelar reservación</h3>
-            <p v-if="bookingStatus === 'Cancelada'"
+            <p v-if="bookingStatus === 'cancelled'"
                 style="color:#d62828;font-weight:600;margin:0;">
               Esta reservación ya fue cancelada.
             </p>
@@ -226,11 +226,11 @@ export default {
   },
   created() {
     const state = window.history.state?.flightReport;
-    this.bookingStatus = state.status ?? '';
 
     if (state?.legs?.length > 0) {
       this.flightLegs = [...state.legs].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
       this.passengers = state.passengers ?? [];
+      this.bookingStatus = state.legs[0].bookingStatus ?? '';
     }
   },
   computed: {
@@ -264,6 +264,7 @@ export default {
       return this.flightLegs.length > 1 ? 'Con escala(s)' : 'Directo';
     },
     daysUntilDeparture() {
+      if (this.bookingStatus === 'cancelled') return null;
       const departureDate = this.firstLeg.departureDate;
       if (!departureDate) return null;
 
@@ -275,7 +276,7 @@ export default {
       return Math.round((departure - todayDateOnly) / msPerDay);
     },
     countdownLabel() {
-      if (this.bookingStatus === 'Cancelada') return 'Reservación cancelada';
+      if (this.bookingStatus === 'cancelled') return 'Reservación cancelada';
       if (this.daysUntilDeparture === 0) return 'tu vuelo es hoy';
       if (this.daysUntilDeparture > 0) return 'días para viajar';
       return 'días desde tu vuelo';
