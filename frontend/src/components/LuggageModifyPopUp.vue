@@ -114,6 +114,14 @@
                             {{ confirmButtonLabel }}
                         </button>
 
+                        <PaymentModal
+                            v-if="showPaymentForm"
+                            :total-to-pay="totalToPay"
+                            :currency="currency"
+                            :is-processing="isProcessing"
+                            @confirm="submitPayment"
+                            @cancel="showPaymentForm = false"
+                        />
                         <div v-if="showDecreaseWarning" class="warning-modal">
                             <div class="warning-modal-card">
                                 <p>Estás reduciendo la cantidad de maletas. Este cambio es irreversible. ¿Deseas continuar?</p>
@@ -144,6 +152,7 @@
 <script>
 import axios from 'axios'
 import '../styles/styles.css'
+import PaymentModal  from './PaymentModal.vue'
 export default {
   name: 'LuggageModifyPopUp',
   props: {
@@ -153,6 +162,9 @@ export default {
     }
   },
   emits: ['close', 'payment-success'],
+  components: {
+    PaymentModal 
+  },
   data() {
     return {
       isLoading: false,
@@ -165,7 +177,16 @@ export default {
       routes:[],
       currency: 'USD',
       availableCapacity:0,
-      showDecreaseWarning: false
+      showDecreaseWarning: false,
+      showPaymentForm: false,
+        paymentDetails: {
+            email: '',
+            cardNumber: '',
+            cardholderName: '',
+            expirationDate: '',
+            cvv: ''
+        },
+        paymentErrors: {}
     };
   },
   computed: {
@@ -271,11 +292,7 @@ export default {
       return Math.max(0, passenger.currentBags - passenger.originalBags);
     },
     canIncrement(passenger) {
-      const currentExtra = this.extrabagsFor(passenger);
-      const tentativeExtra = Math.max(0, (passenger.currentBags + 1) - passenger.originalBags);
-      const deltaExtra = tentativeExtra - currentExtra;
-      if (deltaExtra <= 0) return true;
-      return (this.totalExtraBags + deltaExtra) <= this.availableCapacity;
+      return (passenger.currentBags) <= this.availableCapacity;
     },
     increaseBags(passenger) {
       if (!this.canIncrement(passenger)) {
@@ -338,11 +355,15 @@ export default {
             this.showDecreaseWarning = true;
             return;
         }
-        this.handlePay();
+        this.showPaymentForm = true;
     },
     confirmDecreasedAndPay(){
         this.showDecreaseWarning = false;
-        this.handlePay();
+        if (this.hasIncrease) {
+            this.showPaymentForm = true;
+        } else {
+            this.handlePay();
+        }
     },
     cancelDecreased(){
         this.showDecreaseWarning = false;
@@ -350,7 +371,40 @@ export default {
     closeModal() {
         if (this.isProcessing) return;
         this.$emit('close');
-    }
+    },
+    validatePayment() {
+        const errors = {};
+        const { email, cardNumber, cardholderName, expirationDate, cvv } = this.paymentDetails;
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+            errors.email = 'Ingresa un correo válido';
+
+        const cleanCard = cardNumber.replace(/\s/g, '');
+        if (!cleanCard || !/^\d{16}$/.test(cleanCard))
+            errors.cardNumber = 'Ingresa un número de tarjeta válido de 16 dígitos';
+
+        if (!cardholderName || cardholderName.trim().length < 3)
+            errors.cardholderName = 'Ingresa el nombre del titular';
+
+        if (!expirationDate || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expirationDate)) {
+            errors.expirationDate = 'Ingresa una fecha válida (MM/AA)';
+        } else {
+            const [month, year] = expirationDate.split('/');
+            const expiry = new Date(2000 + parseInt(year), parseInt(month) - 1);
+            if (expiry < new Date())
+                errors.expirationDate = 'La tarjeta está vencida';
+        }
+
+        if (!cvv || !/^\d{3,4}$/.test(cvv))
+            errors.cvv = 'Ingresa un CVV válido';
+
+        this.paymentErrors = errors;
+        return Object.keys(errors).length === 0;
+    },
+    submitPayment() {
+        this.showPaymentForm = false;
+        this.handlePay();
+    },
   }
 };
 
