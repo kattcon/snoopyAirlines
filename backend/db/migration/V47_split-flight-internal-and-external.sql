@@ -6,7 +6,7 @@ CREATE TABLE dbo.flight_internal (
     CONSTRAINT fk_flight_internal_flight FOREIGN KEY (flight_guid)
         REFERENCES dbo.flight(guid) ON DELETE CASCADE,
     CONSTRAINT fk_flight_internal_route FOREIGN KEY (route_id)
-        REFERENCES dbo.[route](id) ON DELETE CASCADE
+        REFERENCES dbo.[route](id)
 );
 GO
 
