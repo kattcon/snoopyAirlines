@@ -8,6 +8,9 @@ namespace SnoopyAirlines.Services
 {
     public class FlightService : IFlightService
     {
+        private const int MinStopoverMinutes = 60;
+        private const int MaxStopoverMinutes = 720;
+
         private readonly IRouteService _routeService;
         private readonly IFlightRepository _flightRepository;
         private readonly IExternalFlightSearchService _externalFlightSearchService;
@@ -35,9 +38,33 @@ namespace SnoopyAirlines.Services
                 return directFlights;
             }
 
-            var connectingFlights = await CreateConnectingFlightsAsync(flightQuery, cancellationToken);
-            var externalConnectingFlights = await _externalFlightSearchService.SearchConnectionsAsync(
+            var connectionOriginOptions = await CreateConnectionOriginOptionsAsync(
                 flightQuery,
+                cancellationToken);
+            var connectingFlights = await CreateConnectingFlightsAsync(
+                flightQuery,
+                connectionOriginOptions,
+                cancellationToken);
+            var externalFlights = await _externalFlightSearchService.SearchConnectionsAsync(
+                new ExternalFlightSearchQuery
+                {
+                    Destination = flightQuery.Destination ?? string.Empty,
+                    QuantityOfPassengers = flightQuery.QuantityOfPassengers ?? 1,
+                    MaxTimeWindow = TimeSpan.FromMinutes(MaxStopoverMinutes - MinStopoverMinutes),
+                    Legs = connectionOriginOptions
+                        .Select(option => option.ExternalSearchLeg)
+                        .Select(leg => new ExternalFlightSearchQueryLeg(
+                            leg.Origin,
+                            leg.Time + TimeSpan.FromMinutes(MinStopoverMinutes)
+                        ))
+                        .Distinct()
+                        .ToList()
+                },
+                cancellationToken);
+            var externalConnectingFlights = await CreateExternalConnectingFlightsAsync(
+                flightQuery,
+                connectionOriginOptions,
+                externalFlights,
                 cancellationToken);
 
             return directFlights
@@ -284,28 +311,18 @@ namespace SnoopyAirlines.Services
             };
         }
 
-        private async Task<IReadOnlyCollection<FlightResponse>> CreateConnectingFlightsAsync(
+        private async Task<IReadOnlyCollection<ExternalFlightOriginOption>> CreateConnectionOriginOptionsAsync(
             FlightQuery flightQuery,
             CancellationToken cancellationToken)
         {
-            const int MinStopoverMinutes = 60;
-            const int MaxStopoverMinutes = 720;
-
             var firstLegQuery = new RouteSearchQuery
             {
-                Origin = flightQuery.Origin
-            };
-
-            var secondLegQuery = new RouteSearchQuery
-            {
-                Destination = flightQuery.Destination,
-                ArrivalWindows = CreateArrivalWindows(flightQuery)
+                Origin = flightQuery.Origin,
+                QuantityOfPassengers = flightQuery.QuantityOfPassengers
             };
 
             var firstDefs = await _routeService.SearchRoutesAsync(firstLegQuery, cancellationToken);
-            var secondDefs = await _routeService.SearchRoutesAsync(secondLegQuery, cancellationToken);
-
-            var results = new List<FlightResponse>();
+            var results = new List<ExternalFlightOriginOption>();
 
             if (flightQuery.EarliestDeparture is null || flightQuery.LatestDeparture is null)
             {
@@ -321,7 +338,17 @@ namespace SnoopyAirlines.Services
             {
                 foreach (var first in firstDefs)
                 {
-                    if (!OccursOn(first.Frequency, currentDate.DayOfWeek))
+                    if (!OccursOn(first.Frequency, currentDate.DayOfWeek)
+                        || first.DepartureAirport is null
+                        || first.ArrivalAirport is null)
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(
+                            first.ArrivalAirport.Code,
+                            flightQuery.Destination,
+                            StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -334,84 +361,211 @@ namespace SnoopyAirlines.Services
                         continue;
                     }
 
-                    var candidates = secondDefs.Where(
-                        second => second.DepartureAirport!.Code == first.ArrivalAirport!.Code);
-
-                    foreach (var second in candidates)
+                    results.Add(new ExternalFlightOriginOption
                     {
-                        for (var dayOffset = 0; dayOffset <= 1; dayOffset++)
-                        {
-                            var secondDate = arr1.Date.AddDays(dayOffset);
-                            if (!OccursOn(second.Frequency, secondDate.DayOfWeek))
-                            {
-                                continue;
-                            }
-
-                            var dep2 = secondDate.Add(second.DepartureTime.ToTimeSpan());
-                            var arr2 = CalculateArrivalTime(second, dep2);
-
-                            if (!IsWithinArrivalBounds(arr2, flightQuery))
-                            {
-                                continue;
-                            }
-
-                            var connectionMinutes = (int)(dep2 - arr1).TotalMinutes;
-                            if (connectionMinutes < MinStopoverMinutes || connectionMinutes > MaxStopoverMinutes)
-                            {
-                                continue;
-                            }
-
-                            var firstFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
-                                first.Id,
-                                dep1,
-                                cancellationToken);
-                            var secondFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
-                                second.Id,
-                                dep2,
-                                cancellationToken);
-                            var totalDurationMinutes = (int)(arr2 - dep1).TotalMinutes;
-
-                            results.Add(new FlightResponse
-                            {
-                                RouteId = first.Id,
-                                Routes =
-                                [
-                                    CreateFlightRouteResponse(1, first.Id, dep1, firstFlightGuid),
-                                    CreateFlightRouteResponse(2, second.Id, dep2, secondFlightGuid)
-                                ],
-                                DepartureTime = dep1,
-                                ArrivalTime = arr2,
-                                Duration = FormatDuration(totalDurationMinutes),
-                                DepartureAirport = new AirportResponse
-                                {
-                                    Code = first.DepartureAirport!.Code,
-                                    Name = first.DepartureAirport.Name,
-                                    City = first.DepartureAirport.City
-                                },
-                                ArrivalAirport = new AirportResponse
-                                {
-                                    Code = second.ArrivalAirport!.Code,
-                                    Name = second.ArrivalAirport.Name,
-                                    City = second.ArrivalAirport.City
-                                },
-                                HasStopover = true,
-                                StopoverAirport = new AirportResponse
-                                {
-                                    Code = first.ArrivalAirport!.Code,
-                                    Name = first.ArrivalAirport.Name,
-                                    City = first.ArrivalAirport.City
-                                },
-                                StopoverDuration = FormatDuration(connectionMinutes),
-                                TouristPrice = first.PriceEconomyClass + second.PriceEconomyClass,
-                                FirstClassPrice = first.PriceFirstClass + second.PriceFirstClass,
-                                CarryOnPrice = first.PriceCarryOnBaggage + second.PriceCarryOnBaggage,
-                                CheckedPrice = first.PriceCheckedBaggage + second.PriceCheckedBaggage
-                            });
-                        }
-                    }
+                        Origin = first.ArrivalAirport.Code,
+                        ExternalSearchLeg = new ExternalFlightSearchQueryLeg(
+                            first.ArrivalAirport.Code,
+                            arr1.AddMinutes(MinStopoverMinutes)),
+                        FirstLeg = first,
+                        FirstDeparture = dep1,
+                        FirstArrival = arr1,
+                        EarliestDeparture = arr1.AddMinutes(MinStopoverMinutes),
+                        LatestDeparture = arr1.AddMinutes(MaxStopoverMinutes)
+                    });
                 }
 
                 currentDate = currentDate.AddDays(1);
+            }
+
+            return results;
+        }
+
+        private async Task<IReadOnlyCollection<FlightResponse>> CreateExternalConnectingFlightsAsync(
+            FlightQuery flightQuery,
+            IReadOnlyCollection<ExternalFlightOriginOption> originOptions,
+            IReadOnlyCollection<ExternalFlight> externalFlights,
+            CancellationToken cancellationToken)
+        {
+            var externalFlightsByLeg = externalFlights
+                .GroupBy(
+                    flight => flight.DepartureAirport.Code,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.ToList(),
+                    StringComparer.OrdinalIgnoreCase);
+            var results = new List<FlightResponse>();
+
+            foreach (var originOption in originOptions)
+            {
+                if (!externalFlightsByLeg.TryGetValue(originOption.Origin, out var candidates))
+                {
+                    continue;
+                }
+
+                var first = originOption.FirstLeg;
+                foreach (var candidate in candidates)
+                {
+                    if (candidate.DepartureAt < originOption.EarliestDeparture
+                        || candidate.DepartureAt > originOption.LatestDeparture
+                        || !IsWithinArrivalBounds(candidate.ArrivalAt, flightQuery))
+                    {
+                        continue;
+                    }
+
+                    var firstFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
+                        first.Id,
+                        originOption.FirstDeparture,
+                        cancellationToken);
+                    var firstRoute = CreateFlightRouteResponse(
+                        1,
+                        first.Id,
+                        originOption.FirstDeparture,
+                        firstFlightGuid);
+                    var secondRoute = new FlightRouteResponse
+                    {
+                        SequenceNumber = 2,
+                        RouteId = 0,
+                        FlightGuid = candidate.Guid.ToString(),
+                        IntendedDate = DateOnly.FromDateTime(candidate.DepartureAt.Date)
+                    };
+                    var connectionMinutes = (int)(candidate.DepartureAt - originOption.FirstArrival).TotalMinutes;
+                    var totalDurationMinutes = (int)(candidate.ArrivalAt - originOption.FirstDeparture).TotalMinutes;
+
+                    results.Add(new FlightResponse
+                    {
+                        RouteId = first.Id,
+                        Routes =
+                        [
+                            firstRoute,
+                            secondRoute
+                        ],
+                        DepartureTime = originOption.FirstDeparture,
+                        ArrivalTime = candidate.ArrivalAt,
+                        Duration = FormatDuration(totalDurationMinutes),
+                        DepartureAirport = new AirportResponse
+                        {
+                            Code = first.DepartureAirport!.Code,
+                            Name = first.DepartureAirport.Name,
+                            City = first.DepartureAirport.City
+                        },
+                        ArrivalAirport = ToAirportResponse(candidate.ArrivalAirport),
+                        HasStopover = true,
+                        StopoverAirport = new AirportResponse
+                        {
+                            Code = first.ArrivalAirport!.Code,
+                            Name = first.ArrivalAirport.Name,
+                            City = first.ArrivalAirport.City
+                        },
+                        StopoverDuration = FormatDuration(connectionMinutes),
+                        TouristPrice = first.PriceEconomyClass + candidate.TouristPrice,
+                        FirstClassPrice = first.PriceFirstClass + candidate.FirstClassPrice,
+                        CarryOnPrice = first.PriceCarryOnBaggage + candidate.CarryOnPrice,
+                        CheckedPrice = first.PriceCheckedBaggage + candidate.CheckedPrice
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        private async Task<IReadOnlyCollection<FlightResponse>> CreateConnectingFlightsAsync(
+            FlightQuery flightQuery,
+            IReadOnlyCollection<ExternalFlightOriginOption> originOptions,
+            CancellationToken cancellationToken)
+        {
+            var secondLegQuery = new RouteSearchQuery
+            {
+                Destination = flightQuery.Destination,
+                ArrivalWindows = CreateArrivalWindows(flightQuery),
+                QuantityOfPassengers = flightQuery.QuantityOfPassengers
+            };
+
+            var secondDefs = await _routeService.SearchRoutesAsync(secondLegQuery, cancellationToken);
+            var results = new List<FlightResponse>();
+
+            foreach (var originOption in originOptions)
+            {
+                var first = originOption.FirstLeg;
+                var candidates = secondDefs.Where(
+                    second => string.Equals(
+                        second.DepartureAirport?.Code,
+                        originOption.Origin,
+                        StringComparison.OrdinalIgnoreCase));
+
+                foreach (var second in candidates)
+                {
+                    for (var dayOffset = 0; dayOffset <= 1; dayOffset++)
+                    {
+                        var secondDate = originOption.FirstArrival.Date.AddDays(dayOffset);
+                        if (!OccursOn(second.Frequency, secondDate.DayOfWeek))
+                        {
+                            continue;
+                        }
+
+                        var dep2 = secondDate.Add(second.DepartureTime.ToTimeSpan());
+                        var arr2 = CalculateArrivalTime(second, dep2);
+
+                        if (dep2 < originOption.EarliestDeparture || dep2 > originOption.LatestDeparture)
+                        {
+                            continue;
+                        }
+
+                        if (!IsWithinArrivalBounds(arr2, flightQuery))
+                        {
+                            continue;
+                        }
+
+                        var connectionMinutes = (int)(dep2 - originOption.FirstArrival).TotalMinutes;
+                        var firstFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
+                            first.Id,
+                            originOption.FirstDeparture,
+                            cancellationToken);
+                        var secondFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
+                            second.Id,
+                            dep2,
+                            cancellationToken);
+                        var totalDurationMinutes = (int)(arr2 - originOption.FirstDeparture).TotalMinutes;
+
+                        results.Add(new FlightResponse
+                        {
+                            RouteId = first.Id,
+                            Routes =
+                            [
+                                CreateFlightRouteResponse(1, first.Id, originOption.FirstDeparture, firstFlightGuid),
+                                CreateFlightRouteResponse(2, second.Id, dep2, secondFlightGuid)
+                            ],
+                            DepartureTime = originOption.FirstDeparture,
+                            ArrivalTime = arr2,
+                            Duration = FormatDuration(totalDurationMinutes),
+                            DepartureAirport = new AirportResponse
+                            {
+                                Code = first.DepartureAirport!.Code,
+                                Name = first.DepartureAirport.Name,
+                                City = first.DepartureAirport.City
+                            },
+                            ArrivalAirport = new AirportResponse
+                            {
+                                Code = second.ArrivalAirport!.Code,
+                                Name = second.ArrivalAirport.Name,
+                                City = second.ArrivalAirport.City
+                            },
+                            HasStopover = true,
+                            StopoverAirport = new AirportResponse
+                            {
+                                Code = first.ArrivalAirport!.Code,
+                                Name = first.ArrivalAirport.Name,
+                                City = first.ArrivalAirport.City
+                            },
+                            StopoverDuration = FormatDuration(connectionMinutes),
+                            TouristPrice = first.PriceEconomyClass + second.PriceEconomyClass,
+                            FirstClassPrice = first.PriceFirstClass + second.PriceFirstClass,
+                            CarryOnPrice = first.PriceCarryOnBaggage + second.PriceCarryOnBaggage,
+                            CheckedPrice = first.PriceCheckedBaggage + second.PriceCheckedBaggage
+                        });
+                    }
+                }
             }
 
             return results;
@@ -438,6 +592,27 @@ namespace SnoopyAirlines.Services
             var minutes = durationMinutes % 60;
 
             return $"{hours:00}:{minutes:00}";
+        }
+
+        private static AirportResponse ToAirportResponse(FlightAirport airport)
+        {
+            return new AirportResponse
+            {
+                Code = airport.Code,
+                Name = airport.Name,
+                City = airport.City
+            };
+        }
+
+        private class ExternalFlightOriginOption
+        {
+            required public string Origin { get; set; }
+            public ExternalFlightSearchQueryLeg ExternalSearchLeg { get; set; }
+            required public DomainRoute FirstLeg { get; set; }
+            public DateTime FirstDeparture { get; set; }
+            public DateTime FirstArrival { get; set; }
+            public DateTime EarliestDeparture { get; set; }
+            public DateTime LatestDeparture { get; set; }
         }
     }
 }
