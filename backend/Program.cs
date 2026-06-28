@@ -56,6 +56,8 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<BookingRepository>();
 builder.Services.AddScoped<IFlightSearchRepository, FlightSearchRepository>();
 builder.Services.AddScoped<IFlightSearchService, FlightSearchService>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddScoped<SmtpEmailSender>();
