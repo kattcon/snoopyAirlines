@@ -3,144 +3,160 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.Airlines;
-using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
-using DomainRoute = SnoopyAirlines.Domain.Route;
 
 namespace SnoopyAirlines.Services.PartnerAirlines
 {
     public class ExternalFlightSearchService : IExternalFlightSearchService
     {
-        private const int MinStopoverMinutes = 60;
-        private const int MaxStopoverMinutes = 720;
+        private const int MaxConcurrentPartnerSearches = 4;
 
-        private readonly IRouteService _routeService;
         private readonly IFlightRepository _flightRepository;
         private readonly IPartnerAirlineRepository _partnerAirlineRepository;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ExternalFlightSearchService> _logger;
 
         public ExternalFlightSearchService(
-            IRouteService routeService,
             IFlightRepository flightRepository,
             IPartnerAirlineRepository partnerAirlineRepository,
             IHttpClientFactory httpClientFactory,
             ILogger<ExternalFlightSearchService> logger)
         {
-            _routeService = routeService;
             _flightRepository = flightRepository;
             _partnerAirlineRepository = partnerAirlineRepository;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
 
-        public async Task<IReadOnlyCollection<FlightResponse>> SearchConnectionsAsync(
-            FlightQuery flightQuery,
+        public async Task<IReadOnlyCollection<ExternalFlight>> SearchConnectionsAsync(
+            ExternalFlightSearchQuery flightQuery,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(flightQuery.Origin)
-                || string.IsNullOrWhiteSpace(flightQuery.Destination)
-                || flightQuery.EarliestDeparture is null
-                || flightQuery.LatestDeparture is null)
+            if (string.IsNullOrWhiteSpace(flightQuery.Destination)
+                || flightQuery.Legs.Count == 0
+                || flightQuery.MaxTimeWindow < TimeSpan.Zero)
             {
-                return Array.Empty<FlightResponse>();
+                return Array.Empty<ExternalFlight>();
             }
-
-            var firstLegs = await _routeService.SearchRoutesAsync(
-                new RouteSearchQuery
-                {
-                    Origin = flightQuery.Origin,
-                    QuantityOfPassengers = flightQuery.QuantityOfPassengers
-                },
-                cancellationToken);
 
             var partnerAirlines = await _partnerAirlineRepository.GetAllAsync(cancellationToken);
             if (partnerAirlines.Count == 0)
             {
-                return Array.Empty<FlightResponse>();
+                return Array.Empty<ExternalFlight>();
             }
 
-            var results = new List<FlightResponse>();
-            var earliestDeparture = flightQuery.EarliestDeparture.Value;
-            var latestDeparture = flightQuery.LatestDeparture.Value;
-            var currentDate = earliestDeparture.Date;
-            var endDate = latestDeparture.Date;
-
-            while (currentDate <= endDate)
+            var queryLegs = flightQuery.Legs
+                .Where(leg => !string.IsNullOrWhiteSpace(leg.Origin))
+                .Distinct()
+                .ToList();
+            if (queryLegs.Count == 0)
             {
-                foreach (var firstLeg in firstLegs)
+                return Array.Empty<ExternalFlight>();
+            }
+
+            var earliestDeparture = queryLegs.Min(leg => leg.Time);
+            var latestDeparture = queryLegs.Max(leg => leg.Time.Add(flightQuery.MaxTimeWindow));
+            var legsByOrigin = queryLegs
+                .GroupBy(leg => leg.Origin, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.ToList(),
+                    StringComparer.OrdinalIgnoreCase);
+            var resultsByGuid = new Dictionary<Guid, ExternalFlight>();
+            using var partnerSearchSemaphore = new SemaphoreSlim(MaxConcurrentPartnerSearches);
+            var partnerSearchTasks = partnerAirlines
+                .Select(partnerAirline => SearchPartnerFlightsThrottledAsync(
+                    partnerAirline,
+                    flightQuery.Destination,
+                    earliestDeparture,
+                    latestDeparture,
+                    flightQuery.QuantityOfPassengers,
+                    partnerSearchSemaphore,
+                    cancellationToken))
+                .ToList();
+
+            var partnerSearchResults = await Task.WhenAll(partnerSearchTasks);
+
+            foreach (var partnerSearchResult in partnerSearchResults)
+            {
+                foreach (var partnerFlight in partnerSearchResult.Flights)
                 {
-                    if (!OccursOn(firstLeg.Frequency, currentDate.DayOfWeek)
-                        || firstLeg.ArrivalAirport is null
-                        || firstLeg.DepartureAirport is null)
+                    if (partnerFlight.DepartureAirport is null
+                        || !legsByOrigin.TryGetValue(partnerFlight.DepartureAirport.Code, out var originLegs))
                     {
                         continue;
                     }
 
-                    if (string.Equals(
-                            firstLeg.ArrivalAirport.Code,
-                            flightQuery.Destination,
-                            StringComparison.OrdinalIgnoreCase))
+                    if (!originLegs.Any(
+                            leg => IsWithinLegWindow(
+                                partnerFlight.DepartureTime,
+                                leg,
+                                flightQuery.MaxTimeWindow)))
                     {
                         continue;
                     }
 
-                    var firstDeparture = currentDate.Add(firstLeg.DepartureTime.ToTimeSpan());
-                    if (firstDeparture < earliestDeparture || firstDeparture > latestDeparture)
+                    var externalFlight = await CreateExternalFlightAsync(
+                        partnerSearchResult.PartnerAirline,
+                        partnerFlight,
+                        flightQuery.Destination,
+                        cancellationToken);
+
+                    if (externalFlight is not null)
                     {
-                        continue;
-                    }
-
-                    var firstArrival = CalculateArrivalTime(firstLeg, firstDeparture);
-                    var connectionEarliestDeparture = firstArrival.AddMinutes(MinStopoverMinutes);
-                    var connectionLatestDeparture = firstArrival.AddMinutes(MaxStopoverMinutes);
-
-                    foreach (var partnerAirline in partnerAirlines)
-                    {
-                        var partnerFlights = await SearchPartnerFlightsAsync(
-                            partnerAirline,
-                            flightQuery.Destination,
-                            connectionEarliestDeparture,
-                            connectionLatestDeparture,
-                            flightQuery.QuantityOfPassengers ?? 1,
-                            cancellationToken);
-
-                        foreach (var partnerFlight in partnerFlights)
-                        {
-                            var connection = await CreateConnectionAsync(
-                                firstLeg,
-                                firstDeparture,
-                                firstArrival,
-                                partnerAirline,
-                                partnerFlight,
-                                flightQuery,
-                                cancellationToken);
-
-                            if (connection is not null)
-                            {
-                                results.Add(connection);
-                            }
-                        }
+                        resultsByGuid[externalFlight.Guid] = externalFlight;
                     }
                 }
-
-                currentDate = currentDate.AddDays(1);
             }
 
-            return results
-                .OrderBy(flight => flight.DepartureTime)
-                .ThenBy(flight => flight.RouteId)
-                .ThenBy(flight => flight.ArrivalTime)
+            return resultsByGuid.Values
+                .OrderBy(flight => flight.DepartureAt)
+                .ThenBy(flight => flight.ArrivalAt)
                 .ToList();
         }
 
-        private async Task<FlightResponse?> CreateConnectionAsync(
-            DomainRoute firstLeg,
-            DateTime firstDeparture,
-            DateTime firstArrival,
+        private async Task<PartnerFlightSearchResult> SearchPartnerFlightsThrottledAsync(
+            PartnerAirline partnerAirline,
+            string destination,
+            DateTime earliestDeparture,
+            DateTime latestDeparture,
+            int quantityOfPassengers,
+            SemaphoreSlim semaphore,
+            CancellationToken cancellationToken)
+        {
+            await semaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                var flights = await SearchPartnerFlightsAsync(
+                    partnerAirline,
+                    destination,
+                    earliestDeparture,
+                    latestDeparture,
+                    quantityOfPassengers,
+                    cancellationToken);
+
+                return new PartnerFlightSearchResult(partnerAirline, flights);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        private static bool IsWithinLegWindow(
+            DateTime departureTime,
+            ExternalFlightSearchQueryLeg leg,
+            TimeSpan maxTimeWindow)
+        {
+            return departureTime >= leg.Time
+                && departureTime <= leg.Time.Add(maxTimeWindow);
+        }
+
+        private async Task<ExternalFlight?> CreateExternalFlightAsync(
             PartnerAirline partnerAirline,
             PartnerFlight partnerFlight,
-            FlightQuery flightQuery,
+            string destination,
             CancellationToken cancellationToken)
         {
             if (partnerFlight.DepartureAirport is null
@@ -152,36 +168,12 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             }
 
             if (!string.Equals(
-                    partnerFlight.DepartureAirport.Code,
-                    firstLeg.ArrivalAirport!.Code,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            if (!string.Equals(
                     partnerFlight.ArrivalAirport.Code,
-                    flightQuery.Destination,
+                    destination,
                     StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
-
-            var connectionMinutes = (int)(partnerFlight.DepartureTime - firstArrival).TotalMinutes;
-            if (connectionMinutes < MinStopoverMinutes || connectionMinutes > MaxStopoverMinutes)
-            {
-                return null;
-            }
-
-            if (!IsWithinArrivalBounds(partnerFlight.ArrivalTime, flightQuery))
-            {
-                return null;
-            }
-
-            var firstFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
-                firstLeg.Id,
-                firstDeparture,
-                cancellationToken);
 
             var externalFlight = new ExternalFlight
             {
@@ -198,33 +190,12 @@ namespace SnoopyAirlines.Services.PartnerAirlines
                 CheckedPrice = partnerFlight.CheckedPrice
             };
 
-            var secondFlightGuid = await _flightRepository.MaterializeExternalFlightAsync(
+            var flightGuid = await _flightRepository.MaterializeExternalFlightAsync(
                 externalFlight,
                 cancellationToken);
+            externalFlight.Guid = flightGuid;
 
-            var totalDurationMinutes = (int)(partnerFlight.ArrivalTime - firstDeparture).TotalMinutes;
-
-            return new FlightResponse
-            {
-                RouteId = firstLeg.Id,
-                Routes =
-                [
-                    CreateFlightRouteResponse(1, firstLeg.Id, firstDeparture, firstFlightGuid),
-                    CreateFlightRouteResponse(2, 0, partnerFlight.DepartureTime, secondFlightGuid)
-                ],
-                DepartureTime = firstDeparture,
-                ArrivalTime = partnerFlight.ArrivalTime,
-                Duration = FormatDuration(totalDurationMinutes),
-                DepartureAirport = ToAirportResponse(firstLeg.DepartureAirport!),
-                ArrivalAirport = ToAirportResponse(partnerFlight.ArrivalAirport),
-                HasStopover = true,
-                StopoverAirport = ToAirportResponse(firstLeg.ArrivalAirport!),
-                StopoverDuration = FormatDuration(connectionMinutes),
-                TouristPrice = firstLeg.PriceEconomyClass + partnerFlight.TouristPrice,
-                FirstClassPrice = firstLeg.PriceFirstClass + partnerFlight.FirstClassPrice,
-                CarryOnPrice = firstLeg.PriceCarryOnBaggage + partnerFlight.CarryOnPrice,
-                CheckedPrice = firstLeg.PriceCheckedBaggage + partnerFlight.CheckedPrice
-            };
+            return externalFlight;
         }
 
         private async Task<IReadOnlyCollection<PartnerFlight>> SearchPartnerFlightsAsync(
@@ -320,80 +291,6 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             return dateTime.ToString("O", CultureInfo.InvariantCulture);
         }
 
-        private static bool OccursOn(RouteFrequency frequency, DayOfWeek dayOfWeek)
-        {
-            return dayOfWeek switch
-            {
-                DayOfWeek.Monday => frequency.Monday,
-                DayOfWeek.Tuesday => frequency.Tuesday,
-                DayOfWeek.Wednesday => frequency.Wednesday,
-                DayOfWeek.Thursday => frequency.Thursday,
-                DayOfWeek.Friday => frequency.Friday,
-                DayOfWeek.Saturday => frequency.Saturday,
-                DayOfWeek.Sunday => frequency.Sunday,
-                _ => false
-            };
-        }
-
-        private static DateTime CalculateArrivalTime(DomainRoute route, DateTime departureTime)
-        {
-            var arrivalDate = route.ArrivalTime < route.DepartureTime
-                ? departureTime.Date.AddDays(1)
-                : departureTime.Date;
-
-            return arrivalDate.Add(route.ArrivalTime.ToTimeSpan());
-        }
-
-        private static bool IsWithinArrivalBounds(DateTime arrivalTime, FlightQuery flightQuery)
-        {
-            if (flightQuery.EarliestArrival is { } earliestArrival && arrivalTime < earliestArrival)
-            {
-                return false;
-            }
-
-            if (flightQuery.LatestArrival is { } latestArrival && arrivalTime > latestArrival)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private static FlightRouteResponse CreateFlightRouteResponse(
-            int sequenceNumber,
-            int routeId,
-            DateTime departureTime,
-            Guid flightGuid)
-        {
-            return new FlightRouteResponse
-            {
-                SequenceNumber = sequenceNumber,
-                RouteId = routeId,
-                FlightGuid = flightGuid.ToString(),
-                IntendedDate = DateOnly.FromDateTime(departureTime.Date)
-            };
-        }
-
-        private static AirportResponse ToAirportResponse(RouteAirport airport)
-        {
-            return new AirportResponse
-            {
-                Code = airport.Code,
-                Name = airport.Name,
-                City = airport.City
-            };
-        }
-
-        private static AirportResponse ToAirportResponse(PartnerAirport airport)
-        {
-            return new AirportResponse
-            {
-                Code = airport.Code,
-                Name = airport.Name,
-                City = airport.City
-            };
-        }
-
         private static FlightAirport ToFlightAirport(PartnerAirport airport)
         {
             return new FlightAirport
@@ -404,18 +301,14 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             };
         }
 
-        private static string FormatDuration(int durationMinutes)
-        {
-            var hours = durationMinutes / 60;
-            var minutes = durationMinutes % 60;
-
-            return $"{hours:00}:{minutes:00}";
-        }
-
         private class PartnerFlightsResponse
         {
             public IReadOnlyCollection<PartnerFlight> Flights { get; set; } = Array.Empty<PartnerFlight>();
         }
+
+        private sealed record PartnerFlightSearchResult(
+            PartnerAirline PartnerAirline,
+            IReadOnlyCollection<PartnerFlight> Flights);
 
         private class PartnerFlight
         {
