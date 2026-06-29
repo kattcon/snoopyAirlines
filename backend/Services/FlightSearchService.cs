@@ -40,5 +40,27 @@ namespace SnoopyAirlines.Services
 
             return flightReport;
         }
+
+        public async Task<IReadOnlyCollection<PassengerView>> GetPassengersByConfirmationAsync(
+            string confirmationNumber,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(confirmationNumber))
+            {
+                throw new ArgumentException("El número de reservación es obligatorio.", nameof(confirmationNumber));
+            }
+
+            var passengers = await _flightSearchRepository.GetPassengersByConfirmationAsync(
+                confirmationNumber,
+                cancellationToken
+            );
+
+            if (passengers == null || passengers.Count == 0)
+            {
+                throw new InvalidOperationException("No se encontró ningún pasajero con el número de reservación proporcionados.");
+            }
+
+            return passengers;
+        }
     }
 }
