@@ -385,7 +385,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
      * Normaliza un vuelo del backend al shape que usa el template.
      *
      * Mapeo de campos:
-     *   flightGUID       → id
+     *   routes[].flightGuid -> id
      *   routeId          → booking routeId
      *   touristPrice      → priceEconomyClass
      *   firstClassPrice   → priceFirstClass
@@ -399,14 +399,14 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         .map(Number);
       const validHours = Number.isFinite(hours) ? hours : 0;
       const validMinutes = Number.isFinite(minutes) ? minutes : 0;
-      const flightGUID = this.fieldValue(flight, 'flightGUID', 'FlightGUID');
+      const routes = this.normalizeFlightRoutes(flight);
       const routeId = this.fieldValue(flight, 'routeId', 'RouteId');
 
       return {
         ...flight,
-        id:                flightGUID,
+        id:                this.flightKey(routes, flight),
         routeId:           routeId,
-        routes:            this.normalizeFlightRoutes(flight),
+        routes:            routes,
         priceEconomyClass: this.fieldValue(flight, 'touristPrice', 'TouristPrice'),
         priceFirstClass:   this.fieldValue(flight, 'firstClassPrice', 'FirstClassPrice'),
         durationMinutes:   validHours * 60 + validMinutes,
@@ -424,9 +424,10 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
           .map((route, index) => ({
             sequenceNumber: Number(this.fieldValue(route, 'sequenceNumber', 'SequenceNumber')) || index + 1,
             routeId: Number(this.fieldValue(route, 'routeId', 'RouteId')),
+            flightGuid: this.fieldValue(route, 'flightGuid', 'FlightGuid'),
             intendedDate: this.dateOnly(this.fieldValue(route, 'intendedDate', 'IntendedDate')),
           }))
-          .filter(route => route.routeId > 0 && route.intendedDate);
+          .filter(route => route.flightGuid);
       }
 
       const routeId = Number(this.fieldValue(flight, 'routeId', 'RouteId'));
@@ -442,6 +443,20 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
           intendedDate: this.dateOnly(departureTime),
         }
       ];
+    },
+
+    flightKey(routes, flight) {
+      const legGuids = routes
+        .map(route => route.flightGuid)
+        .filter(Boolean);
+
+      if (legGuids.length > 0) {
+        return legGuids.join(':');
+      }
+
+      const departureTime = this.fieldValue(flight, 'departureTime', 'DepartureTime') ?? '';
+      const routeIds = routes.map(route => route.routeId).join(':');
+      return `${routeIds}:${departureTime}`;
     },
 
     dateOnly(value) {

@@ -8,6 +8,7 @@ using SnoopyAirlines.Infrastructure.Dapper;
 using SnoopyAirlines.Infrastructure.Json;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Services.PartnerAirlines;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Pdf;
 using System.Text;
@@ -33,6 +34,7 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -40,6 +42,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     });
 builder.Services.AddScoped<RouteService>();
+builder.Services.AddScoped<IRouteService>(serviceProvider => serviceProvider.GetRequiredService<RouteService>());
 builder.Services.AddScoped(sp => new UserRepository(builder.Configuration));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
@@ -54,7 +57,10 @@ builder.Services.AddScoped<PurchaseOrderRepository>();
 builder.Services.AddScoped<PurchaseOrderService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<BookingRepository>();
-builder.Services.AddScoped<IFlightSearchRepository, FlightSearchRepository>();
+builder.Services.AddScoped<IFlightRepository, FlightRepository>();
+builder.Services.AddScoped<IPartnerAirlineRepository, PartnerAirlineRepository>();
+builder.Services.AddScoped<IExternalFlightSearchService, ExternalFlightSearchService>();
+builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IFlightSearchService, FlightSearchService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportService, ReportService>();

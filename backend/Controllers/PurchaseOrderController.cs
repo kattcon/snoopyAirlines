@@ -75,6 +75,7 @@ namespace SnoopyAirlines.Controllers
             return purchaseIntake.Routes.Select((route, index) => new PurchaseOrderRoute
             {
                 SequenceNumber = route.SequenceNumber ?? index + 1,
+                FlightGuid = route.FlightGuid ?? Guid.Empty,
                 RouteId = route.RouteId,
                 IntendedDate = route.IntendedDate
             });

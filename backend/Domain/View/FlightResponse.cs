@@ -2,7 +2,6 @@ namespace SnoopyAirlines.Domain.View
 {
     public class FlightResponse
     {
-        required public string FlightGUID { get; set; }
         public int RouteId { get; set; }
         public IReadOnlyCollection<FlightRouteResponse> Routes { get; set; } = Array.Empty<FlightRouteResponse>();
         public DateTime DepartureTime { get; set; }
@@ -23,6 +22,7 @@ namespace SnoopyAirlines.Domain.View
     {
         public int SequenceNumber { get; set; }
         public int RouteId { get; set; }
+        public string? FlightGuid { get; set; }
         public DateOnly IntendedDate { get; set; }
     }
 
