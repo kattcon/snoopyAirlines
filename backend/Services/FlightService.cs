@@ -75,7 +75,7 @@ namespace SnoopyAirlines.Services
                 .ToList();
         }
 
-        public async Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
+        public async Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,
             CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ namespace SnoopyAirlines.Services
                 lastNames,
                 cancellationToken);
 
-            if (flightReport == null)
+            if (flightReport.Legs.Count == 0)
             {
                 throw new InvalidOperationException("No se encontró ningún reporte de vuelo para el número de reservación y apellidos proporcionados.");
             }
