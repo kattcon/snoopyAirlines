@@ -110,13 +110,9 @@
               Agrega equipaje adicional a tu reservación.
             </p>
 
-            <button class="primary-button" @click="openLuggageModal">
+            <button class="primary-button">
               Comprar equipaje
             </button>
-            <luggageModifyPopUp 
-              v-if="showLuggageModal"
-              @close="showLuggageModal = false"
-            />
           </div>
 
           <div class="action-card">
@@ -160,20 +156,13 @@
 </template>
 
 <script>
-import { jsPDF } from 'jspdf'
-import luggageModifyPopUp from '../components/LuggageModifyPopUp.vue';
-
 export default {
   name: 'ClientFlightReport',
-  components: {
-    luggageModifyPopUp,
-  },
   data() {
     return {
       // Datos que llegan por state desde LandingPage.vue.
       flightLegs: [],
-      generatingPdf: false,
-      showLuggageModal: false,
+      passengers: [],
     };
   },
   created() {
@@ -232,9 +221,6 @@ export default {
     },
   },
   methods: {
-    openLuggageModal() {
-      this.showLuggageModal = true;
-    },
     legLabel(leg) {
       if (this.flightLegs.length === 1) {
         return 'VUELO';
