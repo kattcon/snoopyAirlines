@@ -66,8 +66,8 @@ namespace SnoopyAirlines.Services
             return directFlights
                 .Concat(connectingFlights)
                 .Concat(externalConnectingFlights)
-                .OrderBy(flight => flight.DepartureTime)
-                .ThenBy(flight => flight.RouteId)
+                .OrderBy(GetItineraryDepartureTime)
+                .ThenBy(GetItineraryRouteId)
                 .ToList();
         }
 
@@ -238,8 +238,8 @@ namespace SnoopyAirlines.Services
             }
 
             return flights
-                .OrderBy(flight => flight.DepartureTime)
-                .ThenBy(flight => flight.RouteId)
+                .OrderBy(GetItineraryDepartureTime)
+                .ThenBy(GetItineraryRouteId)
                 .ToList();
         }
 
@@ -250,30 +250,10 @@ namespace SnoopyAirlines.Services
         {
             return new FlightResponse
             {
-                RouteId = route.Id,
-                Routes =
+                Flights =
                 [
-                    CreateFlightRouteResponse(1, route.Id, departureTime, flightGuid)
-                ],
-                DepartureTime = departureTime,
-                ArrivalTime = CalculateArrivalTime(route, departureTime),
-                Duration = FormatDuration(route.DurationMinutes),
-                DepartureAirport = new AirportResponse
-                {
-                    Code = route.DepartureAirport!.Code,
-                    Name = route.DepartureAirport.Name,
-                    City = route.DepartureAirport.City
-                },
-                ArrivalAirport = new AirportResponse
-                {
-                    Code = route.ArrivalAirport!.Code,
-                    Name = route.ArrivalAirport.Name,
-                    City = route.ArrivalAirport.City
-                },
-                TouristPrice = route.PriceEconomyClass,
-                FirstClassPrice = route.PriceFirstClass,
-                CarryOnPrice = route.PriceCarryOnBaggage,
-                CheckedPrice = route.PriceCheckedBaggage
+                    CreateInternalFlightLegResponse(1, route, departureTime, flightGuid)
+                ]
             };
         }
 
@@ -442,51 +422,20 @@ namespace SnoopyAirlines.Services
                         first.Id,
                         originOption.FirstDeparture,
                         cancellationToken);
-                    var firstRoute = CreateFlightRouteResponse(
+                    var firstFlight = CreateInternalFlightLegResponse(
                         1,
-                        first.Id,
+                        first,
                         originOption.FirstDeparture,
                         firstFlightGuid);
-                    var secondRoute = new FlightRouteResponse
-                    {
-                        SequenceNumber = 2,
-                        RouteId = 0,
-                        FlightGuid = candidate.Guid.ToString(),
-                        IntendedDate = DateOnly.FromDateTime(candidate.DepartureAt.Date)
-                    };
-                    var connectionMinutes = (int)(candidate.DepartureAt - originOption.FirstArrival).TotalMinutes;
-                    var totalDurationMinutes = (int)(candidate.ArrivalAt - originOption.FirstDeparture).TotalMinutes;
+                    var secondFlight = CreateExternalFlightLegResponse(2, candidate);
 
                     results.Add(new FlightResponse
                     {
-                        RouteId = first.Id,
-                        Routes =
+                        Flights =
                         [
-                            firstRoute,
-                            secondRoute
-                        ],
-                        DepartureTime = originOption.FirstDeparture,
-                        ArrivalTime = candidate.ArrivalAt,
-                        Duration = FormatDuration(totalDurationMinutes),
-                        DepartureAirport = new AirportResponse
-                        {
-                            Code = first.DepartureAirport!.Code,
-                            Name = first.DepartureAirport.Name,
-                            City = first.DepartureAirport.City
-                        },
-                        ArrivalAirport = ToAirportResponse(candidate.ArrivalAirport),
-                        HasStopover = true,
-                        StopoverAirport = new AirportResponse
-                        {
-                            Code = first.ArrivalAirport!.Code,
-                            Name = first.ArrivalAirport.Name,
-                            City = first.ArrivalAirport.City
-                        },
-                        StopoverDuration = FormatDuration(connectionMinutes),
-                        TouristPrice = first.PriceEconomyClass + candidate.TouristPrice,
-                        FirstClassPrice = first.PriceFirstClass + candidate.FirstClassPrice,
-                        CarryOnPrice = first.PriceCarryOnBaggage + candidate.CarryOnPrice,
-                        CheckedPrice = first.PriceCheckedBaggage + candidate.CheckedPrice
+                            firstFlight,
+                            secondFlight
+                        ]
                     });
                 }
             }
@@ -541,7 +490,6 @@ namespace SnoopyAirlines.Services
                             continue;
                         }
 
-                        var connectionMinutes = (int)(dep2 - originOption.FirstArrival).TotalMinutes;
                         var firstFlightGuid = await _flightRepository.MaterializeInternalFlightAsync(
                             first.Id,
                             originOption.FirstDeparture,
@@ -550,43 +498,14 @@ namespace SnoopyAirlines.Services
                             second.Id,
                             dep2,
                             cancellationToken);
-                        var totalDurationMinutes = (int)(arr2 - originOption.FirstDeparture).TotalMinutes;
 
                         results.Add(new FlightResponse
                         {
-                            RouteId = first.Id,
-                            Routes =
+                            Flights =
                             [
-                                CreateFlightRouteResponse(1, first.Id, originOption.FirstDeparture, firstFlightGuid),
-                                CreateFlightRouteResponse(2, second.Id, dep2, secondFlightGuid)
-                            ],
-                            DepartureTime = originOption.FirstDeparture,
-                            ArrivalTime = arr2,
-                            Duration = FormatDuration(totalDurationMinutes),
-                            DepartureAirport = new AirportResponse
-                            {
-                                Code = first.DepartureAirport!.Code,
-                                Name = first.DepartureAirport.Name,
-                                City = first.DepartureAirport.City
-                            },
-                            ArrivalAirport = new AirportResponse
-                            {
-                                Code = second.ArrivalAirport!.Code,
-                                Name = second.ArrivalAirport.Name,
-                                City = second.ArrivalAirport.City
-                            },
-                            HasStopover = true,
-                            StopoverAirport = new AirportResponse
-                            {
-                                Code = first.ArrivalAirport!.Code,
-                                Name = first.ArrivalAirport.Name,
-                                City = first.ArrivalAirport.City
-                            },
-                            StopoverDuration = FormatDuration(connectionMinutes),
-                            TouristPrice = first.PriceEconomyClass + second.PriceEconomyClass,
-                            FirstClassPrice = first.PriceFirstClass + second.PriceFirstClass,
-                            CarryOnPrice = first.PriceCarryOnBaggage + second.PriceCarryOnBaggage,
-                            CheckedPrice = first.PriceCheckedBaggage + second.PriceCheckedBaggage
+                                CreateInternalFlightLegResponse(1, first, originOption.FirstDeparture, firstFlightGuid),
+                                CreateInternalFlightLegResponse(2, second, dep2, secondFlightGuid)
+                            ]
                         });
                     }
                 }
@@ -595,18 +514,67 @@ namespace SnoopyAirlines.Services
             return results;
         }
 
-        private static FlightRouteResponse CreateFlightRouteResponse(
+        private static FlightLegResponse CreateInternalFlightLegResponse(
             int sequenceNumber,
-            int routeId,
+            DomainRoute route,
             DateTime departureTime,
             Guid flightGuid)
         {
-            return new FlightRouteResponse
+            return new FlightLegResponse
             {
                 SequenceNumber = sequenceNumber,
-                RouteId = routeId,
+                RouteId = route.Id,
                 FlightGuid = flightGuid.ToString(),
-                IntendedDate = DateOnly.FromDateTime(departureTime.Date)
+                IntendedDate = DateOnly.FromDateTime(departureTime.Date),
+                DepartureTime = departureTime,
+                ArrivalTime = CalculateArrivalTime(route, departureTime),
+                DurationMinutes = route.DurationMinutes,
+                Duration = FormatDuration(route.DurationMinutes),
+                DepartureAirport = new AirportResponse
+                {
+                    Code = route.DepartureAirport!.Code,
+                    Name = route.DepartureAirport.Name,
+                    City = route.DepartureAirport.City
+                },
+                ArrivalAirport = new AirportResponse
+                {
+                    Code = route.ArrivalAirport!.Code,
+                    Name = route.ArrivalAirport.Name,
+                    City = route.ArrivalAirport.City
+                },
+                TouristPrice = route.PriceEconomyClass,
+                FirstClassPrice = route.PriceFirstClass,
+                CarryOnPrice = route.PriceCarryOnBaggage,
+                CheckedPrice = route.PriceCheckedBaggage,
+                IsExternal = false,
+                Airline = null
+            };
+        }
+
+        private static FlightLegResponse CreateExternalFlightLegResponse(
+            int sequenceNumber,
+            ExternalFlight flight)
+        {
+            var durationMinutes = CalculateDurationMinutes(flight.DepartureAt, flight.ArrivalAt);
+
+            return new FlightLegResponse
+            {
+                SequenceNumber = sequenceNumber,
+                RouteId = null,
+                FlightGuid = flight.Guid.ToString(),
+                IntendedDate = DateOnly.FromDateTime(flight.DepartureAt.Date),
+                DepartureTime = flight.DepartureAt,
+                ArrivalTime = flight.ArrivalAt,
+                DurationMinutes = durationMinutes,
+                Duration = FormatDuration(durationMinutes),
+                DepartureAirport = ToAirportResponse(flight.DepartureAirport),
+                ArrivalAirport = ToAirportResponse(flight.ArrivalAirport),
+                TouristPrice = flight.TouristPrice,
+                FirstClassPrice = flight.FirstClassPrice,
+                CarryOnPrice = flight.CarryOnPrice,
+                CheckedPrice = flight.CheckedPrice,
+                IsExternal = true,
+                Airline = flight.PartnerAirline?.Name
             };
         }
 
@@ -616,6 +584,27 @@ namespace SnoopyAirlines.Services
             var minutes = durationMinutes % 60;
 
             return $"{hours:00}:{minutes:00}";
+        }
+
+        private static int CalculateDurationMinutes(DateTime departureTime, DateTime arrivalTime)
+        {
+            return Math.Max(0, (int)(arrivalTime - departureTime).TotalMinutes);
+        }
+
+        private static DateTime GetItineraryDepartureTime(FlightResponse flight)
+        {
+            return flight.Flights
+                .OrderBy(leg => leg.SequenceNumber)
+                .FirstOrDefault()
+                ?.DepartureTime ?? DateTime.MaxValue;
+        }
+
+        private static int GetItineraryRouteId(FlightResponse flight)
+        {
+            return flight.Flights
+                .OrderBy(leg => leg.SequenceNumber)
+                .FirstOrDefault()
+                ?.RouteId ?? 0;
         }
 
         private static AirportResponse ToAirportResponse(FlightAirport airport)

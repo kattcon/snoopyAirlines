@@ -298,7 +298,7 @@ export default {
                     .map((route, index) => ({
                         sequenceNumber: Number(route.sequenceNumber) || index + 1,
                         flightGuid: route.flightGuid,
-                        routeId: Number(route.routeId),
+                        routeId: this.nullableNumber(route.routeId),
                         intendedDate: route.intendedDate,
                     }))
                     .filter(route => route.flightGuid);
@@ -306,6 +306,14 @@ export default {
                 console.error("Error leyendo los tramos del vuelo:", error);
                 return [];
             }
+        },
+        nullableNumber(value) {
+            if (value === null || value === undefined || value === '') {
+                return null;
+            }
+
+            const number = Number(value);
+            return Number.isFinite(number) ? number : null;
         }
     }
 }
