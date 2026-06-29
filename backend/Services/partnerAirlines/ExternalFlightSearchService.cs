@@ -209,14 +209,20 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             try
             {
                 var client = _httpClientFactory.CreateClient();
-                using var response = await client.GetAsync(
-                    BuildPartnerSearchUri(
-                        partnerAirline,
-                        destination,
-                        earliestDeparture,
-                        latestDeparture,
-                        quantityOfPassengers),
-                    cancellationToken);
+                var searchUri = BuildPartnerSearchUri(
+                    partnerAirline,
+                    destination,
+                    earliestDeparture,
+                    latestDeparture,
+                    quantityOfPassengers);
+
+                _logger.LogInformation(
+                    "Pinging partner airline {PartnerAirlineName} flight search URI {PartnerSearchUri}. Query parameters: {PartnerSearchQueryParameters}",
+                    partnerAirline.Name,
+                    searchUri,
+                    searchUri.Query.TrimStart('?'));
+
+                using var response = await client.GetAsync(searchUri, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -254,7 +260,7 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             DateTime latestDeparture,
             int quantityOfPassengers)
         {
-            var endpoint = NormalizePartnerEndpoint(partnerAirline.Host);
+            var endpoint = $"{partnerAirline.Host}/api/external";
             var queryParameters = new List<string>();
 
             AddQueryParameter(queryParameters, "destination", destination);
@@ -267,15 +273,6 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             AddQueryParameter(queryParameters, "apiKey", partnerAirline.ApiKey);
 
             return new Uri($"{endpoint}?{string.Join("&", queryParameters)}");
-        }
-
-        private static string NormalizePartnerEndpoint(string host)
-        {
-            var endpoint = host.Trim().TrimEnd('/');
-
-            return endpoint.EndsWith("/api/external", StringComparison.OrdinalIgnoreCase)
-                ? endpoint
-                : $"{endpoint}/api/external";
         }
 
         private static void AddQueryParameter(

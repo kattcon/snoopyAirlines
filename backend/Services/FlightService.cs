@@ -53,10 +53,6 @@ namespace SnoopyAirlines.Services
                     MaxTimeWindow = TimeSpan.FromMinutes(MaxStopoverMinutes - MinStopoverMinutes),
                     Legs = connectionOriginOptions
                         .Select(option => option.ExternalSearchLeg)
-                        .Select(leg => new ExternalFlightSearchQueryLeg(
-                            leg.Origin,
-                            leg.Time + TimeSpan.FromMinutes(MinStopoverMinutes)
-                        ))
                         .Distinct()
                         .ToList()
                 },
