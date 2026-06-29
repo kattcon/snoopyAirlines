@@ -1,4 +1,3 @@
-using snoopy_airlines_backend.Domain.View;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using System;

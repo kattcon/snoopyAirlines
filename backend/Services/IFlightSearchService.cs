@@ -1,5 +1,4 @@
 using SnoopyAirlines.Domain.View;
-using snoopy_airlines_backend.Domain.View;
 
 namespace SnoopyAirlines.Services
 {
