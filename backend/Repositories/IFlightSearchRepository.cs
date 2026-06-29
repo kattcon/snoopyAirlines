@@ -1,8 +1,8 @@
 using SnoopyAirlines.Domain.View;
 
-namespace SnoopyAirlines.Services
+namespace SnoopyAirlines.Repositories
 {
-    public interface IFlightSearchService
+    public interface IFlightSearchRepository
     {
         Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
