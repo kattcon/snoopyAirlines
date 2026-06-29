@@ -6,6 +6,7 @@ using SnoopyAirlines.Services;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Email.Templates;
 using SnoopyAirlines.Util.Pdf;
+using System.Text;
 using Xunit;
 
 namespace backend.Tests.Services
@@ -336,5 +337,102 @@ namespace backend.Tests.Services
                 "application/pdf",
                 [0x25, 0x50, 0x44, 0x46]);
         }
+
+        private void SetupEmailByConfirmationCode(string confirmationCode, string? email)
+        {
+            _bookingRepository
+                .Setup(r => r.GetEmailByConfirmationCodeAsync(confirmationCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(email);
+        }
+
+        private void SetupStoreCancellationToken()
+        {
+            _bookingRepository
+                .Setup(r => r.StoreCancellationTokenAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+        }
+
+        private void SetupCancelByTokenHash(string tokenHash, bool result)
+        {
+            _bookingRepository
+                .Setup(r => r.CancelByTokenHashAsync(tokenHash, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(result);
+        }
+
+        [Fact]
+        public async Task TestConfirmCancellationAsyncReturnsTrueWhenTokenIsValid()
+        {
+            // Arrange
+            var rawToken  = "test-raw-token";
+            var tokenHash = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    Encoding.UTF8.GetBytes(rawToken)))
+                .ToLowerInvariant();
+
+            SetupCancelByTokenHash(tokenHash, true);
+            var service = CreateService();
+
+            // Act
+            var result = await service.ConfirmCancellationAsync(rawToken, CancellationToken.None);
+
+            // Assert
+            Assert.True(result);
+
+            _bookingRepository.Verify(
+                r => r.CancelByTokenHashAsync(tokenHash, It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task TestConfirmCancellationAsyncReturnsFalseWhenTokenIsInvalidOrExpired()
+        {
+            // Arrange
+            var rawToken  = "expired-or-invalid-token";
+            var tokenHash = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    Encoding.UTF8.GetBytes(rawToken)))
+                .ToLowerInvariant();
+
+            SetupCancelByTokenHash(tokenHash, false);
+            var service = CreateService();
+
+            // Act
+            var result = await service.ConfirmCancellationAsync(rawToken, CancellationToken.None);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task TestConfirmCancellationAsyncHashesRawTokenBeforeCallingRepository()
+        {
+            // Arrange
+            var rawToken = "my-raw-token";
+
+            _bookingRepository
+                .Setup(r => r.CancelByTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var service = CreateService();
+
+            // Act
+            await service.ConfirmCancellationAsync(rawToken, CancellationToken.None);
+
+            // Assert — verifica que nunca se llama con el raw token en texto plano
+            _bookingRepository.Verify(
+                r => r.CancelByTokenHashAsync(rawToken, It.IsAny<CancellationToken>()),
+                Times.Never);
+
+            _bookingRepository.Verify(
+                r => r.CancelByTokenHashAsync(
+                    It.Is<string>(h => h.Length == 64 && h != rawToken),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
     }
 }

@@ -5,6 +5,8 @@ using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Util.Email;
 using SnoopyAirlines.Util.Email.Templates;
 using SnoopyAirlines.Util.Pdf;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SnoopyAirlines.Services
 {
@@ -15,6 +17,7 @@ namespace SnoopyAirlines.Services
         private readonly IInvoicePdfGenerator _invoicePdfGenerator;
         private readonly BookingConfirmationEmail _bookingConfirmationEmail;
         private readonly BookingItineraryEmail _bookingItineraryEmail;
+        private readonly CancellationRequestEmail _cancellationRequestEmail;
 
         public BookingService(
             IBookingRepository bookingRepository,
@@ -26,6 +29,7 @@ namespace SnoopyAirlines.Services
             _invoicePdfGenerator = invoicePdfGenerator;
             _bookingConfirmationEmail = new BookingConfirmationEmail();
             _bookingItineraryEmail = new BookingItineraryEmail();
+            _cancellationRequestEmail = new CancellationRequestEmail();
         }
 
         public async Task<Booking> BookAsync(
@@ -162,6 +166,81 @@ namespace SnoopyAirlines.Services
                 CardLastFour = cardLastFour,
                 CardHolderName = cardHolderName
             };
+        }
+
+        public async Task<bool> RequestCancellationAsync(
+            string confirmationCode,
+            CancellationToken cancellationToken)
+        {
+            var email = await _bookingRepository.GetEmailByConfirmationCodeAsync(
+                confirmationCode, cancellationToken);
+
+            if (email is null)
+            {
+                return false;
+            }
+
+            var (rawToken, tokenHash, expiresAt) = CreateCancellationToken();
+
+            await _bookingRepository.StoreCancellationTokenAsync(
+                confirmationCode, tokenHash, expiresAt, cancellationToken);
+                
+            await SendCancellationEmailAsync(
+                email,
+                confirmationCode,
+                rawToken,
+                cancellationToken);
+
+            return true;
+        }
+
+        private async Task SendCancellationEmailAsync(
+            string email,
+            string confirmationCode,
+            string rawToken,
+            CancellationToken cancellationToken)
+        {
+            var cancelUrl = $"https://snoopyairlines.com/confirm-cancellation?token={Uri.EscapeDataString(rawToken)}";
+
+
+            var data = new CancellationRequestEmailData(confirmationCode, cancelUrl);
+
+            await _emailSender.SendAsync(
+                email,
+                _cancellationRequestEmail,
+                data,
+                cancellationToken);
+        }
+
+        private static string GenerateRawToken()
+        {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .TrimEnd('=');
+        }
+
+        private (string RawToken, string TokenHash, DateTime ExpiresAt) CreateCancellationToken()
+        {
+            var rawToken  = GenerateRawToken();
+            var tokenHash = HashToken(rawToken);
+            var expiresAt = DateTime.UtcNow.AddHours(24);
+
+            return (rawToken, tokenHash, expiresAt);
+        }
+
+        private static string HashToken(string rawToken)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
+        }
+
+        public async Task<bool> ConfirmCancellationAsync(
+            string rawToken,
+            CancellationToken cancellationToken)
+        {
+            var tokenHash = HashToken(rawToken);
+            return await _bookingRepository.CancelByTokenHashAsync(tokenHash, cancellationToken);
         }
     }
 }
