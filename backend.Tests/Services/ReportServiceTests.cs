@@ -18,17 +18,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    null, null, null, null, null, It.IsAny<CancellationToken>()))
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync(null, null, null, null, null, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync(null, null, null, null, null, null, CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+                null, null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -38,17 +38,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    null, null, null, null, null, It.IsAny<CancellationToken>()))
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync("", "", "", null, null, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync("", "", "", null, null, "", CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+                null, null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -58,17 +58,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    null, null, null, null, null, It.IsAny<CancellationToken>()))
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync("   ", "  ", "  ", null, null, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync("   ", "  ", "  ", null, null, "   ", CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+                null, null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -78,17 +78,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    "SJO", null, null, null, null, It.IsAny<CancellationToken>()))
+                    "SJO", null, null, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync("sjo", null, null, null, null, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync("sjo", null, null, null, null, null, CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                "SJO", null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+                "SJO", null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -98,17 +98,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    "MAD", null, null, null, null, It.IsAny<CancellationToken>()))
+                    "MAD", null, null, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync(" mad ", null, null, null, null, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync(" mad ", null, null, null, null, null, CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                "MAD", null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+                "MAD", null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -118,17 +118,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    null, null, "economy", null, null, It.IsAny<CancellationToken>()))
+                    null, null, "economy", null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync(null, null, " economy ", null, null, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync(null, null, " economy ", null, null, null, CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                null, null, "economy", null, null, It.IsAny<CancellationToken>()), Times.Once);
+                null, null, "economy", null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -153,13 +153,13 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    null, null, null, null, null, It.IsAny<CancellationToken>()))
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            var result = await service.GetAirlineDetailedReportAsync(null, null, null, null, null, CancellationToken.None);
+            var result = await service.GetAirlineDetailedReportAsync(null, null, null, null, null, null, CancellationToken.None);
 
             // Assert
             Assert.Single(result);
@@ -180,17 +180,17 @@ namespace backend.Tests.Services
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
                 .Setup(r => r.GetAirlineDetailedReportAsync(
-                    null, null, null, dateFrom, dateTo, It.IsAny<CancellationToken>()))
+                    null, null, null, dateFrom, dateTo, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(EmptyRows);
 
             var service = new ReportService(mockRepo.Object);
 
             // Act
-            await service.GetAirlineDetailedReportAsync(null, null, null, dateFrom, dateTo, CancellationToken.None);
+            await service.GetAirlineDetailedReportAsync(null, null, null, dateFrom, dateTo, null, CancellationToken.None);
 
             // Assert
             mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
-                null, null, null, dateFrom, dateTo, It.IsAny<CancellationToken>()), Times.Once);
+                null, null, null, dateFrom, dateTo, null, It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }
