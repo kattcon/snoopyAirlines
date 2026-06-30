@@ -552,5 +552,79 @@ namespace SnoopyAirlines.Repositories
             return await connection.QuerySingleOrDefaultAsync<UserView>(
                 new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
         }
+
+        public async Task<DeleteUserResult> DeleteUserAsync(int actorUserId, int targetUserId, CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SET XACT_ABORT ON;
+                BEGIN TRANSACTION;
+
+                IF @ActorUserId = @TargetUserId
+                BEGIN
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(2 AS INT);
+                    RETURN;
+                END;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.[user] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id = @ActorUserId
+                      AND type = 'AD'
+                )
+                BEGIN
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(1 AS INT);
+                    RETURN;
+                END;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM dbo.[user] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id = @TargetUserId
+                      AND email = 'admin@snoopyairlines.com'
+                )
+                BEGIN
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(3 AS INT);
+                    RETURN;
+                END;
+
+                DELETE FROM dbo.[user]
+                WHERE id = @TargetUserId;
+
+                IF @@ROWCOUNT = 0
+                BEGIN
+                    ROLLBACK TRANSACTION;
+                    SELECT CAST(4 AS INT);
+                    RETURN;
+                END;
+
+                COMMIT TRANSACTION;
+                SELECT CAST(0 AS INT);
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+
+            var resultCode = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        ActorUserId = actorUserId,
+                        TargetUserId = targetUserId
+                    },
+                    cancellationToken: cancellationToken));
+
+            return resultCode switch
+            {
+                0 => DeleteUserResult.Success,
+                1 => DeleteUserResult.Forbidden,
+                2 => DeleteUserResult.SelfDelete,
+                3 => DeleteUserResult.ProtectedInitialAdmin,
+                4 => DeleteUserResult.NotFound,
+                _ => throw new InvalidOperationException($"Unexpected delete user result code: {resultCode}.")
+            };
+        }
     }
 }

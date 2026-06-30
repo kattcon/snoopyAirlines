@@ -4,6 +4,7 @@ using SnoopyAirlines.Domain.Intake;
 using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Services;
+using System.Security.Claims;
 
 namespace SnoopyAirlines.Controllers
 {
@@ -66,6 +67,28 @@ namespace SnoopyAirlines.Controllers
             return Ok(updatedUser);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+        {
+            if (!TryGetAuthenticatedUserId(out var actorUserId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _userService.DeleteUserAsync(actorUserId, id, cancellationToken);
+
+            return result switch
+            {
+                DeleteUserResult.Success => NoContent(),
+                DeleteUserResult.SelfDelete => Conflict(new { Message = "You cannot delete your own user." }),
+                DeleteUserResult.ProtectedInitialAdmin => Conflict(new { Message = "The initial admin user cannot be deleted." }),
+                DeleteUserResult.NotFound => NotFound(new { Message = "User not found.", SearchedId = id }),
+                DeleteUserResult.Forbidden => Forbid(),
+                _ => StatusCode(StatusCodes.Status500InternalServerError)
+            };
+        }
+
         private static bool TryMapRole(string? roleValue, out UserRole role)
         {
             switch (roleValue?.Trim().ToLowerInvariant())
@@ -80,6 +103,19 @@ namespace SnoopyAirlines.Controllers
                     role = default;
                     return false;
             }
+        }
+
+        private bool TryGetAuthenticatedUserId(out int userId)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(claim, out userId))
+            {
+                return true;
+            }
+
+            userId = default;
+            return false;
         }
     }
 }

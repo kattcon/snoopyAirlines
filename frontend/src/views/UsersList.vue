@@ -46,17 +46,28 @@
         </template>
 
         <template #cell-actions="{ item }">
-          <button
-            v-if="!item.pending"
-            class="btn-edit"
-            @click.stop="$router.push(`/admin/edit-user/${item.id}`)"
-          >
-            Editar
-          </button>
+          <div v-if="!item.pending" class="actions-group">
+            <button
+              class="btn-edit"
+              :disabled="deletingUserId === item.id"
+              @click.stop="$router.push(`/admin/edit-user/${item.id}`)"
+            >
+              Editar
+            </button>
+
+            <button
+              class="btn-delete"
+              :disabled="deletingUserId === item.id"
+              @click.stop="deleteUser(item)"
+            >
+              {{ deletingUserId === item.id ? "Eliminando..." : "Eliminar" }}
+            </button>
+          </div>
         </template>
       </AppList>
 
       <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
+      <p v-if="successMsg" class="success-msg">{{ successMsg }}</p>
 
       <div class="table-footer-bar">
         <p class="table-footer">Mostrando {{ filteredUsers.length }} de {{ users.length }} usuarios</p>
@@ -79,6 +90,8 @@ export default {
       users: [],
       searchTerm: "",
       errorMsg: "",
+      successMsg: "",
+      deletingUserId: null,
       userColumns: [
         { key: "fullName", label: "Nombre completo" },
         { key: "email", label: "Correo electrónico" },
@@ -123,6 +136,56 @@ export default {
             this.errorMsg = "Acceso no autorizado";
           }
           console.error("Error cargando usuarios:", error);
+        });
+    },
+    deleteUser(user) {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        this.errorMsg = "No hay sesión activa.";
+        return;
+      }
+
+      const displayName = this.fullName(user) || user.email;
+      const confirmed = window.confirm(`¿Seguro que deseas eliminar al usuario ${displayName}? Esta acción no se puede deshacer.`);
+
+      if (!confirmed) {
+        return;
+      }
+
+      this.errorMsg = "";
+      this.successMsg = "";
+      this.deletingUserId = user.id;
+
+      axios
+        .delete(`${process.env.VUE_APP_BACKEND_URL}/user/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(() => {
+          this.users = this.users.filter((u) => u.id !== user.id);
+          this.successMsg = "Usuario eliminado correctamente.";
+        })
+        .catch((error) => {
+          if (error.response) {
+            const backendMessage = error.response.data?.message;
+
+            if (error.response.status === 409 && backendMessage) {
+              this.errorMsg = backendMessage;
+            } else if (error.response.status === 404) {
+              this.errorMsg = "El usuario ya no existe.";
+            } else if (error.response.status === 401 || error.response.status === 403) {
+              this.errorMsg = "Acceso no autorizado para eliminar usuarios.";
+            } else {
+              this.errorMsg = backendMessage || "No se pudo eliminar el usuario.";
+            }
+          } else {
+            this.errorMsg = "Error de conexión con el servidor.";
+          }
+
+          console.error("Error eliminando usuario:", error);
+        })
+        .finally(() => {
+          this.deletingUserId = null;
         });
     }
   }
@@ -287,5 +350,38 @@ export default {
 
 .btn-edit:hover {
   background-color: #2c3e6b;
+}
+
+.actions-group {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-delete {
+  background-color: #b3261e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-delete:hover {
+  background-color: #8f1e18;
+}
+
+.btn-edit:disabled,
+.btn-delete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.success-msg {
+  color: #2e7d32;
+  font-weight: 700;
+  margin-top: 12px;
+  text-align: center;
 }
 </style>
