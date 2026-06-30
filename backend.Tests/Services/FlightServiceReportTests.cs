@@ -2,13 +2,14 @@ using Moq;
 using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Services.PartnerAirlines;
 using Xunit;
 
 namespace backend.Tests.Services
 {
-    public class FlightSearchServiceTests
+    public class FlightServiceReportTests
     {
-        private readonly Mock<IFlightSearchRepository> _flightSearchRepository = new();
+        private readonly Mock<IFlightRepository> _flightRepository = new();
 
         [Fact]
         public async Task TestGetFlightReportEmptyConfirmationNumber()
@@ -20,7 +21,7 @@ namespace backend.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.GetFlightReportByConfirmationAsync("", "Cruz Ruiz", CancellationToken.None));
 
-            _flightSearchRepository.Verify(
+            _flightRepository.Verify(
                 r => r.GetFlightReportByConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
@@ -35,7 +36,7 @@ namespace backend.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.GetFlightReportByConfirmationAsync("   ", "Cruz Ruiz", CancellationToken.None));
 
-            _flightSearchRepository.Verify(
+            _flightRepository.Verify(
                 r => r.GetFlightReportByConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
@@ -61,7 +62,7 @@ namespace backend.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.GetFlightReportByConfirmationAsync("69314F9CF6F9", "", CancellationToken.None));
 
-            _flightSearchRepository.Verify(
+            _flightRepository.Verify(
                 r => r.GetFlightReportByConfirmationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
@@ -176,14 +177,17 @@ namespace backend.Tests.Services
             await service.GetFlightReportByConfirmationAsync("69314F9CF6F9", "Cruz Ruiz", CancellationToken.None);
 
             // Assert
-            _flightSearchRepository.Verify(
+            _flightRepository.Verify(
                 r => r.GetFlightReportByConfirmationAsync("69314F9CF6F9", "Cruz Ruiz", It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
-        private FlightSearchService CreateService()
+        private FlightService CreateService()
         {
-            return new FlightSearchService(_flightSearchRepository.Object);
+            return new FlightService(
+                Mock.Of<IRouteService>(),
+                _flightRepository.Object,
+                Mock.Of<IExternalFlightSearchService>());
         }
 
         private void SetupRepositoryResult(
@@ -191,7 +195,7 @@ namespace backend.Tests.Services
             string lastNames,
             FlightSearchResult result)
         {
-            _flightSearchRepository
+            _flightRepository
                 .Setup(r => r.GetFlightReportByConfirmationAsync(
                     confirmationNumber, lastNames, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(result);

@@ -75,6 +75,34 @@ namespace SnoopyAirlines.Services
                 .ToList();
         }
 
+        public async Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
+            string confirmationNumber,
+            string lastNames,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(confirmationNumber))
+            {
+                throw new ArgumentException("El número de reservación es obligatorio.", nameof(confirmationNumber));
+            }
+
+            if (string.IsNullOrWhiteSpace(lastNames))
+            {
+                throw new ArgumentException("Los apellidos son obligatorios.", nameof(lastNames));
+            }
+
+            var flightReport = await _flightRepository.GetFlightReportByConfirmationAsync(
+                confirmationNumber,
+                lastNames,
+                cancellationToken);
+
+            if (flightReport.Legs.Count == 0)
+            {
+                throw new InvalidOperationException("No se encontró ningún reporte de vuelo para el número de reservación y apellidos proporcionados.");
+            }
+
+            return flightReport;
+        }
+
         private static RouteSearchQuery ToRouteSearchQuery(FlightQuery flightQuery)
         {
             return new RouteSearchQuery
