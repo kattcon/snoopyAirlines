@@ -61,7 +61,6 @@ builder.Services.AddScoped<IFlightRepository, FlightRepository>();
 builder.Services.AddScoped<IPartnerAirlineRepository, PartnerAirlineRepository>();
 builder.Services.AddScoped<IExternalFlightSearchService, ExternalFlightSearchService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
-builder.Services.AddScoped<IFlightSearchService, FlightSearchService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();

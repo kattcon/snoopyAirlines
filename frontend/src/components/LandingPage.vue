@@ -526,7 +526,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
       this.reservationError = '';
 
       axios
-          .get(`${process.env.VUE_APP_BACKEND_URL}/flight-search/search`, { 
+          .get(`${process.env.VUE_APP_BACKEND_URL}/Flight/report/confirmation`, {
             params: {
               confirmationNumber: this.formData.confirmationNumber,
               lastNames: this.formData.lastNames

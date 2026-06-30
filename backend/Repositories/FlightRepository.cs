@@ -241,7 +241,7 @@ namespace SnoopyAirlines.Repositories
                     cancellationToken: cancellationToken));
         }
 
-        public async Task<IReadOnlyCollection<FlightReportView>> GetFlightReportByConfirmationAsync(
+        public async Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,
             CancellationToken cancellationToken)
@@ -258,8 +258,32 @@ namespace SnoopyAirlines.Repositories
                 cancellationToken: cancellationToken);
 
             var flightReport = await connection.QueryAsync<FlightReportView>(command);
+            var passengers = await connection.QueryAsync<PassengerReportView>(
+                new CommandDefinition(
+                    """
+                    SELECT
+                        p.FirstName,
+                        p.LastName,
+                        p.Gender,
+                        p.Nationality,
+                        p.Birthday,
+                        p.BirthMonth,
+                        p.BirthYear,
+                        p.CarryOnLuggage,
+                        p.CheckedLuggage
+                    FROM dbo.Passenger p
+                    JOIN dbo.booking b ON p.PurchaseOrderId = b.purchase_order_id
+                    WHERE b.confirmation_code = UPPER(LTRIM(RTRIM(@ConfirmationNumber)))
+                    ORDER BY p.Id;
+                    """,
+                    new { ConfirmationNumber = confirmationNumber },
+                    cancellationToken: cancellationToken));
 
-            return flightReport.ToList();
+            return new FlightSearchResult
+            {
+                Legs = flightReport.ToList(),
+                Passengers = passengers.ToList()
+            };
         }
 
         private static Flight ToFlight(FlightRecord record)

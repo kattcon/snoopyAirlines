@@ -69,6 +69,32 @@ namespace SnoopyAirlines.Controllers
             });
         }
 
+        [HttpGet("report/confirmation")]
+        [AllowAnonymous]
+        public async Task<ActionResult<FlightSearchResult>> GetReportByConfirmation(
+            [FromQuery] string confirmationNumber,
+            [FromQuery] string lastNames,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var flightReport = await _flightService.GetFlightReportByConfirmationAsync(
+                    confirmationNumber,
+                    lastNames,
+                    cancellationToken);
+
+                return Ok(flightReport);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
         private static bool TryCreateFlightQuery(
             string? origin,
             string? detination,
