@@ -28,6 +28,19 @@ namespace SnoopyAirlines.Controllers
             _flightService = flightService;
         }
 
+        [HttpGet("{flightGuid:guid}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<FlightLegResponse>> GetByGuid(
+            Guid flightGuid,
+            CancellationToken cancellationToken)
+        {
+            var flight = await _flightService.GetByGuidAsync(
+                flightGuid,
+                cancellationToken);
+
+            return flight is null ? NotFound() : Ok(flight);
+        }
+
         [HttpGet("search")]
         [AllowAnonymous]
         public async Task<ActionResult<FlightsResponse>> Search(
