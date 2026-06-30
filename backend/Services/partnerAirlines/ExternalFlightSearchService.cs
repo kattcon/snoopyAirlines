@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.Airlines;
 using SnoopyAirlines.Repositories;
@@ -159,10 +160,10 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             string destination,
             CancellationToken cancellationToken)
         {
+            var externalFlightUuid = partnerFlight.ExternalFlightUuid;
             if (partnerFlight.DepartureAirport is null
                 || partnerFlight.ArrivalAirport is null
-                || string.IsNullOrWhiteSpace(partnerFlight.FlightGUID)
-                || !Guid.TryParse(partnerFlight.FlightGUID, out var externalFlightGuid))
+                || string.IsNullOrWhiteSpace(externalFlightUuid))
             {
                 return null;
             }
@@ -177,7 +178,7 @@ namespace SnoopyAirlines.Services.PartnerAirlines
 
             var externalFlight = new ExternalFlight
             {
-                Guid = externalFlightGuid,
+                ExternalFlightUuid = externalFlightUuid,
                 PartnerAirlineId = partnerAirline.Id,
                 PartnerAirline = partnerAirline,
                 DepartureAt = partnerFlight.DepartureTime,
@@ -312,7 +313,15 @@ namespace SnoopyAirlines.Services.PartnerAirlines
 
         private class PartnerFlight
         {
+            [JsonPropertyName("flightUuid")]
+            public string? FlightUuid { get; set; }
+
+            [JsonPropertyName("flightGUID")]
             public string? FlightGUID { get; set; }
+
+            [JsonIgnore]
+            public string? ExternalFlightUuid => FlightUuid ?? FlightGUID;
+
             public int RouteId { get; set; }
             public DateTime DepartureTime { get; set; }
             public DateTime ArrivalTime { get; set; }
