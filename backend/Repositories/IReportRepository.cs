@@ -10,6 +10,7 @@ namespace SnoopyAirlines.Repositories
             string? seatClass,
             DateOnly? dateFrom,
             DateOnly? dateTo,
+            string? airline,
             CancellationToken cancellationToken);
     }
 }
