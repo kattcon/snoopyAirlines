@@ -2,28 +2,27 @@ namespace SnoopyAirlines.Domain.View
 {
     public class FlightResponse
     {
-        public int RouteId { get; set; }
-        public IReadOnlyCollection<FlightRouteResponse> Routes { get; set; } = Array.Empty<FlightRouteResponse>();
+        public IReadOnlyCollection<FlightLegResponse> Flights { get; set; } = Array.Empty<FlightLegResponse>();
+    }
+
+    public class FlightLegResponse
+    {
+        public int SequenceNumber { get; set; }
+        public int? RouteId { get; set; }
+        public string? FlightGuid { get; set; }
+        public DateOnly IntendedDate { get; set; }
         public DateTime DepartureTime { get; set; }
         public DateTime ArrivalTime { get; set; }
+        public int DurationMinutes { get; set; }
         required public string Duration { get; set; }
         required public AirportResponse DepartureAirport { get; set; }
         required public AirportResponse ArrivalAirport { get; set; }
-        public bool HasStopover { get; set; }
-        public AirportResponse? StopoverAirport { get; set; }
-        public string? StopoverDuration { get; set; }
         public decimal TouristPrice { get; set; }
         public decimal FirstClassPrice { get; set; }
         public decimal CarryOnPrice { get; set; }
         public decimal CheckedPrice { get; set; }
-    }
-
-    public class FlightRouteResponse
-    {
-        public int SequenceNumber { get; set; }
-        public int RouteId { get; set; }
-        public string? FlightGuid { get; set; }
-        public DateOnly IntendedDate { get; set; }
+        public bool IsExternal { get; set; }
+        public string? Airline { get; set; }
     }
 
     public class AirportResponse
