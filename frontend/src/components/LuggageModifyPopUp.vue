@@ -12,20 +12,20 @@
                             <line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </button>
-
+ 
                     <div v-if="isLoading" class="baggageLoadingState">
                       <p>Cargando informacion de equipaje...</p>
                     </div>
-
+ 
                     <div v-else-if="loadError" class="baggageErrorState">
                       <p class="baggageCapacityError">{{ loadError }}</p>
                       <button type="button" class="primaryButton" @click="fetchReservationData">
                         Reintentar
                       </button>
                     </div>
-
+ 
                     <template v-else-if="!paymentSuccess">
-
+ 
                         <div class="baggageModalHeader">
                             <div class="baggageHeaderIcon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -41,9 +41,9 @@
                             </p>
                             </div>
                         </div>
-
+ 
                         <div class="baggageDivider" ></div>
-
+ 
                         <p v-if="errorMessage" class="baggageCapacityError">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/>
@@ -52,8 +52,8 @@
                             </svg>
                             {{ errorMessage }}
                         </p>
-
-
+ 
+ 
                         <div class="baggagePassengerList">
                             <div v-for="passenger in localPassengers" :key="passenger.id" class="baggageRow">
                                 <div class="baggagePassengerInfo">
@@ -65,9 +65,9 @@
                                     </div>
                                     <p class="baggagePassengerName">{{ passenger.firstName }} {{ passenger.lastName }}</p>
                                 </div>
-
+ 
                                 <div class="baggageCounter">
-
+ 
                                     <button
                                         type="button"
                                         class="baggageCounterButton"
@@ -79,9 +79,9 @@
                                             <line x1="5" y1="12" x2="19" y2="12"/>
                                         </svg>                        
                                     </button>
-
+ 
                                     <span class="baggageCounterValue">{{ passenger.currentBags }}</span>
-
+ 
                                     <button 
                                         type="button"
                                         class="baggageCounterButton"
@@ -97,14 +97,14 @@
                                 </div>
                             </div>
                         </div>
-
+ 
                         <div class="baggageTotalBox">
                             <span class="baggageTotalLabel">Precio total</span>
                             <span class="baggageTotalValue">
                                 ${{ totalToPay }} <span class="baggageTotalCurrency">{{ currency }}</span>
                             </span>
                         </div>
-
+ 
                         <button
                             type="button"
                             class="primaryButton baggagePayButton"
@@ -113,8 +113,7 @@
                             >
                             {{ confirmButtonLabel }}
                         </button>
-                    </template>
-
+ 
                         <PaymentModal
                             v-if="showPaymentForm"
                             :total-to-pay="totalToPay"
@@ -123,6 +122,7 @@
                             @confirm="submitPayment"
                             @cancel="showPaymentForm = false"
                         />
+ 
                         <div v-if="showDecreaseWarning" class="warning-modal">
                             <div class="warning-modal-card">
                                 <p>Estás reduciendo la cantidad de maletas. Este cambio es irreversible. ¿Deseas continuar?</p>
@@ -130,12 +130,13 @@
                                 <button type="button" class="primaryButton" @click="cancelDecreased">Cancelar</button>
                             </div>
                         </div>
-                        
+ 
                     </template>
-                <template v-if="paymentSuccess">
+ 
+                    <template v-if="paymentSuccess">
                         <div class="baggageSuccessState">
                             <div class="baggageSuccesIcon">
-                            <img src="@/assets/snoopyPay.png" alt="Snoopy" class="baggageSnoopyImage" />
+                                <img src="@/assets/snoopyPay.png" alt="Snoopy" class="baggageSnoopyImage" />
                             </div>
                             <h2 class="baggageModalTitle">Pago realizado</h2>
                             <p class="baggageModalSubtitle">{{ successMessage }}</p>
@@ -143,7 +144,7 @@
                                 Listo
                             </button>
                         </div>
-                    </template>                    
+                    </template>
                 </div>
             </div>
         </Transition>

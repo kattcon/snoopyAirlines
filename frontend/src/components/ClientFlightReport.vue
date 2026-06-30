@@ -219,7 +219,6 @@
 
 <script>
 import axios from 'axios';
-import { jsPDF } from 'jspdf'
 import LuggageModifyPopUp from '../components/LuggageModifyPopUp.vue';
 
 export default {
@@ -236,6 +235,7 @@ export default {
       showCancelConfirm: false,
       showCancelSuccess: false,
       cancelLoading: false,
+      showLuggageModal: false
     };
   },
   created() {
