@@ -1,3 +1,4 @@
+using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Repositories;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
@@ -20,5 +21,7 @@ namespace SnoopyAirlines.Services
             CancellationToken cancellationToken);
 
         Task SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken);
+
+        Task<IEnumerable<RouteListItem>> GetRouteListAsync(CancellationToken cancellationToken);
     }
 }

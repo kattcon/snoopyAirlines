@@ -7,7 +7,7 @@
     :fields="routeFields"
     :errors="errors"
     submit-label="Registrar"
-    @back="$router.push('/admin/routes')"
+    @back="$router.push('/admin/list-routes')"
     @cancel="clearForm"
     @submit="registerRoute"
   />

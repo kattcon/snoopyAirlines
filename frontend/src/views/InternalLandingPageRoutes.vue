@@ -16,8 +16,8 @@
         </div>
         <div class="section-div">
             <h4 class="main-text-section">Rutas</h4>
-            <p class="subtext-aeronave">Mira y registra un nuevo ruta</p>
-            <router-link to="/admin/consult-routes" class="router-button">Ir a Rutas</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
+            <p class="subtext-aeronave">Mira y registra una nueva ruta</p>
+            <router-link to="/admin/list-routes" class="router-button">Ir a Rutas</router-link> <!--CAMBIAR POR LA RUTA DE CREAR Rutas-->
         </div>
     </div>
 

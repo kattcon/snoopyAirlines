@@ -1,7 +1,8 @@
-using System.Text;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Domain;
+using System.Text;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
 namespace SnoopyAirlines.Repositories
@@ -311,6 +312,41 @@ namespace SnoopyAirlines.Repositories
 
             await connection.ExecuteAsync(
                 new CommandDefinition(sql, ToParameters(route), cancellationToken: cancellationToken));
+        }
+
+        public async Task<IEnumerable<RouteListItem>> GetAllWithDetailsAsync(CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    f.id AS Id,
+                    f.airplane_id AS AirplaneId,
+                    airplane.model AS AirplaneModel,
+                    f.departure_airport_id AS DepartureAirportId,
+                    departure_airport.code AS DepartureAirportCode,
+                    departure_airport.name AS DepartureAirportName,
+                    departure_city.name AS DepartureAirportCity,
+                    f.arrival_airport_id AS ArrivalAirportId,
+                    arrival_airport.code AS ArrivalAirportCode,
+                    arrival_airport.name AS ArrivalAirportName,
+                    arrival_city.name AS ArrivalAirportCity,
+                    CONVERT(varchar(8), f.departure_time, 108) AS DepartureTime,
+                    CONVERT(varchar(8), f.arrival_time, 108) AS ArrivalTime
+                FROM [route] f
+                INNER JOIN airplane ON f.airplane_id = airplane.id
+                INNER JOIN airport departure_airport ON f.departure_airport_id = departure_airport.id
+                    AND departure_airport.is_deleted = 0
+                INNER JOIN city departure_city ON departure_airport.city_id = departure_city.id
+                INNER JOIN airport arrival_airport ON f.arrival_airport_id = arrival_airport.id
+                    AND arrival_airport.is_deleted = 0
+                INNER JOIN city arrival_city ON arrival_airport.city_id = arrival_city.id
+                ORDER BY f.departure_time;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            var routes = await connection.QueryAsync<RouteListItem>(
+                new CommandDefinition(sql, cancellationToken: cancellationToken));
+
+            return routes;
         }
 
         private static DomainRoute ToRoute(RouteRecord route)

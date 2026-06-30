@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Services;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
@@ -72,5 +73,14 @@ namespace SnoopyAirlines.Controllers
                 return BadRequest(new { Message = exception.Message });
             }
         }
+
+        [HttpGet("list")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<RouteListItem>>> GetList(CancellationToken cancellationToken)
+        {
+            var routes = await _routeService.GetRouteListAsync(cancellationToken);
+            return Ok(routes);
+        }
+
     }
 }
