@@ -33,7 +33,7 @@ namespace SnoopyAirlines.External.Controllers
 
         [HttpGet]
         public async Task<ActionResult<FlightsResponse>> Get(
-            [FromQuery(Name = "detination")] string? detination,
+            [FromQuery(Name = "destination")] string? destination,
             [FromQuery] string? earliestDeparture,
             [FromQuery] string? latestDeparture,
             [FromQuery] string? quantityOfPassengers,
@@ -53,7 +53,7 @@ namespace SnoopyAirlines.External.Controllers
             }
 
             if (!TryCreateRouteQuery(
-                detination,
+                destination,
                 earliestDeparture,
                 latestDeparture,
                 quantityOfPassengers,

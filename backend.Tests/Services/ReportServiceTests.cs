@@ -1,7 +1,7 @@
 using Moq;
-using snoopy_airlines_backend.Domain;
-using snoopy_airlines_backend.Repositories;
-using snoopy_airlines_backend.Services;
+using SnoopyAirlines.Domain;
+using SnoopyAirlines.Repositories;
+using SnoopyAirlines.Services;
 using Xunit;
 
 namespace backend.Tests.Services
@@ -13,11 +13,9 @@ namespace backend.Tests.Services
         [InlineData(10000)]
         public async Task GetMonthlyRevenueReportAsync_InvalidYear_ThrowsArgumentOutOfRangeException(int year)
         {
-            // Arrange
             var mockRepository = new Mock<IReportRepository>();
             var service = new ReportService(mockRepository.Object);
 
-            // Act + Assert
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
                 service.GetMonthlyRevenueReportAsync(year, null, null, null, CancellationToken.None));
         }
@@ -25,7 +23,6 @@ namespace backend.Tests.Services
         [Fact]
         public async Task GetMonthlyRevenueReportAsync_MapsRowsAndAddsSpanishMonthLabel()
         {
-            // Arrange
             const int selectedYear = 2026;
 
             var repositoryRows = new List<MonthlyRevenueReportRow>
@@ -50,10 +47,8 @@ namespace backend.Tests.Services
 
             var service = new ReportService(mockRepository.Object);
 
-            // Act
             var report = await service.GetMonthlyRevenueReportAsync(selectedYear, null, null, null, CancellationToken.None);
 
-            // Assert
             Assert.Equal(selectedYear, report.Year);
             Assert.Single(report.Rows);
 
@@ -76,7 +71,6 @@ namespace backend.Tests.Services
         [Fact]
         public async Task GetMonthlyRevenueReportAsync_AllFiltersEmpty_ReturnsReportWithNullYear()
         {
-            // Arrange
             var mockRepository = new Mock<IReportRepository>();
             mockRepository
                 .Setup(repository => repository.GetMonthlyRevenueBreakdownAsync(null, null, null, null, It.IsAny<CancellationToken>()))
@@ -84,12 +78,172 @@ namespace backend.Tests.Services
 
             var service = new ReportService(mockRepository.Object);
 
-            // Act
             var report = await service.GetMonthlyRevenueReportAsync(null, null, null, null, CancellationToken.None);
 
-            // Assert
             Assert.Null(report.Year);
             Assert.Empty(report.Rows);
+        }
+
+        private static readonly IReadOnlyCollection<AirlineDetailedReportRow> EmptyRows =
+            Array.Empty<AirlineDetailedReportRow>();
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_NullFilters_PassesNullsToRepository()
+        {
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync(null, null, null, null, null, null, CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                null, null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_EmptyStringFilters_PassesNullsToRepository()
+        {
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync("", "", "", null, null, "", CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                null, null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_WhitespaceFilters_PassesNullsToRepository()
+        {
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync("   ", "  ", "  ", null, null, "   ", CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                null, null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_LowercaseOrigin_PassesUppercaseToRepository()
+        {
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    "SJO", null, null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync("sjo", null, null, null, null, null, CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                "SJO", null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_OriginWithWhitespace_PassesTrimmedUppercaseToRepository()
+        {
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    "MAD", null, null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync(" mad ", null, null, null, null, null, CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                "MAD", null, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_ValidSeatClass_PassesTrimmedToRepository()
+        {
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    null, null, "economy", null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync(null, null, " economy ", null, null, null, CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                null, null, "economy", null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_ReturnsRowsFromRepository()
+        {
+            var expectedRows = new List<AirlineDetailedReportRow>
+            {
+                new()
+                {
+                    Fecha = new DateOnly(2026, 7, 9),
+                    Origen = "SJO",
+                    Destino = "ATL",
+                    PasajerosPrimeraClase = 0,
+                    PasajerosEconomia = 1,
+                    Aerolinea = "Snoopy Airlines",
+                    VentaPasajeros = 400,
+                    VentaEquipajes = 187.5m,
+                    TotalVenta = 587.5m
+                }
+            };
+
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    null, null, null, null, null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            var result = await service.GetAirlineDetailedReportAsync(null, null, null, null, null, null, CancellationToken.None);
+
+            Assert.Single(result);
+            var row = result.First();
+            Assert.Equal("SJO", row.Origen);
+            Assert.Equal("ATL", row.Destino);
+            Assert.Equal(1, row.PasajerosEconomia);
+            Assert.Equal(587.5m, row.TotalVenta);
+        }
+
+        [Fact]
+        public async Task TestGetAirlineDetailedReport_WithDateFilters_PassesDateFiltersToRepository()
+        {
+            var dateFrom = new DateOnly(2026, 6, 1);
+            var dateTo = new DateOnly(2026, 6, 30);
+
+            var mockRepo = new Mock<IReportRepository>();
+            mockRepo
+                .Setup(r => r.GetAirlineDetailedReportAsync(
+                    null, null, null, dateFrom, dateTo, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(EmptyRows);
+
+            var service = new ReportService(mockRepo.Object);
+
+            await service.GetAirlineDetailedReportAsync(null, null, null, dateFrom, dateTo, null, CancellationToken.None);
+
+            mockRepo.Verify(r => r.GetAirlineDetailedReportAsync(
+                null, null, null, dateFrom, dateTo, null, It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

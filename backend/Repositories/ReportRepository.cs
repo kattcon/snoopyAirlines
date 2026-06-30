@@ -1,8 +1,8 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using snoopy_airlines_backend.Domain;
+using SnoopyAirlines.Domain;
 
-namespace snoopy_airlines_backend.Repositories
+namespace SnoopyAirlines.Repositories
 {
     public class ReportRepository : IReportRepository
     {
@@ -75,7 +75,7 @@ namespace snoopy_airlines_backend.Repositories
             const string sql = """
                 WITH FilteredBookings AS (
                     SELECT
-                        b.guid              AS BookingGuid,
+                        b.guid AS BookingGuid,
                         b.purchase_order_id AS PurchaseOrderId,
                         MONTH(b.confirmed_at) AS MonthNumber
                     FROM dbo.booking b
@@ -112,7 +112,7 @@ namespace snoopy_airlines_backend.Repositories
                 LegStats AS (
                     SELECT
                         yb.BookingGuid,
-                        COUNT(*) AS FlightCount,
+                        COUNT(*) AS LegCount,
                         COALESCE(SUM(
                             CASE po.SeatClass
                                 WHEN 'economy' THEN r.price_economy_class
@@ -215,6 +215,49 @@ namespace snoopy_airlines_backend.Repositories
                         OriginAirportId = originAirportId,
                         DestinationAirportId = destinationAirportId,
                         AirplaneId = airplaneId,
+                    },
+                    cancellationToken: cancellationToken));
+
+            return rows.ToList();
+        }
+
+        public async Task<IReadOnlyCollection<AirlineDetailedReportRow>> GetAirlineDetailedReportAsync(
+            string? origin,
+            string? destination,
+            string? seatClass,
+            DateOnly? dateFrom,
+            DateOnly? dateTo,
+            string? airline,
+            CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT
+                    Fecha,
+                    Origen,
+                    Destino,
+                    FlightCode,
+                    PasajerosPrimeraClase,
+                    PasajerosEconomia,
+                    Aerolinea,
+                    VentaPasajeros,
+                    VentaEquipajes,
+                    TotalVenta
+                FROM dbo.GetAirlineDetailedReport(@Origin, @Destination, @SeatClass, @DateFrom, @DateTo, @AirlineName)
+                ORDER BY Fecha DESC, Origen, Destino;
+                """;
+
+            await using var connection = new SqlConnection(_connectionString);
+            var rows = await connection.QueryAsync<AirlineDetailedReportRow>(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        Origin = origin,
+                        Destination = destination,
+                        SeatClass = seatClass,
+                        DateFrom = dateFrom.HasValue ? dateFrom.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        DateTo = dateTo.HasValue ? dateTo.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        AirlineName = airline
                     },
                     cancellationToken: cancellationToken));
 

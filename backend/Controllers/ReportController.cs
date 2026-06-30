@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using snoopy_airlines_backend.Domain;
-using snoopy_airlines_backend.Services;
+using SnoopyAirlines.Domain;
+using SnoopyAirlines.Services;
 
 namespace SnoopyAirlines.Controllers
 {
@@ -8,9 +9,9 @@ namespace SnoopyAirlines.Controllers
     [Route("reports")]
     public class ReportController : ControllerBase
     {
-        private readonly ReportService _reportService;
+        private readonly IReportService _reportService;
 
-        public ReportController(ReportService reportService)
+        public ReportController(IReportService reportService)
         {
             _reportService = reportService;
         }
@@ -57,7 +58,31 @@ namespace SnoopyAirlines.Controllers
                 destinationAirportId,
                 airplaneId,
                 cancellationToken);
+
             return Ok(report);
+        }
+
+        [HttpGet("airline-detailed")]
+        [Authorize(Roles = "Admin,Operator")]
+        public async Task<ActionResult<IReadOnlyCollection<AirlineDetailedReportRow>>> GetAirlineDetailed(
+            [FromQuery] string? origin,
+            [FromQuery] string? destination,
+            [FromQuery] string? seatClass,
+            [FromQuery] DateOnly? dateFrom,
+            [FromQuery] DateOnly? dateTo,
+            [FromQuery] string? airline,
+            CancellationToken cancellationToken)
+        {
+            var rows = await _reportService.GetAirlineDetailedReportAsync(
+                origin,
+                destination,
+                seatClass,
+                dateFrom,
+                dateTo,
+                airline,
+                cancellationToken);
+
+            return Ok(rows);
         }
     }
 }

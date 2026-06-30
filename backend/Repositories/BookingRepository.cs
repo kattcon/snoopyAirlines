@@ -165,5 +165,65 @@ namespace SnoopyAirlines.Repositories
                 Passengers = passengers.ToList()
             };    
         }
+
+        public async Task<string?> GetEmailByConfirmationCodeAsync(
+            string confirmationCode,
+            CancellationToken cancellationToken)
+        {
+            const string sql = """
+                SELECT email
+                FROM dbo.booking
+                WHERE confirmation_code = @ConfirmationCode
+                """;
+            
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            var email = await connection.QuerySingleOrDefaultAsync<string>(
+                new CommandDefinition(sql, new { ConfirmationCode = confirmationCode.ToUpper() },
+                cancellationToken: cancellationToken));
+
+            return email;
+        }
+        
+        public async Task StoreCancellationTokenAsync(
+            string confirmationCode,
+            string tokenHash,
+            DateTime expiresAt,
+            CancellationToken cancellationToken)
+        {
+            const string sql = """
+                UPDATE dbo.booking
+                SET cancellation_token = @TokenHash,
+                    cancellation_token_expires_at = @ExpiresAt
+                WHERE confirmation_code = @ConfirmationCode
+                """;
+
+            var parameters = new { ConfirmationCode = confirmationCode,
+                                    TokenHash = tokenHash,
+                                    ExpiresAt = expiresAt};
+            
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+        }
+
+        public async Task<bool> CancelByTokenHashAsync(
+            string tokenHash,
+            CancellationToken cancellationToken)
+        {
+            const string sql = """
+                EXEC sp_CancelBooking @token_hash
+                """;
+            
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            var result = await connection.QuerySingleAsync<int>(
+                new CommandDefinition(sql, new { token_hash = tokenHash},
+                cancellationToken: cancellationToken));
+
+            return result == 1;
+        }
+
     }
 }
+

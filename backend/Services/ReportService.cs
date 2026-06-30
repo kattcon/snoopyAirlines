@@ -1,10 +1,10 @@
 using System.Globalization;
-using snoopy_airlines_backend.Domain;
-using snoopy_airlines_backend.Repositories;
+using SnoopyAirlines.Domain;
+using SnoopyAirlines.Repositories;
 
-namespace snoopy_airlines_backend.Services
+namespace SnoopyAirlines.Services
 {
-    public class ReportService
+    public class ReportService : IReportService
     {
         private static readonly CultureInfo MonthCulture = CultureInfo.GetCultureInfo("es-CR");
 
@@ -42,6 +42,7 @@ namespace snoopy_airlines_backend.Services
                 destinationAirportId,
                 airplaneId,
                 cancellationToken);
+
             var normalizedRows = rows
                 .Select(row => new MonthlyRevenueReportRow
                 {
@@ -62,6 +63,25 @@ namespace snoopy_airlines_backend.Services
                 Year = year,
                 Rows = normalizedRows,
             };
+        }
+
+        public Task<IReadOnlyCollection<AirlineDetailedReportRow>> GetAirlineDetailedReportAsync(
+            string? origin,
+            string? destination,
+            string? seatClass,
+            DateOnly? dateFrom,
+            DateOnly? dateTo,
+            string? airline,
+            CancellationToken cancellationToken)
+        {
+            return _reportRepository.GetAirlineDetailedReportAsync(
+                string.IsNullOrWhiteSpace(origin) ? null : origin.Trim().ToUpperInvariant(),
+                string.IsNullOrWhiteSpace(destination) ? null : destination.Trim().ToUpperInvariant(),
+                string.IsNullOrWhiteSpace(seatClass) ? null : seatClass.Trim(),
+                dateFrom,
+                dateTo,
+                string.IsNullOrWhiteSpace(airline) ? null : airline.Trim(),
+                cancellationToken);
         }
 
         private static void ValidatePositiveIdIfProvided(int? id, string parameterName)

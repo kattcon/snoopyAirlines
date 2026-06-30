@@ -184,6 +184,8 @@
                 </div>
             </div>
 
+            <AirlineDetailedReport v-else-if="selectedReport === 'detailedFlight'" />
+
             <div v-else class="report-detail-placeholder">
                 Este reporte se implementará en la siguiente etapa.
             </div>
@@ -194,10 +196,12 @@
 <script>
     import axios from "axios";
     import * as XLSX from "xlsx";
+    import AirlineDetailedReport from '@/components/AirlineDetailedReport.vue';
     import AppList from "../components/AppList.vue";
 
     export default {
         components: {
+            AirlineDetailedReport,
             AppList,
         },
 
@@ -595,7 +599,8 @@
 }
 
 .report-detail {
-    max-width: 760px;
+    width: 100%;
+    max-width: 1300px;
     margin: 12px auto 0;
     background-color: #ffffff;
     border: 1px solid #dae4f2;

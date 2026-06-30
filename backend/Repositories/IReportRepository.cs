@@ -1,6 +1,6 @@
-using snoopy_airlines_backend.Domain;
+using SnoopyAirlines.Domain;
 
-namespace snoopy_airlines_backend.Repositories
+namespace SnoopyAirlines.Repositories
 {
     public interface IReportRepository
     {
@@ -11,6 +11,15 @@ namespace snoopy_airlines_backend.Repositories
             int? originAirportId,
             int? destinationAirportId,
             int? airplaneId,
+            CancellationToken cancellationToken);
+
+        Task<IReadOnlyCollection<AirlineDetailedReportRow>> GetAirlineDetailedReportAsync(
+            string? origin,
+            string? destination,
+            string? seatClass,
+            DateOnly? dateFrom,
+            DateOnly? dateTo,
+            string? airline,
             CancellationToken cancellationToken);
     }
 }

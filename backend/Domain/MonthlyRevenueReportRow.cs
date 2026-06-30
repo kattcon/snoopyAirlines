@@ -1,4 +1,4 @@
-namespace snoopy_airlines_backend.Domain
+namespace SnoopyAirlines.Domain
 {
     public class MonthlyRevenueReportRow
     {

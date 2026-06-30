@@ -24,6 +24,7 @@ import PurchaseConfirmation from './views/PurchaseConfirmation.vue';
 import OrderConfirmation from './views/OrderConfirmation.vue';
 import EditUser from './views/EditUser.vue';
 import ClientFlightReport from './components/ClientFlightReport.vue';
+import ConfirmCancellation from './components/ConfirmCancellation.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -34,6 +35,7 @@ const router = createRouter({
         { path: "/booking", name: "Booking", component: PassengerInfo},
         { path: "/purchase-confirmation/:purchaseOrderId?", name: "PurchaseConfirmation", component: PurchaseConfirmation },
         { path: "/order-confirmation/:bookingGuid?", name: "OrderConfirmation", component: OrderConfirmation },
+        { path: "/confirm-cancellation", name: "ConfirmCancellation", component: ConfirmCancellation },
         { path: "/client-flight-report", name: "ClientFlightReport", component: ClientFlightReport },
         { path: "/admin", children: 
             [ { path: 'routes', component: InternalLandingPageRoutes },

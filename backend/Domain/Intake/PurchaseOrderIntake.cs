@@ -12,7 +12,8 @@ namespace SnoopyAirlines.Domain.Intake
     public class PurchaseOrderRouteIntake
     {
         public int? SequenceNumber { get; set; }
-        [Required] public int RouteId { get; set; }
-        [Required] public DateOnly? IntendedDate { get; set; }
+        [Required] public Guid? FlightGuid { get; set; }
+        public int? RouteId { get; set; }
+        public DateOnly? IntendedDate { get; set; }
     }
 }
