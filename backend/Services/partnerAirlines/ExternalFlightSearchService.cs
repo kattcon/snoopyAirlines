@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Domain.Airlines;
 using SnoopyAirlines.Repositories;
@@ -160,10 +159,10 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             string destination,
             CancellationToken cancellationToken)
         {
-            var externalFlightUuid = partnerFlight.ExternalFlightUuid;
             if (partnerFlight.DepartureAirport is null
                 || partnerFlight.ArrivalAirport is null
-                || string.IsNullOrWhiteSpace(externalFlightUuid))
+                || string.IsNullOrWhiteSpace(partnerFlight.FlightGUID)
+                || !Guid.TryParse(partnerFlight.FlightGUID, out var externalFlightGuid))
             {
                 return null;
             }
@@ -178,7 +177,7 @@ namespace SnoopyAirlines.Services.PartnerAirlines
 
             var externalFlight = new ExternalFlight
             {
-                ExternalFlightUuid = externalFlightUuid,
+                Guid = externalFlightGuid,
                 PartnerAirlineId = partnerAirline.Id,
                 PartnerAirline = partnerAirline,
                 DepartureAt = partnerFlight.DepartureTime,
@@ -210,14 +209,20 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             try
             {
                 var client = _httpClientFactory.CreateClient();
-                using var response = await client.GetAsync(
-                    BuildPartnerSearchUri(
-                        partnerAirline,
-                        destination,
-                        earliestDeparture,
-                        latestDeparture,
-                        quantityOfPassengers),
-                    cancellationToken);
+                var searchUri = BuildPartnerSearchUri(
+                    partnerAirline,
+                    destination,
+                    earliestDeparture,
+                    latestDeparture,
+                    quantityOfPassengers);
+
+                _logger.LogInformation(
+                    "Pinging partner airline {PartnerAirlineName} flight search URI {PartnerSearchUri}. Query parameters: {PartnerSearchQueryParameters}",
+                    partnerAirline.Name,
+                    searchUri,
+                    searchUri.Query.TrimStart('?'));
+
+                using var response = await client.GetAsync(searchUri, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -255,7 +260,7 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             DateTime latestDeparture,
             int quantityOfPassengers)
         {
-            var endpoint = NormalizePartnerEndpoint(partnerAirline.Host);
+            var endpoint = $"{partnerAirline.Host}/api/external";
             var queryParameters = new List<string>();
 
             AddQueryParameter(queryParameters, "destination", destination);
@@ -268,15 +273,6 @@ namespace SnoopyAirlines.Services.PartnerAirlines
             AddQueryParameter(queryParameters, "apiKey", partnerAirline.ApiKey);
 
             return new Uri($"{endpoint}?{string.Join("&", queryParameters)}");
-        }
-
-        private static string NormalizePartnerEndpoint(string host)
-        {
-            var endpoint = host.Trim().TrimEnd('/');
-
-            return endpoint.EndsWith("/api/external", StringComparison.OrdinalIgnoreCase)
-                ? endpoint
-                : $"{endpoint}/api/external";
         }
 
         private static void AddQueryParameter(
@@ -313,15 +309,7 @@ namespace SnoopyAirlines.Services.PartnerAirlines
 
         private class PartnerFlight
         {
-            [JsonPropertyName("flightUuid")]
-            public string? FlightUuid { get; set; }
-
-            [JsonPropertyName("flightGUID")]
             public string? FlightGUID { get; set; }
-
-            [JsonIgnore]
-            public string? ExternalFlightUuid => FlightUuid ?? FlightGUID;
-
             public int RouteId { get; set; }
             public DateTime DepartureTime { get; set; }
             public DateTime ArrivalTime { get; set; }

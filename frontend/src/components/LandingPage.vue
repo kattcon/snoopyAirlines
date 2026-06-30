@@ -88,39 +88,37 @@
                 <div class="flight-card" v-for="flight in searchResults" :key="flight.id">
                   <div class="flight-header">
                     <div class="flight-route">
-                      <span class="airport-code">{{ search.origin }}</span>
+                      <span class="airport-code">{{ airportCode(flight.departureAirport, search.origin) }}</span>
                       <svg class="flight-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M5 12h14M12 5l7 7-7 7"></path>
                       </svg>
-                      <span class="airport-code">{{ search.destination }}</span>
+                      <span class="airport-code">{{ airportCode(flight.arrivalAirport, search.destination) }}</span>
                     </div>
                   </div>
                   <div class="flight-details">
                     <div class="flight-time">
-                      <strong>{{ flight.departureTime.substring(11, 16) }}</strong>
-                      <span class="flight-duration">{{ flight.durationMinutes }}min</span>
-                      <strong>{{ flight.arrivalTime.substring(11, 16) }}</strong>
+                      <strong>{{ formatTime(flight.departureTime) }}</strong>
+                      <span class="flight-duration">{{ formatDurationMinutes(flight.durationMinutes) }}</span>
+                      <strong>{{ formatTime(flight.arrivalTime) }}</strong>
                     </div>
                     <div class="flight-date">
-                      {{ new Date(flight.departureTime).toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+                      {{ formatFlightDate(flight.departureTime) }}
                     </div>
-                    <div v-if="flight.stopoverAirport" class="flight-stopover-info">
-                      <div class="stopover-row">
-                        <span class="stopover-label">Escala:</span>
-                        <span>{{ flight.stopoverAirport.name }} ({{ flight.stopoverAirport.code }})</span>
-                      </div>
-                      <div class="stopover-row">
-                        <span class="stopover-label">Duración escala:</span>
-                        <span>{{ flight.stopoverDuration }}</span>
-                      </div>
-                      <div class="stopover-row">
-                        <span class="stopover-label">Salida primer tramo:</span>
-                        <span>{{ flight.departureTime.substring(11, 16) }}</span>
-                      </div>
-                      <div class="stopover-row">
-                        <span class="stopover-label">Llegada tramo final:</span>
-                        <span>{{ flight.arrivalTime.substring(11, 16) }}</span>
-                      </div>
+                    <div v-if="flight.legs.length > 1" class="flight-stopover-info">
+                      <template v-for="(leg, index) in flight.legs" :key="leg.flightGuid || index">
+                        <div class="flight-leg-row">
+                          <span class="leg-airline">{{ displayAirline(leg) }}</span>
+                          <span class="leg-times">
+                            {{ airportCode(leg.departureAirport) }} {{ formatTime(leg.departureTime) }}
+                            -
+                            {{ airportCode(leg.arrivalAirport) }} {{ formatTime(leg.arrivalTime) }}
+                          </span>
+                        </div>
+                        <div v-if="index < flight.legs.length - 1" class="stopover-row">
+                          <span class="stopover-label">Escala en {{ airportCode(leg.arrivalAirport) }}:</span>
+                          <span>{{ stopoverDuration(flight.legs, index) }}</span>
+                        </div>
+                      </template>
                     </div>
                   </div>
                   <div class="flight-prices">
@@ -394,22 +392,24 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
      * departureTime y arrivalTime ya vienen en formato ISO, no cambian.
      */
     mapFlight(flight) {
-      const [hours, minutes] = (this.fieldValue(flight, 'duration', 'Duration') ?? '')
-        .split(/[:-]/)
-        .map(Number);
-      const validHours = Number.isFinite(hours) ? hours : 0;
-      const validMinutes = Number.isFinite(minutes) ? minutes : 0;
+      const legs = this.normalizeFlightLegs(flight);
+      const firstLeg = legs[0] || {};
+      const lastLeg = legs[legs.length - 1] || firstLeg;
       const routes = this.normalizeFlightRoutes(flight);
-      const routeId = this.fieldValue(flight, 'routeId', 'RouteId');
+      const durationMinutes = this.itineraryDurationMinutes(legs, flight);
 
       return {
         ...flight,
-        id:                this.flightKey(routes, flight),
-        routeId:           routeId,
-        routes:            routes,
-        priceEconomyClass: this.fieldValue(flight, 'touristPrice', 'TouristPrice'),
-        priceFirstClass:   this.fieldValue(flight, 'firstClassPrice', 'FirstClassPrice'),
-        durationMinutes:   validHours * 60 + validMinutes,
+        id: this.flightKey(routes, flight),
+        legs,
+        routes,
+        departureTime: firstLeg.departureTime || this.fieldValue(flight, 'departureTime', 'DepartureTime'),
+        arrivalTime: lastLeg.arrivalTime || this.fieldValue(flight, 'arrivalTime', 'ArrivalTime'),
+        departureAirport: firstLeg.departureAirport || this.fieldValue(flight, 'departureAirport', 'DepartureAirport'),
+        arrivalAirport: lastLeg.arrivalAirport || this.fieldValue(flight, 'arrivalAirport', 'ArrivalAirport'),
+        priceEconomyClass: this.sumLegValue(legs, 'touristPrice', this.fieldValue(flight, 'touristPrice', 'TouristPrice')),
+        priceFirstClass: this.sumLegValue(legs, 'firstClassPrice', this.fieldValue(flight, 'firstClassPrice', 'FirstClassPrice')),
+        durationMinutes,
       };
     },
 
@@ -417,15 +417,76 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
       return source?.[camelCaseKey] ?? source?.[pascalCaseKey];
     },
 
+    normalizeFlightLegs(flight) {
+      const rawLegs = this.fieldValue(flight, 'flights', 'Flights');
+      if (Array.isArray(rawLegs) && rawLegs.length > 0) {
+        return rawLegs
+          .map((leg, index) => this.normalizeFlightLeg(leg, index))
+          .filter(leg => leg.flightGuid || leg.departureTime || leg.arrivalTime);
+      }
+
+      return this.normalizeLegacyFlightLegs(flight);
+    },
+
+    normalizeLegacyFlightLegs(flight) {
+      const routes = this.fieldValue(flight, 'routes', 'Routes') || [];
+      const departureAirport = this.normalizeAirport(this.fieldValue(flight, 'departureAirport', 'DepartureAirport'));
+      const arrivalAirport = this.normalizeAirport(this.fieldValue(flight, 'arrivalAirport', 'ArrivalAirport'));
+
+      return [
+        {
+          sequenceNumber: 1,
+          routeId: this.nullableNumber(this.fieldValue(flight, 'routeId', 'RouteId')),
+          flightGuid: this.fieldValue(routes[0], 'flightGuid', 'FlightGuid'),
+          intendedDate: this.dateOnly(this.fieldValue(routes[0], 'intendedDate', 'IntendedDate') || this.fieldValue(flight, 'departureTime', 'DepartureTime')),
+          departureTime: this.fieldValue(flight, 'departureTime', 'DepartureTime'),
+          arrivalTime: this.fieldValue(flight, 'arrivalTime', 'ArrivalTime'),
+          durationMinutes: this.durationToMinutes(this.fieldValue(flight, 'duration', 'Duration')),
+          departureAirport,
+          arrivalAirport,
+          touristPrice: Number(this.fieldValue(flight, 'touristPrice', 'TouristPrice')) || 0,
+          firstClassPrice: Number(this.fieldValue(flight, 'firstClassPrice', 'FirstClassPrice')) || 0,
+          isExternal: false,
+          airline: null,
+        }
+      ];
+    },
+
+    normalizeFlightLeg(leg, index) {
+      const departureTime = this.fieldValue(leg, 'departureTime', 'DepartureTime');
+      const arrivalTime = this.fieldValue(leg, 'arrivalTime', 'ArrivalTime');
+      const durationMinutes = Number(this.fieldValue(leg, 'durationMinutes', 'DurationMinutes'));
+
+      return {
+        sequenceNumber: Number(this.fieldValue(leg, 'sequenceNumber', 'SequenceNumber')) || index + 1,
+        routeId: this.nullableNumber(this.fieldValue(leg, 'routeId', 'RouteId')),
+        flightGuid: this.fieldValue(leg, 'flightGuid', 'FlightGuid'),
+        intendedDate: this.dateOnly(this.fieldValue(leg, 'intendedDate', 'IntendedDate') || departureTime),
+        departureTime,
+        arrivalTime,
+        durationMinutes: Number.isFinite(durationMinutes)
+          ? durationMinutes
+          : this.minutesBetween(departureTime, arrivalTime),
+        departureAirport: this.normalizeAirport(this.fieldValue(leg, 'departureAirport', 'DepartureAirport')),
+        arrivalAirport: this.normalizeAirport(this.fieldValue(leg, 'arrivalAirport', 'ArrivalAirport')),
+        touristPrice: Number(this.fieldValue(leg, 'touristPrice', 'TouristPrice')) || 0,
+        firstClassPrice: Number(this.fieldValue(leg, 'firstClassPrice', 'FirstClassPrice')) || 0,
+        carryOnPrice: Number(this.fieldValue(leg, 'carryOnPrice', 'CarryOnPrice')) || 0,
+        checkedPrice: Number(this.fieldValue(leg, 'checkedPrice', 'CheckedPrice')) || 0,
+        isExternal: this.parseBoolean(this.fieldValue(leg, 'isExternal', 'IsExternal')),
+        airline: this.fieldValue(leg, 'airline', 'Airline') || null,
+      };
+    },
+
     normalizeFlightRoutes(flight) {
-      const routes = this.fieldValue(flight, 'routes', 'Routes');
-      if (Array.isArray(routes) && routes.length > 0) {
-        return routes
-          .map((route, index) => ({
-            sequenceNumber: Number(this.fieldValue(route, 'sequenceNumber', 'SequenceNumber')) || index + 1,
-            routeId: Number(this.fieldValue(route, 'routeId', 'RouteId')),
-            flightGuid: this.fieldValue(route, 'flightGuid', 'FlightGuid'),
-            intendedDate: this.dateOnly(this.fieldValue(route, 'intendedDate', 'IntendedDate')),
+      const legs = Array.isArray(flight?.legs) ? flight.legs : this.normalizeFlightLegs(flight);
+      if (legs.length > 0) {
+        return legs
+          .map((leg, index) => ({
+            sequenceNumber: Number(leg.sequenceNumber) || index + 1,
+            routeId: this.nullableNumber(leg.routeId),
+            flightGuid: leg.flightGuid,
+            intendedDate: this.dateOnly(leg.intendedDate || leg.departureTime),
           }))
           .filter(route => route.flightGuid);
       }
@@ -461,6 +522,117 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
 
     dateOnly(value) {
       return value ? String(value).slice(0, 10) : '';
+    },
+
+    nullableNumber(value) {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    },
+
+    normalizeAirport(airport) {
+      if (!airport) {
+        return null;
+      }
+
+      return {
+        code: this.fieldValue(airport, 'code', 'Code'),
+        name: this.fieldValue(airport, 'name', 'Name'),
+        city: this.fieldValue(airport, 'city', 'City'),
+      };
+    },
+
+    parseBoolean(value) {
+      return value === true || String(value).toLowerCase() === 'true';
+    },
+
+    durationToMinutes(duration) {
+      const [hours, minutes] = String(duration || '')
+        .split(/[:-]/)
+        .map(Number);
+
+      const validHours = Number.isFinite(hours) ? hours : 0;
+      const validMinutes = Number.isFinite(minutes) ? minutes : 0;
+      return validHours * 60 + validMinutes;
+    },
+
+    minutesBetween(start, end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return 0;
+      }
+
+      return Math.max(0, Math.round((endDate - startDate) / 60000));
+    },
+
+    itineraryDurationMinutes(legs, flight) {
+      const firstLeg = legs[0];
+      const lastLeg = legs[legs.length - 1];
+
+      if (firstLeg?.departureTime && lastLeg?.arrivalTime) {
+        return this.minutesBetween(firstLeg.departureTime, lastLeg.arrivalTime);
+      }
+
+      return this.durationToMinutes(this.fieldValue(flight, 'duration', 'Duration'));
+    },
+
+    sumLegValue(legs, key, fallback) {
+      if (!legs.length) {
+        return fallback;
+      }
+
+      return legs.reduce((total, leg) => total + (Number(leg[key]) || 0), 0);
+    },
+
+    airportCode(airport, fallback = '') {
+      return airport?.code || airport?.Code || fallback;
+    },
+
+    formatTime(value) {
+      return value ? String(value).substring(11, 16) : '--:--';
+    },
+
+    formatFlightDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
+
+      return date.toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' });
+    },
+
+    formatDurationMinutes(minutes) {
+      const totalMinutes = Number(minutes);
+      if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) {
+        return '--';
+      }
+
+      const hours = Math.floor(totalMinutes / 60);
+      const remainingMinutes = totalMinutes % 60;
+
+      if (hours === 0) {
+        return `${remainingMinutes}min`;
+      }
+
+      return remainingMinutes === 0
+        ? `${hours}h`
+        : `${hours}h ${remainingMinutes}min`;
+    },
+
+    stopoverDuration(legs, index) {
+      const currentLeg = legs[index];
+      const nextLeg = legs[index + 1];
+
+      return this.formatDurationMinutes(this.minutesBetween(currentLeg?.arrivalTime, nextLeg?.departureTime));
+    },
+
+    displayAirline(leg) {
+      return leg.airline || 'Snoopy Airlines';
     },
 
     /**
@@ -965,6 +1137,26 @@ input[type="checkbox"] {
   background: #f5f9ff;
   border-radius: 10px;
   border: 1px solid #dce8f9;
+}
+
+.flight-leg-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.leg-airline {
+  color: #003d7a;
+  font-weight: 700;
+  min-width: 0;
+}
+
+.leg-times {
+  text-align: right;
+  min-width: 0;
 }
 
 .stopover-row {

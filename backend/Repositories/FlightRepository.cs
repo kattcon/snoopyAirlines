@@ -70,7 +70,6 @@ namespace SnoopyAirlines.Repositories
                         route_arrival_city.name AS RouteArrivalAirportCity,
 
                         external_flight.partner_airline_id AS PartnerAirlineId,
-                        external_flight.external_flight_uuid AS ExternalFlightUuid,
                         partner_airline.name AS PartnerAirlineName,
                         partner_airline.host AS PartnerAirlineHost,
                         partner_airline.api_key AS PartnerAirlineApiKey,
@@ -142,43 +141,32 @@ namespace SnoopyAirlines.Repositories
                     SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
                     BEGIN TRY
-                        IF NULLIF(LTRIM(RTRIM(@ExternalFlightUuid)), '') IS NULL
+                        IF @FlightGuid IS NULL OR @FlightGuid = '00000000-0000-0000-0000-000000000000'
                         BEGIN
-                            THROW 50000, 'ExternalFlightUuid is required for an external flight.', 1;
+                            THROW 50000, 'FlightGuid is required for an external flight.', 1;
                         END;
-
-                        DECLARE @FlightGuid UNIQUEIDENTIFIER;
 
                         BEGIN TRANSACTION;
 
-                        SELECT
-                            @FlightGuid = external_flight.flight_guid
-                        FROM dbo.flight_external external_flight WITH (UPDLOCK, HOLDLOCK)
-                        WHERE external_flight.partner_airline_id = @PartnerAirlineId
-                          AND external_flight.external_flight_uuid = @ExternalFlightUuid;
-
-                        IF @FlightGuid IS NULL
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM dbo.flight flight WITH (UPDLOCK, HOLDLOCK)
+                            WHERE flight.guid = @FlightGuid
+                        )
                         BEGIN
-                            DECLARE @CreatedFlight TABLE (
-                                guid UNIQUEIDENTIFIER NOT NULL
-                            );
-
                             INSERT INTO dbo.flight (
+                                guid,
                                 departure_at,
                                 arrival_at
                             )
-                            OUTPUT INSERTED.guid INTO @CreatedFlight
                             VALUES (
+                                @FlightGuid,
                                 @DepartureAt,
                                 @ArrivalAt
                             );
 
-                            SELECT @FlightGuid = guid
-                            FROM @CreatedFlight;
-
                             INSERT INTO dbo.flight_external (
                                 flight_guid,
-                                external_flight_uuid,
                                 partner_airline_id,
                                 departure_airport_code,
                                 departure_airport_name,
@@ -193,7 +181,6 @@ namespace SnoopyAirlines.Repositories
                             )
                             VALUES (
                                 @FlightGuid,
-                                @ExternalFlightUuid,
                                 @PartnerAirlineId,
                                 @DepartureAirportCode,
                                 @DepartureAirportName,
@@ -207,6 +194,15 @@ namespace SnoopyAirlines.Repositories
                                 @CheckedPrice
                             );
                         END
+                        ELSE IF NOT EXISTS (
+                            SELECT 1
+                            FROM dbo.flight_external external_flight WITH (UPDLOCK, HOLDLOCK)
+                            WHERE external_flight.flight_guid = @FlightGuid
+                              AND external_flight.partner_airline_id = @PartnerAirlineId
+                        )
+                        BEGIN
+                            THROW 50000, 'External flight guid already exists for another flight owner.', 1;
+                        END;
 
                         COMMIT TRANSACTION;
 
@@ -227,7 +223,7 @@ namespace SnoopyAirlines.Repositories
                     """,
                     new
                     {
-                        flight.ExternalFlightUuid,
+                        FlightGuid = flight.Guid,
                         flight.PartnerAirlineId,
                         flight.DepartureAt,
                         flight.ArrivalAt,
@@ -311,7 +307,6 @@ namespace SnoopyAirlines.Repositories
                 return new ExternalFlight
                 {
                     Guid = record.Guid,
-                    ExternalFlightUuid = Required(record.ExternalFlightUuid, nameof(record.ExternalFlightUuid)),
                     DepartureAt = record.DepartureAt,
                     ArrivalAt = record.ArrivalAt,
                     Status = record.Status,
@@ -432,7 +427,6 @@ namespace SnoopyAirlines.Repositories
             public string? RouteArrivalAirportCity { get; set; }
 
             public int? PartnerAirlineId { get; set; }
-            public string? ExternalFlightUuid { get; set; }
             public string? PartnerAirlineName { get; set; }
             public string? PartnerAirlineHost { get; set; }
             public string? PartnerAirlineApiKey { get; set; }

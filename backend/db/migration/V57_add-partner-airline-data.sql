@@ -1,5 +1,5 @@
 INSERT INTO dbo.partner_airline (name, host, api_key)
 VALUES
-    ('Mushu Airlines', 'https://external-api-3-ebdrghbyf2akd2ac.southcentralus-01.azurewebsites.net/api/external', 'a'),
-    ('Airdreams', 'https://external-api-2-e2ggbtd3dbbvd0h8.southcentralus-01.azurewebsites.net/', 'a'),
-    ('Zuli Airlines', 'https://external-api-1-eqgghna5dxfbc8a7.southcentralus-01.azurewebsites.net/', 'a');
+    ('Mushu Airlines', 'https://external-api-3-ebdrghbyf2akd2ac.southcentralus-01.azurewebsites.net', '075acd400495fd24597cc1e82f6ed0ca77ce6a2e3ab505aaa1fe838cb2418176ebacc5f2aeb3f236fefbcb931001f730292c75a2774b35331b79b9abae3f9615b50ba6755462533898d5e64f090ac66e9e658f4f864664812d4519442b3d0310cb81ec64a1f8a1e296514822520172111e7dc5afdd892a9f1a65da757c84d2fb'),
+    ('Airdreams', 'https://external-api-2-e2ggbtd3dbbvd0h8.southcentralus-01.azurewebsites.net', 'TfWcIHIKq7n4Rl8ahULmiXac3SnSrx6yy7tJM4374sObLvxDV0e7Hu50FH9qz7k04pGzrSxGbTQnR9iq4S3Z6o0WuKK189X9BlQdwfq3cqFIFc9HhjlM27staPwWbxbjiwNV1gv9zSVmvnIGzKZQL86PEr9zZD25896opxwEwvGbLucvlXeFK2Z4XuVaDbYul0fIngvu7k6Hk92Td4EbPDtykOMPkWlsJMVKq1BL1OWtlmfB9nhHXTWlagvdICjl'),
+    ('Zuli Airlines', 'https://external-api-1-eqgghna5dxfbc8a7.southcentralus-01.azurewebsites.net', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJzbm9vcHkiLCJuYmYiOjE3ODEyOTkzMjIsImV4cCI6MTc4NjQ4MzMyMiwiaWF0IjoxNzgxMjk5MzIyfQ.Xv1LSNliIiW2cqKjb-0oaKykqqclnWApqsojIRSdNac');
