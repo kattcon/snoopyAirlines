@@ -20,6 +20,7 @@ namespace SnoopyAirlines.Repositories
             string? seatClass,
             DateOnly? dateFrom,
             DateOnly? dateTo,
+            string? airline,
             CancellationToken cancellationToken)
         {
             const string sql = """
@@ -34,7 +35,7 @@ namespace SnoopyAirlines.Repositories
                     VentaPasajeros,
                     VentaEquipajes,
                     TotalVenta
-                FROM dbo.GetAirlineDetailedReport(@Origin, @Destination, @SeatClass, @DateFrom, @DateTo)
+                FROM dbo.GetAirlineDetailedReport(@Origin, @Destination, @SeatClass, @DateFrom, @DateTo, @AirlineName)
                 ORDER BY Fecha DESC, Origen, Destino;
                 """;
 
@@ -48,7 +49,8 @@ namespace SnoopyAirlines.Repositories
                         Destination = destination,
                         SeatClass = seatClass,
                         DateFrom = dateFrom.HasValue ? dateFrom.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
-                        DateTo = dateTo.HasValue ? dateTo.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null
+                        DateTo = dateTo.HasValue ? dateTo.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        AirlineName = airline
                     },
                     cancellationToken: cancellationToken));
 
