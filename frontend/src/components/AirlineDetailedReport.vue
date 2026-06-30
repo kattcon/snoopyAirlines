@@ -27,6 +27,10 @@
                     <label class="filter-label">Fecha hasta</label>
                     <input v-model="filters.dateTo" type="date" class="filter-input" />
                 </div>
+                <div class="filter-group">
+                    <label class="filter-label">Aerolínea</label>
+                    <input v-model="filters.airline" type="text" class="filter-input" placeholder="Ej. Snoopy Airlines" />
+                </div>
             </div>
             <div class="filters-actions">
                 <button class="btn-primary" type="button" @click="fetchReport" :disabled="loading">
@@ -111,6 +115,7 @@ export default {
                 seatClass: '',
                 dateFrom: '',
                 dateTo: '',
+                airline: '',
             },
             rows: [],
             loading: false,
@@ -151,7 +156,7 @@ export default {
         },
 
         resetFilters() {
-            this.filters = { origin: '', destination: '', seatClass: '', dateFrom: '', dateTo: '' };
+            this.filters = { origin: '', destination: '', seatClass: '', dateFrom: '', dateTo: '', airline: '' };
             this.rows = [];
             this.error = null;
             this.searched = false;

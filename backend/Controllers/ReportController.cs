@@ -24,6 +24,7 @@ namespace SnoopyAirlines.Controllers
             [FromQuery] string? seatClass,
             [FromQuery] DateOnly? dateFrom,
             [FromQuery] DateOnly? dateTo,
+            [FromQuery] string? airline,
             CancellationToken cancellationToken)
         {
             var rows = await _reportService.GetAirlineDetailedReportAsync(
@@ -32,6 +33,7 @@ namespace SnoopyAirlines.Controllers
                 seatClass,
                 dateFrom,
                 dateTo,
+                airline,
                 cancellationToken);
 
             return Ok(rows);

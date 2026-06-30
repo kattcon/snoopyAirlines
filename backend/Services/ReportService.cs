@@ -18,6 +18,7 @@ namespace SnoopyAirlines.Services
             string? seatClass,
             DateOnly? dateFrom,
             DateOnly? dateTo,
+            string? airline,
             CancellationToken cancellationToken)
         {
             return _reportRepository.GetAirlineDetailedReportAsync(
@@ -26,6 +27,7 @@ namespace SnoopyAirlines.Services
                 string.IsNullOrWhiteSpace(seatClass) ? null : seatClass.Trim(),
                 dateFrom,
                 dateTo,
+                string.IsNullOrWhiteSpace(airline) ? null : airline.Trim(),
                 cancellationToken);
         }
     }
