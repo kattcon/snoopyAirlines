@@ -3,6 +3,10 @@ using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Domain;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Util.Email;
+using SnoopyAirlines.Util.Email.Templates;
+using SnoopyAirlines.Util.Pdf;
+using System.Text;
 using Xunit;
 
 namespace backend.Tests.Services
@@ -11,21 +15,34 @@ namespace backend.Tests.Services
     {
         private readonly Mock<IBookingRepository> _bookingRepository = new();
         private readonly Mock<IEmailSender> _emailSender = new();
+        private readonly Mock<IInvoicePdfGenerator> _invoicePdfGenerator = new();
 
         public BookingServiceTests()
         {
             _emailSender
                 .Setup(s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()))
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+
+            _emailSender
+                .Setup(s => s.SendAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            _invoicePdfGenerator
+                .Setup(generator => generator.GenerateInvoice(It.IsAny<PurchaseOrderEmailData>()))
+                .Returns(CreateInvoiceAttachment());
         }
 
         [Fact]
-        public async Task BookAsync_NormalizesRequestAndReturnsBooking()
+        public async Task TestBookAsyncNormalizesRequestAndReturnsBooking()
         {
             // Arrange
             var booking = CreateBooking();
@@ -62,11 +79,11 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task BookAsync_SendsConfirmationAndItineraryEmails()
+        public async Task TestBookAsyncSendsConfirmationAndItineraryEmails()
         {
             // Arrange
             var booking = CreateBooking(totalAmount: 1234.50m);
-            var sentMessages = new List<(string To, string Subject, string Body, bool IsHtml)>();
+            var sentMessages = new List<(string To, IEmailTemplate<PurchaseOrderEmailData> Template, PurchaseOrderEmailData Data, Attachment? Attachment)>();
 
             SetupBooking(booking);
             SetupBookingItineraryDetails(booking.Guid, booking.PurchaseOrderId);
@@ -74,12 +91,22 @@ namespace backend.Tests.Services
             _emailSender
                 .Setup(s => s.SendAsync(
                     It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<string, IEmailTemplate<PurchaseOrderEmailData>, PurchaseOrderEmailData, CancellationToken>(
+                    (to, template, data, _) => sentMessages.Add((to, template, data, null)))
+                .Returns(Task.CompletedTask);
+
+            _emailSender
+                .Setup(s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()))
-                .Callback<string, string, string, CancellationToken, bool>(
-                    (to, subject, body, _, isHtml) => sentMessages.Add((to, subject, body, isHtml)))
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<string, IEmailTemplate<PurchaseOrderEmailData>, PurchaseOrderEmailData, Attachment, CancellationToken>(
+                    (to, template, data, attachment, _) => sentMessages.Add((to, template, data, attachment)))
                 .Returns(Task.CompletedTask);
 
             var service = CreateService();
@@ -92,22 +119,33 @@ namespace backend.Tests.Services
             Assert.All(sentMessages, message =>
             {
                 Assert.Equal(booking.Email, message.To);
-                Assert.True(message.IsHtml);
             });
 
             Assert.Contains(sentMessages, message =>
-                message.Subject.Contains("reserva")
-                && message.Body.Contains("1,234.50")
-                && message.Body.Contains(booking.Guid.ToString()));
+                message.Template is BookingConfirmationEmail
+                && message.Attachment is not null
+                && message.Attachment.FileName == "Factura-SA-123456.pdf"
+                && message.Attachment.Format == "application/pdf"
+                && message.Template.Subject == "Confirmaci\u00f3n de reserva - Snoopy Airlines"
+                && GetTemplateParameter(message.Template, message.Data, "TOTAL") == "1,234.50"
+                && GetTemplateParameter(message.Template, message.Data, "TRANSACTION_ID") == booking.Guid.ToString());
 
             Assert.Contains(sentMessages, message =>
-                message.Subject == "Itinerario de viaje - Snoopy Airlines"
-                && message.Body.Contains("San Jose")
-                && message.Body.Contains("Jane Doe"));
+                message.Template is BookingItineraryEmail
+                && message.Attachment is null
+                && message.Template.Subject == "Itinerario de viaje - Snoopy Airlines"
+                && GetTemplateParameter(message.Template, message.Data, "DEPARTURE_CITY") == "San Jose"
+                && GetTemplateParameter(message.Template, message.Data, "PASSENGERS_HTML").Contains("Jane Doe"));
+
+            _invoicePdfGenerator.Verify(
+                generator => generator.GenerateInvoice(It.Is<PurchaseOrderEmailData>(
+                    data => data.ConfirmationCode == booking.ConfirmationCode
+                        && data.Total == "1,234.50")),
+                Times.Once);
         }
 
         [Fact]
-        public async Task BookAsync_InvalidCardLastFourThrowsArgumentException()
+        public async Task TestBookAsyncInvalidCardLastFourThrowsArgumentException()
         {
             // Arrange
             var service = CreateService();
@@ -127,15 +165,25 @@ namespace backend.Tests.Services
             _emailSender.Verify(
                 s => s.SendAsync(
                     It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _emailSender.Verify(
+                s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _invoicePdfGenerator.Verify(
+                generator => generator.GenerateInvoice(It.IsAny<PurchaseOrderEmailData>()),
                 Times.Never);
         }
 
         [Fact]
-        public async Task BookAsync_WhenPurchaseOrderDetailsMissingThrowsInvalidOperationException()
+        public async Task TestBookAsyncWhenPurchaseOrderDetailsMissingThrowsInvalidOperationException()
         {
             // Arrange
             var booking = CreateBooking();
@@ -153,10 +201,20 @@ namespace backend.Tests.Services
             _emailSender.Verify(
                 s => s.SendAsync(
                     It.IsAny<string>(),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _emailSender.Verify(
+                s => s.SendAsync(
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<bool>()),
+                    It.IsAny<IEmailTemplate<PurchaseOrderEmailData>>(),
+                    It.IsAny<PurchaseOrderEmailData>(),
+                    It.IsAny<Attachment>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _invoicePdfGenerator.Verify(
+                generator => generator.GenerateInvoice(It.IsAny<PurchaseOrderEmailData>()),
                 Times.Never);
         }
 
@@ -164,7 +222,8 @@ namespace backend.Tests.Services
         {
             return new BookingService(
                 _bookingRepository.Object,
-                _emailSender.Object);
+                _emailSender.Object,
+                _invoicePdfGenerator.Object);
         }
 
         private void SetupBooking(Booking booking)
@@ -258,6 +317,121 @@ namespace backend.Tests.Services
                     }
                 ]
             };
+        }
+
+        private static string GetTemplateParameter<T>(
+            IEmailTemplate<T> template,
+            T data,
+            string name)
+        {
+            return template
+                .GetParameters(data)
+                .Single(parameter => parameter.Name == name)
+                .Value;
+        }
+
+        private static Attachment CreateInvoiceAttachment()
+        {
+            return Attachment.FromBytes(
+                "Factura-SA-123456.pdf",
+                "application/pdf",
+                [0x25, 0x50, 0x44, 0x46]);
+        }
+
+        private void SetupEmailByConfirmationCode(string confirmationCode, string? email)
+        {
+            _bookingRepository
+                .Setup(r => r.GetEmailByConfirmationCodeAsync(confirmationCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(email);
+        }
+
+        private void SetupStoreCancellationToken()
+        {
+            _bookingRepository
+                .Setup(r => r.StoreCancellationTokenAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+        }
+
+        private void SetupCancelByTokenHash(string tokenHash, bool result)
+        {
+            _bookingRepository
+                .Setup(r => r.CancelByTokenHashAsync(tokenHash, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(result);
+        }
+
+        [Fact]
+        public async Task TestConfirmCancellationAsyncReturnsTrueWhenTokenIsValid()
+        {
+            // Arrange
+            var rawToken  = "test-raw-token";
+            var tokenHash = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    Encoding.UTF8.GetBytes(rawToken)))
+                .ToLowerInvariant();
+
+            SetupCancelByTokenHash(tokenHash, true);
+            var service = CreateService();
+
+            // Act
+            var result = await service.ConfirmCancellationAsync(rawToken, CancellationToken.None);
+
+            // Assert
+            Assert.True(result);
+
+            _bookingRepository.Verify(
+                r => r.CancelByTokenHashAsync(tokenHash, It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task TestConfirmCancellationAsyncReturnsFalseWhenTokenIsInvalidOrExpired()
+        {
+            // Arrange
+            var rawToken  = "expired-or-invalid-token";
+            var tokenHash = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    Encoding.UTF8.GetBytes(rawToken)))
+                .ToLowerInvariant();
+
+            SetupCancelByTokenHash(tokenHash, false);
+            var service = CreateService();
+
+            // Act
+            var result = await service.ConfirmCancellationAsync(rawToken, CancellationToken.None);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task TestConfirmCancellationAsyncHashesRawTokenBeforeCallingRepository()
+        {
+            // Arrange
+            var rawToken = "my-raw-token";
+
+            _bookingRepository
+                .Setup(r => r.CancelByTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var service = CreateService();
+
+            // Act
+            await service.ConfirmCancellationAsync(rawToken, CancellationToken.None);
+
+            // Assert — verifica que nunca se llama con el raw token en texto plano
+            _bookingRepository.Verify(
+                r => r.CancelByTokenHashAsync(rawToken, It.IsAny<CancellationToken>()),
+                Times.Never);
+
+            _bookingRepository.Verify(
+                r => r.CancelByTokenHashAsync(
+                    It.Is<string>(h => h.Length == 64 && h != rawToken),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
         }
 
     }

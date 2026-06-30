@@ -4,6 +4,7 @@ namespace SnoopyAirlines.Domain.View
     {
         public string ReservationNumber { get; set; } = null!;
         public string CardHolderName { get; set; } = null!;
+        public string BookingStatus { get; set; } = null!;
         public int SequenceNumber { get; set; }
         public string DepartureCity { get; set; } = null!;
         public string ArrivalCity { get; set; } = null!;

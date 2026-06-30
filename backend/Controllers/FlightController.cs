@@ -21,11 +21,11 @@ namespace SnoopyAirlines.Controllers
             "O"
         ];
 
-        private readonly RouteService _routeService;
+        private readonly IFlightService _flightService;
 
-        public FlightController(RouteService routeService)
+        public FlightController(IFlightService flightService)
         {
-            _routeService = routeService;
+            _flightService = flightService;
         }
 
         [HttpGet("search")]
@@ -51,7 +51,7 @@ namespace SnoopyAirlines.Controllers
                 latestArrival,
                 quantityOfPassengers,
                 includeStopovers,
-                out var routeQuery,
+                out var flightQuery,
                 out var errors))
             {
                 return BadRequest(new
@@ -61,12 +61,38 @@ namespace SnoopyAirlines.Controllers
                 });
             }
 
-            var flights = await _routeService.SearchFlightsAsync(routeQuery, cancellationToken);
+            var flights = await _flightService.Search(flightQuery, cancellationToken);
 
             return Ok(new FlightsResponse
             {
                 Flights = flights
             });
+        }
+
+        [HttpGet("report/confirmation")]
+        [AllowAnonymous]
+        public async Task<ActionResult<FlightSearchResult>> GetReportByConfirmation(
+            [FromQuery] string confirmationNumber,
+            [FromQuery] string lastNames,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var flightReport = await _flightService.GetFlightReportByConfirmationAsync(
+                    confirmationNumber,
+                    lastNames,
+                    cancellationToken);
+
+                return Ok(flightReport);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         private static bool TryCreateFlightQuery(
@@ -78,10 +104,10 @@ namespace SnoopyAirlines.Controllers
             string? latestArrival,
             string? quantityOfPassengers,
             string? includeStopovers,
-            out RouteQuery routeQuery,
+            out FlightQuery flightQuery,
             out IReadOnlyCollection<ValidationError> errors)
         {
-            routeQuery = null!;
+            flightQuery = null!;
             var validationErrors = new List<ValidationError>();
 
             ValidateOptionalAirportCode(nameof(origin), origin, validationErrors);
@@ -162,7 +188,7 @@ namespace SnoopyAirlines.Controllers
                 return false;
             }
 
-            routeQuery = new RouteQuery
+            flightQuery = new FlightQuery
             {
                 Origin = origin?.Trim().ToUpperInvariant(),
                 Destination = detination?.Trim().ToUpperInvariant(),

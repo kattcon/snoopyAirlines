@@ -125,8 +125,10 @@ namespace SnoopyAirlines.Repositories
         {
             const string sql = """
                 SELECT COUNT(1)
-                FROM dbo.PurchaseOrderRoute por
-                INNER JOIN dbo.[route] r ON r.id = por.RouteId
+                FROM dbo.purchaseOrder_flight purchase_order_flight
+                INNER JOIN dbo.flight_internal flight_internal
+                    ON flight_internal.flight_guid = purchase_order_flight.FlightGuid
+                INNER JOIN dbo.[route] r ON r.id = flight_internal.route_id
                 WHERE r.departure_airport_id = @AirportId
                    OR r.arrival_airport_id = @AirportId;
                 """;
@@ -148,7 +150,12 @@ namespace SnoopyAirlines.Repositories
             {
                 await connection.ExecuteAsync(
                     new CommandDefinition(
-                        "UPDATE dbo.[route] SET is_deleted = 1 WHERE departure_airport_id = @Id OR arrival_airport_id = @Id;",
+                        """
+                        UPDATE dbo.[route]
+                        SET is_deleted = 1
+                        WHERE is_deleted = 0
+                          AND (departure_airport_id = @Id OR arrival_airport_id = @Id);
+                        """,
                         new { Id = airportId }, transaction, cancellationToken: cancellationToken));
 
                 await connection.ExecuteAsync(

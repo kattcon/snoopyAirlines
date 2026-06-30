@@ -1,6 +1,15 @@
 
 namespace SnoopyAirlines.Domain.User
 {
+    public enum DeleteUserResult
+    {
+        Success = 0,
+        Forbidden = 1,
+        SelfDelete = 2,
+        ProtectedInitialAdmin = 3,
+        NotFound = 4
+    }
+
     public enum UserRole
     {
         Admin,

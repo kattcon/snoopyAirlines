@@ -6,6 +6,8 @@ using SnoopyAirlines.Domain.View;
 
 namespace SnoopyAirlines.Repositories
 {
+   // public class FlightLuggageRepository : IFlightLuggageRepository
+   // {
 
     public class FlightLuggageRepository : IFlightLuggageRepository
     {

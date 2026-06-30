@@ -33,7 +33,8 @@
             <button class="back-link" type="button" @click="goBack">← Volver a reportes</button>
             <h3 class="report-detail-title">{{ reportMeta[selectedReport].title }}</h3>
             <p class="report-detail-description">{{ reportMeta[selectedReport].detailDescription }}</p>
-            <div class="report-detail-placeholder">
+            <AirlineDetailedReport v-if="selectedReport === 'detailedFlight'" />
+            <div v-else class="report-detail-placeholder">
                 Este reporte se implementará en la siguiente etapa.
             </div>
         </div>
@@ -41,7 +42,11 @@
 </template>
 
 <script>
+    import AirlineDetailedReport from '@/components/AirlineDetailedReport.vue';
+
     export default {
+        components: { AirlineDetailedReport },
+
         data() {
             return {
                 selectedReport: null,
@@ -216,7 +221,8 @@
 }
 
 .report-detail {
-    max-width: 760px;
+    width: 100%;
+    max-width: 1300px;
     margin: 12px auto 0;
     background-color: #ffffff;
     border: 1px solid #dae4f2;

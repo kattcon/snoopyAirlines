@@ -113,6 +113,7 @@
                             >
                             {{ confirmButtonLabel }}
                         </button>
+                    </template>
 
                         <PaymentModal
                             v-if="showPaymentForm"
@@ -132,17 +133,17 @@
                         
                     </template>
                 <template v-if="paymentSuccess">
-                    <div class="baggageSuccessState">
-                        <div class="baggageSuccesIcon">
+                        <div class="baggageSuccessState">
+                            <div class="baggageSuccesIcon">
                             <img src="@/assets/snoopyPay.png" alt="Snoopy" class="baggageSnoopyImage" />
+                            </div>
+                            <h2 class="baggageModalTitle">Pago realizado</h2>
+                            <p class="baggageModalSubtitle">{{ successMessage }}</p>
+                            <button type="button" class="primaryButton baggagePayButton" @click="closeModal">
+                                Listo
+                            </button>
                         </div>
-                        <h2 class="baggageModalTitle">Pago realizado</h2>
-                        <p class="baggageModalSubtitle">{{ successMessage }}</p>
-                        <button type="button" class="primaryButton baggagePayButton" @click="closeModal">
-                            Listo
-                        </button>
-                    </div>
-                </template>             
+                    </template>                    
                 </div>
             </div>
         </Transition>
@@ -216,7 +217,7 @@ export default {
     confirmButtonLabel() {
         if (this.hasIncrease && this.hasDecrease) {
             return `Pagar $${this.totalToPay} ${this.currency} y confirmar`;
-        }
+    }
         if (this.hasIncrease) {
             return `Pagar $${this.totalToPay} ${this.currency}`;
         }
@@ -259,9 +260,9 @@ export default {
               if (error.response.status === 400) this.loadError = 'Código de confirmación inválido'
               else if (error.response.status === 404) this.loadError = 'No se encontró ninguna reservación con ese código'
               else this.loadError = 'Error en el servidor. Inténtelo de nuevo más tarde'
-            } else {
+                } else {
               this.loadError = 'No se pudo conectar al servidor. Verifica tu conexión'
-            }
+                }
         }finally {
             this.isLoading = false
         }
@@ -330,18 +331,19 @@ export default {
           payload
         );
         this.lastPaidAmount= this.totalToPay;
-        this.localPassengers.forEach(p => { p.originalBags = p.currentBags; });
-        this.paymentSuccess = true;
+                this.localPassengers.forEach(p => { p.originalBags = p.currentBags; });
+                this.paymentSuccess = true;
 
-        this.$emit('payment-success', {
+                this.$emit('payment-success', {
           passenger: this.localPassengers.map(p => ({ id: p.id, newCheckedLuggage: p.currentBags })),
           amountPaid: this.lastPaidAmount,
           currency : this.currency
-        });
+                });
       } catch(error) {
         this.errorMessage = 'Error al procesar el pago. Por favor intenta de nuevo';
         console.error('[LuggageModifyPopUp] handlePay:', error);
       } finally {
+
         this.isProcessing = false;
       }
     },
@@ -393,7 +395,7 @@ export default {
             const expiry = new Date(2000 + parseInt(year), parseInt(month) - 1);
             if (expiry < new Date())
                 errors.expirationDate = 'La tarjeta está vencida';
-        }
+    }
 
         if (!cvv || !/^\d{3,4}$/.test(cvv))
             errors.cvv = 'Ingresa un CVV válido';
