@@ -19,6 +19,7 @@ namespace SnoopyAirlines.Domain
 
     public class ExternalFlight : Flight
     {
+        required public string ExternalFlightUuid { get; set; }
         public int PartnerAirlineId { get; set; }
         public PartnerAirline? PartnerAirline { get; set; }
         required public FlightAirport DepartureAirport { get; set; }

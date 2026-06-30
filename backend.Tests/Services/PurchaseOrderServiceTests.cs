@@ -34,12 +34,14 @@ namespace backend.Tests.Services
                 new PurchaseOrderRoute
                 {
                     SequenceNumber = 20,
+                    FlightGuid = Guid.Parse("22222222-2222-2222-2222-222222222222"),
                     RouteId = 200,
                     IntendedDate = new DateOnly(2026, 7, 2)
                 },
                 new PurchaseOrderRoute
                 {
                     SequenceNumber = 10,
+                    FlightGuid = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     RouteId = 100,
                     IntendedDate = new DateOnly(2026, 7, 1)
                 }
@@ -57,12 +59,14 @@ namespace backend.Tests.Services
                 route =>
                 {
                     Assert.Equal(1, route.SequenceNumber);
+                    Assert.Equal(Guid.Parse("11111111-1111-1111-1111-111111111111"), route.FlightGuid);
                     Assert.Equal(100, route.RouteId);
                     Assert.Equal(new DateOnly(2026, 7, 1), route.IntendedDate);
                 },
                 route =>
                 {
                     Assert.Equal(2, route.SequenceNumber);
+                    Assert.Equal(Guid.Parse("22222222-2222-2222-2222-222222222222"), route.FlightGuid);
                     Assert.Equal(200, route.RouteId);
                     Assert.Equal(new DateOnly(2026, 7, 2), route.IntendedDate);
                 });
@@ -118,34 +122,18 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestCreatePurchaseOrderAsyncWithInvalidRouteIdThrowsArgumentException()
+        public async Task TestCreatePurchaseOrderAsyncWithoutFlightGuidThrowsArgumentException()
         {
             // Arrange
             var service = CreateService();
             var order = CreateValidOrder();
-            order.Routes[0].RouteId = 0;
+            order.Routes[0].FlightGuid = Guid.Empty;
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.CreatePurchaseOrderAsync(order, CancellationToken.None));
 
-            Assert.Equal("routeId must be greater than 0.", exception.Message);
-            VerifyCreateWasNotCalled();
-        }
-
-        [Fact]
-        public async Task TestCreatePurchaseOrderAsyncWithoutIntendedDateThrowsArgumentException()
-        {
-            // Arrange
-            var service = CreateService();
-            var order = CreateValidOrder();
-            order.Routes[0].IntendedDate = null;
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.CreatePurchaseOrderAsync(order, CancellationToken.None));
-
-            Assert.Equal("intendedDate is required for every route.", exception.Message);
+            Assert.Equal("flightGuid is required for every route.", exception.Message);
             VerifyCreateWasNotCalled();
         }
 
@@ -227,6 +215,7 @@ namespace backend.Tests.Services
                     new PurchaseOrderRoute
                     {
                         SequenceNumber = 1,
+                        FlightGuid = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                         RouteId = 100,
                         IntendedDate = new DateOnly(2026, 7, 1)
                     }

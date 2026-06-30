@@ -8,5 +8,10 @@ namespace SnoopyAirlines.Services
         Task<IReadOnlyCollection<FlightResponse>> Search(
             FlightQuery flightQuery,
             CancellationToken cancellationToken);
+
+        Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
+            string confirmationNumber,
+            string lastNames,
+            CancellationToken cancellationToken);
     }
 }
