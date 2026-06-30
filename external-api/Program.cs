@@ -1,5 +1,6 @@
 using SnoopyAirlines.External.Repositories;
 using SnoopyAirlines.External.Services;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +15,19 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 builder.Services.AddHttpClient<RouteService>((serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var baseUrl = configuration["InternalBackend:BaseUrl"]
+        ?? throw new InvalidOperationException("Internal backend base URL is not configured.");
+
+    client.BaseAddress = new Uri(baseUrl);
+});
+builder.Services.AddHttpClient<OrderService>((serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
     var baseUrl = configuration["InternalBackend:BaseUrl"]

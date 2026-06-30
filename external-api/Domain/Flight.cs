@@ -1,7 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace SnoopyAirlines.External.Domain
 {
     public class Flight
     {
+        [JsonPropertyName("flightGUID")]
         required public string FlightGUID { get; set; }
         public int RouteId { get; set; }
         public DateTime DepartureTime { get; set; }

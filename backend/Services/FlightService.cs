@@ -71,6 +71,29 @@ namespace SnoopyAirlines.Services
                 .ToList();
         }
 
+        public async Task<FlightLegResponse?> GetByGuidAsync(
+            Guid flightGuid,
+            CancellationToken cancellationToken)
+        {
+            var flight = await _flightRepository.GetByGuidAsync(
+                flightGuid,
+                cancellationToken);
+
+            return flight switch
+            {
+                InternalFlight internalFlight when internalFlight.Route is not null =>
+                    CreateInternalFlightLegResponse(
+                        1,
+                        internalFlight.Route,
+                        internalFlight.DepartureAt,
+                        internalFlight.Guid),
+                ExternalFlight externalFlight => CreateExternalFlightLegResponse(
+                    1,
+                    externalFlight),
+                _ => null
+            };
+        }
+
         public async Task<FlightSearchResult> GetFlightReportByConfirmationAsync(
             string confirmationNumber,
             string lastNames,
