@@ -10,6 +10,7 @@ export function getAirlineDetailedReport(filters) {
     if (filters.seatClass) params.seatClass = filters.seatClass;
     if (filters.dateFrom) params.dateFrom = filters.dateFrom;
     if (filters.dateTo) params.dateTo = filters.dateTo;
+    if (filters.airline) params.airline = filters.airline;
 
     return axios
         .get(`${backendUrl}/Report/airline-detailed`, {
