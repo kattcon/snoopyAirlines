@@ -39,7 +39,6 @@ namespace snoopy_airlines_backend.Repositories
                 new
                 {
                     ConfirmationCode = modifyLuggageRequest.ConfirmationNumber,
-                    TotalAmountPaid = modifyLuggageRequest.TotalAmountPaid,
                     Passengers = passengerTable.AsTableValuedParameter("dbo.PassengerLuggageType")
                 },
                 commandType: System.Data.CommandType.StoredProcedure,
@@ -47,8 +46,6 @@ namespace snoopy_airlines_backend.Repositories
             );
 
             await connection.ExecuteAsync(commandDefinition);
-
-            using var transaction = connection.BeginTransaction();
         }
     }
 }

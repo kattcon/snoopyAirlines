@@ -68,9 +68,18 @@ namespace snoopy_airlines_backend.Repositories
                         $"(@PurchaseOrderId, @Gender{i}, @FirstName{i}, @LastName{i}, @BirthDay{i}, @BirthMonth{i}, @BirthYear{i}, @Nationality{i}, @CarryOnLuggage{i}, @CheckedLuggage{i})"));
 
                     batchSql.AppendLine($"""
+                        DECLARE @InsertedPassengerIds TABLE (
+                            RowNumber INT IDENTITY(1,1) NOT NULL,
+                            Id INT NOT NULL
+                        );
+
                         INSERT INTO Passenger(purchaseOrderId, gender, FirstName, LastName, birthDay, birthMonth, birthYear, nationality, CarryOnLuggage, CheckedLuggage)
-                        OUTPUT INSERTED.id
+                        OUTPUT INSERTED.id INTO @InsertedPassengerIds(Id)
                         VALUES {passengerValuesClauses};
+
+                        SELECT Id
+                        FROM @InsertedPassengerIds
+                        ORDER BY RowNumber;
                         """);
 
                     for (int i = 0; i < order.Passengers.Count; i++)

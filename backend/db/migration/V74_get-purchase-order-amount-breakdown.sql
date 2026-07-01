@@ -37,7 +37,7 @@ RETURN (
     ),
     checked_luggage AS (
         SELECT
-            COALESCE(SUM(ISNULL(dbo.GetPassengerCheckedLuggageTotalCost(@purchase_order_id, passenger.Id), 0)), 0)
+            COALESCE(SUM(ISNULL(passenger.checkedLuggagePaid, 0)), 0)
                 AS CheckedLuggageTotalAmount
         FROM dbo.Passenger passenger
         WHERE passenger.PurchaseOrderId = @purchase_order_id

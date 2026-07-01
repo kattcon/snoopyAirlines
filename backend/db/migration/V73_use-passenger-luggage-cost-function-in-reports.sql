@@ -24,7 +24,7 @@ RETURN (
         SUM((
             ISNULL(TRY_CAST(p.CarryOnLuggage AS DECIMAL(10, 2)), 0)
                 * COALESCE(r.price_carry_on_baggage, fe.carry_on_price, 0)
-            + ISNULL(passenger_luggage.CheckedLuggageTotalCost, 0)
+            + ISNULL(p.checkedLuggagePaid, 0)
         ) / CAST(lc.total_legs AS DECIMAL(10, 2))) AS VentaEquipajes,
         SUM(CASE
             WHEN po.SeatClass = 'firstClass' THEN COALESCE(r.price_first_class, fe.first_class_price, 0)
@@ -33,7 +33,7 @@ RETURN (
         SUM((
             ISNULL(TRY_CAST(p.CarryOnLuggage AS DECIMAL(10, 2)), 0)
                 * COALESCE(r.price_carry_on_baggage, fe.carry_on_price, 0)
-            + ISNULL(passenger_luggage.CheckedLuggageTotalCost, 0)
+            + ISNULL(p.checkedLuggagePaid, 0)
         ) / CAST(lc.total_legs AS DECIMAL(10, 2))) AS TotalVenta
     FROM dbo.flight f
     LEFT JOIN dbo.flight_internal fi ON fi.flight_guid = f.guid
@@ -46,9 +46,6 @@ RETURN (
     JOIN dbo.booking b ON b.guid = i.booking_guid
     JOIN dbo.PurchaseOrder po ON po.Id = b.purchase_order_id
     JOIN dbo.Passenger p ON p.PurchaseOrderId = po.Id
-    CROSS APPLY (
-        SELECT dbo.GetPassengerCheckedLuggageTotalCost(po.Id, p.Id) AS CheckedLuggageTotalCost
-    ) passenger_luggage
     LEFT JOIN (
         SELECT booking_guid, COUNT(*) AS total_legs
         FROM dbo.itinerary
@@ -91,7 +88,7 @@ RETURN (
         p.BirthYear,
         p.CarryOnLuggage,
         p.CheckedLuggage,
-        ISNULL(dbo.GetPassengerCheckedLuggageTotalCost(p.PurchaseOrderId, p.Id), 0) AS CheckedLuggageTotalCost
+        ISNULL(p.checkedLuggagePaid, 0) AS CheckedLuggageTotalCost
     FROM dbo.Passenger p
     JOIN dbo.booking b
         ON p.PurchaseOrderId = b.purchase_order_id

@@ -1,23 +1,109 @@
-IF COL_LENGTH(N'dbo.Passenger', N'paid_checked_luggage') IS NULL
+DROP TRIGGER IF EXISTS dbo.trg_passenger_paid_checked_luggage;
+GO
+
+DROP TRIGGER IF EXISTS dbo.trg_passenger_checkedLuggagePaid;
+GO
+
+IF COL_LENGTH(N'dbo.Passenger', N'checkedLuggagePaid') IS NULL
 BEGIN
     ALTER TABLE dbo.Passenger
-        ADD paid_checked_luggage INT NOT NULL
-            CONSTRAINT df_passenger_paid_checked_luggage DEFAULT 0;
+        ADD checkedLuggagePaid DECIMAL(18, 2) NOT NULL
+            CONSTRAINT df_passenger_checkedLuggagePaid DEFAULT 0;
 END;
 GO
 
-UPDATE dbo.Passenger
-SET paid_checked_luggage = CASE
-    WHEN CheckedLuggage > 0 THEN CheckedLuggage
-    ELSE 0
-END
-WHERE paid_checked_luggage < CASE
-    WHEN CheckedLuggage > 0 THEN CheckedLuggage
-    ELSE 0
+DROP FUNCTION IF EXISTS dbo.GetPassengerCheckedLuggageTotalCost;
+GO
+
+CREATE OR ALTER FUNCTION dbo.GetNewPassengerCheckedLuggageCost(
+    @purchase_order_id INT,
+    @bag_number INT
+)
+RETURNS DECIMAL(18, 2)
+AS
+BEGIN
+    DECLARE @total DECIMAL(18, 4) = 0;
+
+    IF @bag_number IS NULL OR @bag_number < 1
+    BEGIN
+        RETURN 0;
+    END;
+
+    SELECT
+        @total = COALESCE(SUM(
+            CAST(luggage_leg.CheckedPrice AS DECIMAL(18, 4))
+            * CAST(
+                POWER(
+                    1.0 + CAST(luggage_leg.CheckedMultiplier AS FLOAT),
+                    @bag_number - 1
+                ) AS DECIMAL(18, 8)
+            )
+        ), 0)
+    FROM (
+        SELECT
+            route.price_checked_baggage AS CheckedPrice,
+            COALESCE(route.checked_baggage_price_multiplier, 0) AS CheckedMultiplier
+        FROM dbo.purchaseOrder_flight purchase_order_flight
+        INNER JOIN dbo.flight_internal internal_flight
+            ON internal_flight.flight_guid = purchase_order_flight.FlightGuid
+        INNER JOIN dbo.[route] route
+            ON route.id = internal_flight.route_id
+            AND route.is_deleted = 0
+        WHERE purchase_order_flight.PurchaseOrderId = @purchase_order_id
+
+        UNION ALL
+
+        SELECT
+            external_flight.checked_price AS CheckedPrice,
+            CAST(0 AS DECIMAL(5, 4)) AS CheckedMultiplier
+        FROM dbo.purchaseOrder_flight purchase_order_flight
+        INNER JOIN dbo.flight_external external_flight
+            ON external_flight.flight_guid = purchase_order_flight.FlightGuid
+        WHERE purchase_order_flight.PurchaseOrderId = @purchase_order_id
+    ) luggage_leg;
+
+    RETURN CAST(ROUND(@total, 2) AS DECIMAL(18, 2));
 END;
 GO
 
-CREATE OR ALTER TRIGGER dbo.trg_passenger_paid_checked_luggage
+WITH passenger_bags AS (
+    SELECT
+        passenger.Id,
+        passenger.PurchaseOrderId,
+        bag_numbers.BagNumber
+    FROM dbo.Passenger passenger
+    CROSS APPLY (
+        SELECT number_source.BagNumber
+        FROM (
+            SELECT ROW_NUMBER() OVER (ORDER BY object_id) AS BagNumber
+            FROM sys.all_objects
+        ) number_source
+        WHERE number_source.BagNumber <= CASE
+            WHEN passenger.CheckedLuggage > 0 THEN passenger.CheckedLuggage
+            ELSE 0
+        END
+    ) bag_numbers
+),
+passenger_paid_amounts AS (
+    SELECT
+        passenger_bags.Id,
+        SUM(dbo.GetNewPassengerCheckedLuggageCost(
+            passenger_bags.PurchaseOrderId,
+            passenger_bags.BagNumber
+        )) AS CheckedLuggagePaid
+    FROM passenger_bags
+    GROUP BY passenger_bags.Id
+)
+UPDATE passenger
+SET checkedLuggagePaid = CAST(COALESCE(paid_amounts.CheckedLuggagePaid, 0) AS DECIMAL(18, 2))
+FROM dbo.Passenger passenger
+LEFT JOIN passenger_paid_amounts paid_amounts
+    ON paid_amounts.Id = passenger.Id
+WHERE passenger.checkedLuggagePaid = 0;
+
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_passenger_checkedLuggagePaid
 ON dbo.Passenger
 AFTER INSERT, UPDATE
 AS
@@ -29,99 +115,52 @@ BEGIN
         RETURN;
     END;
 
-    WITH paid_luggage_adjustments AS (
+    DECLARE @passenger_id INT;
+    DECLARE @purchase_order_id INT;
+    DECLARE @previous_checked_luggage INT;
+    DECLARE @new_checked_luggage INT;
+    DECLARE @bag_number INT;
+    DECLARE @added_amount DECIMAL(18, 2);
+
+    DECLARE checked_luggage_increases CURSOR LOCAL FAST_FORWARD FOR
         SELECT
             inserted.Id,
-            COALESCE(deleted.paid_checked_luggage, passenger.paid_checked_luggage, 0)
-                AS BasePaidCheckedLuggage,
-            CASE
-                WHEN inserted.CheckedLuggage > COALESCE(deleted.CheckedLuggage, 0)
-                    THEN inserted.CheckedLuggage - COALESCE(deleted.CheckedLuggage, 0)
-                ELSE 0
-            END AS AddedCheckedLuggage
+            inserted.PurchaseOrderId,
+            COALESCE(deleted.CheckedLuggage, 0) AS PreviousCheckedLuggage,
+            inserted.CheckedLuggage AS NewCheckedLuggage
         FROM inserted
         LEFT JOIN deleted
             ON deleted.Id = inserted.Id
-        JOIN dbo.Passenger passenger
-            ON passenger.Id = inserted.Id
-    )
-    UPDATE passenger
-    SET paid_checked_luggage =
-        adjustments.BasePaidCheckedLuggage + adjustments.AddedCheckedLuggage
-    FROM dbo.Passenger passenger
-    JOIN paid_luggage_adjustments adjustments
-        ON adjustments.Id = passenger.Id
-    WHERE adjustments.AddedCheckedLuggage > 0
-      AND passenger.paid_checked_luggage
-            <> adjustments.BasePaidCheckedLuggage + adjustments.AddedCheckedLuggage;
-END;
-GO
+        WHERE inserted.CheckedLuggage > COALESCE(deleted.CheckedLuggage, 0);
 
-CREATE OR ALTER FUNCTION dbo.GetPassengerCheckedLuggageTotalCost(
-    @purchase_order_id INT,
-    @passenger_id INT
-)
-RETURNS DECIMAL(10, 2)
-AS
-BEGIN
-    DECLARE @paid_checked_luggage INT;
-    DECLARE @bag_number INT = 1;
-    DECLARE @total DECIMAL(18, 4) = 0;
+    OPEN checked_luggage_increases;
 
-    SELECT
-        @paid_checked_luggage = passenger.paid_checked_luggage
-    FROM dbo.Passenger passenger
-    WHERE passenger.PurchaseOrderId = @purchase_order_id
-      AND passenger.Id = @passenger_id;
+    FETCH NEXT FROM checked_luggage_increases
+    INTO @passenger_id, @purchase_order_id, @previous_checked_luggage, @new_checked_luggage;
 
-    IF @paid_checked_luggage IS NULL
+    WHILE @@FETCH_STATUS = 0
     BEGIN
-        RETURN NULL;
+        SET @bag_number = @previous_checked_luggage + 1;
+        SET @added_amount = 0;
+
+        WHILE @bag_number <= @new_checked_luggage
+        BEGIN
+            SET @added_amount =
+                @added_amount
+                + dbo.GetNewPassengerCheckedLuggageCost(@purchase_order_id, @bag_number);
+
+            SET @bag_number = @bag_number + 1;
+        END;
+
+        UPDATE dbo.Passenger
+        SET checkedLuggagePaid = checkedLuggagePaid + @added_amount
+        WHERE Id = @passenger_id;
+
+        FETCH NEXT FROM checked_luggage_increases
+        INTO @passenger_id, @purchase_order_id, @previous_checked_luggage, @new_checked_luggage;
     END;
 
-    IF @paid_checked_luggage < 1
-    BEGIN
-        RETURN 0;
-    END;
-
-    WHILE @bag_number <= @paid_checked_luggage
-    BEGIN
-        SELECT
-            @total = @total + COALESCE(SUM(
-                CAST(luggage_leg.CheckedPrice AS DECIMAL(18, 4))
-                * CAST(
-                    POWER(
-                        1.0 + CAST(luggage_leg.CheckedMultiplier AS FLOAT),
-                        @bag_number - 1
-                    ) AS DECIMAL(18, 8)
-                )
-            ), 0)
-        FROM (
-            SELECT
-                route.price_checked_baggage AS CheckedPrice,
-                COALESCE(route.checked_baggage_price_multiplier, 0) AS CheckedMultiplier
-            FROM dbo.purchaseOrder_flight purchase_order_flight
-            INNER JOIN dbo.flight_internal internal_flight
-                ON internal_flight.flight_guid = purchase_order_flight.FlightGuid
-            INNER JOIN dbo.[route] route
-                ON route.id = internal_flight.route_id
-                AND route.is_deleted = 0
-            WHERE purchase_order_flight.PurchaseOrderId = @purchase_order_id
-
-            UNION ALL
-
-            SELECT
-                external_flight.checked_price AS CheckedPrice,
-                CAST(0 AS DECIMAL(5, 4)) AS CheckedMultiplier
-            FROM dbo.purchaseOrder_flight purchase_order_flight
-            INNER JOIN dbo.flight_external external_flight
-                ON external_flight.flight_guid = purchase_order_flight.FlightGuid
-            WHERE purchase_order_flight.PurchaseOrderId = @purchase_order_id
-        ) luggage_leg;
-
-        SET @bag_number = @bag_number + 1;
-    END;
-
-    RETURN CAST(ROUND(@total, 2) AS DECIMAL(10, 2));
+    CLOSE checked_luggage_increases;
+    DEALLOCATE checked_luggage_increases;
 END;
 GO
