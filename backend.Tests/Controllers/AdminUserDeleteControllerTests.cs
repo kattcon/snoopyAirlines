@@ -5,6 +5,7 @@ using SnoopyAirlines.Controllers;
 using SnoopyAirlines.Domain.User;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
+using SnoopyAirlines.Util.Email;
 using System.Security.Claims;
 using Xunit;
 
