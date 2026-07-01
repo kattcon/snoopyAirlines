@@ -37,7 +37,7 @@
                 </AppList>
                 <p v-if="errorMsg" class="error-acceso">{{ errorMsg }}</p>
                 <div class="table-footer-bar">
-                    <p class="table-footer">Mostrando {{ filteredRoutes.length }} de {{ routes.length }} rutas</p>
+                    <p class="table-footer">Mostrando {{ filteredRoutes.length }} de {{ activeRoutes.length }} rutas</p>
                 </div>
         </div>
     </div>
@@ -113,7 +113,7 @@ export default{
     computed: {
         filteredRoutes() {
             const term = this.searchTerm.trim().toLowerCase();
-            const mapped = this.routes.map(route => ({
+            const mapped = this.routes.filter(route => !route.isDeleted).map(route => ({
                 ...route,
                 departureAirport: `${route.departureAirportCode} - ${route.departureAirportName}`,
                 arrivalAirport: `${route.arrivalAirportCode} - ${route.arrivalAirportName}`,
@@ -129,6 +129,9 @@ export default{
                 route.arrivalAirport.toLowerCase().includes(term) ||
                 route.airplaneModel.toLowerCase().includes(term)
             );
+        },
+        activeRoutes() {
+            return this.routes.filter(route => !route.isDeleted);
         }
     },
     mounted() {
@@ -145,7 +148,7 @@ export default{
             axios.get(`${process.env.VUE_APP_BACKEND_URL}/route/list`, {
                 headers: {Authorization: `Bearer ${token}`}
             }).then((response) => {
-                this.routes = response.data;
+                this.routes = response.data.filter(route => !route.IsDeleted);
             }).catch((error) => {
                 if(error.response && (error.response.status === 401 || error.response.status === 403)) {
                 this.errorMsg = "Acceso no autorizado";

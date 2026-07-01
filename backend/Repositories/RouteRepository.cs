@@ -329,6 +329,7 @@ namespace SnoopyAirlines.Repositories
                     arrival_airport.code AS ArrivalAirportCode,
                     arrival_airport.name AS ArrivalAirportName,
                     arrival_city.name AS ArrivalAirportCity,
+                    f.is_deleted AS IsDeleted,
                     CONVERT(varchar(8), f.departure_time, 108) AS DepartureTime,
                     CONVERT(varchar(8), f.arrival_time, 108) AS ArrivalTime
                 FROM [route] f
