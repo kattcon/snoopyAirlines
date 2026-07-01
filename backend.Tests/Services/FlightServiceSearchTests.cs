@@ -38,7 +38,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task Search_WithoutStopovers_ReturnsOnlyDirectFlights()
+        public async Task TestSearchWithoutStopoversReturnsOnlyDirectFlights()
         {
             var query = new FlightQuery
             {
@@ -61,7 +61,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task Search_WithStopoverLessThanOneHour_FiltersConnection()
+        public async Task TestSearchWithStopoverLessThanOneHourFiltersConnection()
         {
             var query = new FlightQuery
             {
@@ -89,7 +89,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task Search_WithStopoverMoreThanTwelveHours_FiltersConnection()
+        public async Task TestSearchWithStopoverMoreThanTwelveHoursFiltersConnection()
         {
             var query = new FlightQuery
             {
@@ -117,7 +117,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task Search_WithNextDayStopoverWithinTwelveHours_ReturnsConnectingFlight()
+        public async Task TestSearchWithNextDayStopoverWithinTwelveHoursReturnsConnectingFlight()
         {
             var query = new FlightQuery
             {
@@ -152,7 +152,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task Search_WithArrivalWindow_PassesArrivalWindowAndFiltersDirectFlights()
+        public async Task TestSearchWithArrivalWindowPassesArrivalWindowAndFiltersDirectFlights()
         {
             var query = new FlightQuery
             {
@@ -188,7 +188,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task Search_WithOvernightArrivalWindow_UsesPreviousDayDepartureFrequency()
+        public async Task TestSearchWithOvernightArrivalWindowUsesPreviousDayDepartureFrequency()
         {
             var query = new FlightQuery
             {

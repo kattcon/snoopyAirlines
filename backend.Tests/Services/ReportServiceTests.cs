@@ -11,7 +11,7 @@ namespace backend.Tests.Services
         [Theory]
         [InlineData(0)]
         [InlineData(10000)]
-        public async Task GetMonthlyRevenueReportAsync_InvalidYear_ThrowsArgumentOutOfRangeException(int year)
+        public async Task TestGetMonthlyRevenueReportAsyncInvalidYearThrowsArgumentOutOfRangeException(int year)
         {
             var mockRepository = new Mock<IReportRepository>();
             var service = new ReportService(mockRepository.Object);
@@ -21,7 +21,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task GetMonthlyRevenueReportAsync_MapsRowsAndAddsSpanishMonthLabel()
+        public async Task TestGetMonthlyRevenueReportAsyncMapsRowsAndAddsSpanishMonthLabel()
         {
             const int selectedYear = 2026;
 
@@ -69,7 +69,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task GetMonthlyRevenueReportAsync_AllFiltersEmpty_ReturnsReportWithNullYear()
+        public async Task TestGetMonthlyRevenueReportAsyncAllFiltersEmptyReturnsReportWithNullYear()
         {
             var mockRepository = new Mock<IReportRepository>();
             mockRepository
@@ -88,7 +88,7 @@ namespace backend.Tests.Services
             Array.Empty<AirlineDetailedReportRow>();
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_NullFilters_PassesNullsToRepository()
+        public async Task TestGetAirlineDetailedReportNullFiltersPassesNullsToRepository()
         {
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
@@ -105,7 +105,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_EmptyStringFilters_PassesNullsToRepository()
+        public async Task TestGetAirlineDetailedReportEmptyStringFiltersPassesNullsToRepository()
         {
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
@@ -122,7 +122,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_WhitespaceFilters_PassesNullsToRepository()
+        public async Task TestGetAirlineDetailedReportWhitespaceFiltersPassesNullsToRepository()
         {
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
@@ -139,7 +139,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_LowercaseOrigin_PassesUppercaseToRepository()
+        public async Task TestGetAirlineDetailedReportLowercaseOriginPassesUppercaseToRepository()
         {
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
@@ -156,7 +156,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_OriginWithWhitespace_PassesTrimmedUppercaseToRepository()
+        public async Task TestGetAirlineDetailedReportOriginWithWhitespacePassesTrimmedUppercaseToRepository()
         {
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
@@ -173,7 +173,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_ValidSeatClass_PassesTrimmedToRepository()
+        public async Task TestGetAirlineDetailedReportValidSeatClassPassesTrimmedToRepository()
         {
             var mockRepo = new Mock<IReportRepository>();
             mockRepo
@@ -190,7 +190,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_ReturnsRowsFromRepository()
+        public async Task TestGetAirlineDetailedReportReturnsRowsFromRepository()
         {
             var expectedRows = new List<AirlineDetailedReportRow>
             {
@@ -227,7 +227,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_WithDateFilters_PassesDateFiltersToRepository()
+        public async Task TestGetAirlineDetailedReportWithDateFiltersPassesDateFiltersToRepository()
         {
             var dateFrom = new DateOnly(2026, 6, 1);
             var dateTo = new DateOnly(2026, 6, 30);

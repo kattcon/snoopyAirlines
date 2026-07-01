@@ -14,7 +14,7 @@ namespace SnoopyAirlines.Tests
     public class ExternalFlightSearchServiceTests
     {
         [Fact]
-        public async Task SearchConnectionsAsync_WhenQueryIsInvalid_ReturnsEmptyAndSkipsRepositories()
+        public async Task TestSearchConnectionsAsyncWhenQueryIsInvalidReturnsEmptyAndSkipsRepositories()
         {
             var partnerAirlineRepository = new Mock<IPartnerAirlineRepository>();
             var flightRepository = new Mock<IFlightRepository>();
@@ -55,7 +55,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task SearchConnectionsAsync_WhenPartnerAirlineExists_SendsExpectedPartnerSearchQuery()
+        public async Task TestSearchConnectionsAsyncWhenPartnerAirlineExistsSendsExpectedPartnerSearchQuery()
         {
             var earliestDeparture = new DateTime(2026, 6, 15, 8, 0, 0);
             var latestLegDeparture = new DateTime(2026, 6, 15, 12, 0, 0);
@@ -123,7 +123,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task SearchConnectionsAsync_WhenPartnerSearchFails_ReturnsEmpty()
+        public async Task TestSearchConnectionsAsyncWhenPartnerSearchFailsReturnsEmpty()
         {
             var partnerAirline = new PartnerAirline
             {
@@ -174,7 +174,7 @@ namespace SnoopyAirlines.Tests
         }
 
         [Fact]
-        public async Task SearchConnectionsAsync_WhenPartnerFlightUuidIsNotGuid_AcceptsUuid()
+        public async Task TestSearchConnectionsAsyncWhenPartnerFlightUuidIsNotGuidAcceptsUuid()
         {
             var generatedFlightGuid = Guid.Parse("22222222-2222-2222-2222-222222222222");
             var partnerAirline = new PartnerAirline

@@ -10,7 +10,7 @@ namespace backend.Tests.Services
     public class AirplaneServiceTests
     {
         [Fact]
-        public async Task TestExistsByModel_ReturnsTrue_WhenModelExists()
+        public async Task TestExistsByModelReturnsTrueWhenModelExists()
         {
             // Arrange
             var mockRepo = new Mock<IAirplaneRepository>();
@@ -27,7 +27,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestCreateAirplane_ReturnsCreatedAirplane()
+        public async Task TestCreateAirplaneReturnsCreatedAirplane()
         {
             // Arrange
             var airplane = new Airplane { Model = "Boeing 737", TouristRows = 20, TouristColumns = 6 };
@@ -48,7 +48,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirplaneById_ReturnsNull_WhenNotFound()
+        public async Task TestGetAirplaneByIdReturnsNullWhenNotFound()
         {
             // Arrange
             var mockRepo = new Mock<IAirplaneRepository>();
@@ -65,7 +65,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirplaneByModel_ReturnsAirplane_WhenFound()
+        public async Task TestGetAirplaneByModelReturnsAirplaneWhenFound()
         {
             // Arrange
             var expectedAirplane = new Airplane { Id = 1, Model = "Airbus A320" };
@@ -85,7 +85,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteAirplane_AirplaneNotFound_ThrowsKeyNotFoundException()
+        public async Task TestDeleteAirplaneAirplaneNotFoundThrowsKeyNotFoundException()
         {
             // Arrange
             var mockRepo = new Mock<IAirplaneRepository>();
@@ -100,7 +100,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteAirplane_AirplaneHasPurchases_CallsSoftDelete()
+        public async Task TestDeleteAirplaneAirplaneHasPurchasesCallsSoftDelete()
         {
             // Arrange
             var airplane = new Airplane { Id = 1, Model = "Boeing 737" };
@@ -122,7 +122,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteAirplane_AirplaneHasNoPurchases_CallsHardDelete()
+        public async Task TestDeleteAirplaneAirplaneHasNoPurchasesCallsHardDelete()
         {
             // Arrange
             var airplane = new Airplane { Id = 1, Model = "Boeing 737" };

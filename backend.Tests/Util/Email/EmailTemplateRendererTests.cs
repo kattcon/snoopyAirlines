@@ -6,7 +6,7 @@ namespace backend.Tests.Util.Email
     public class EmailTemplateRendererTests
     {
         [Fact]
-        public void RenderReplacesParametersInSubjectAndBody()
+        public void TestRenderReplacesParametersInSubjectAndBody()
         {
             // Arrange
             var template = new TestEmailTemplate();

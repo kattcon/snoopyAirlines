@@ -7,7 +7,7 @@ namespace backend.Tests.Util.Pdf
     public class InvoicePdfGeneratorTests
     {
         [Fact]
-        public void GenerateInvoiceReturnsPdfAttachment()
+        public void TestGenerateInvoiceReturnsPdfAttachment()
         {
             // Arrange
             var generator = new InvoicePdfGenerator();
