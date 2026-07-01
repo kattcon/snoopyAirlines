@@ -11,5 +11,6 @@ namespace SnoopyAirlines.Domain.View
         public string BirthYear { get; set; } = null!;
         public int CarryOnLuggage { get; set; }
         public int CheckedLuggage { get; set; }
+        public decimal CheckedLuggageTotalCost { get; set; }
     }
 }

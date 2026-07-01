@@ -330,7 +330,6 @@ export default {
 
         const payload = {
           confirmationNumber: this.reservationNumber,
-          totalAmountPaid: this.totalToPay,
           passengers: this.localPassengers
                 .filter(p => p.currentBags !== p.originalBags)
                 .map(p => ({
