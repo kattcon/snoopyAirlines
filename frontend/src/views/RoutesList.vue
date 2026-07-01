@@ -80,12 +80,32 @@
         </div>
     </div>
 
+    <div
+        v-if="showErrorModal"
+        class="modal-overlay"
+        @click.self="showErrorModal = false"
+    >
+        <div class="delete-modal">
+            <h2>{{ errorTitle }}</h2>
 
+            <p>{{ errorMessage }}</p>
+
+            <div class="modal-buttons">
+                <button
+                    class="cancelButton"
+                    @click="showErrorModal = false"
+                >
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
 
 </template>
 <script>
 import axios from "axios";
 import AppList from "../components/AppList.vue";
+
 export default{
     name:"RoutesList",
     components:{
@@ -99,6 +119,33 @@ export default{
 
             showDeleteModal: false,
             routeToDelete: null,
+
+            showErrorModal: false,
+            errorTitle: "",
+            errorMessage: "",
+
+            errorMessages: {
+                400: {
+                    title: "Solicitud inválida",
+                    message: "La solicitud enviada no es válida."
+                },
+                401: {
+                    title: "Acceso denegado",
+                    message: "Debe iniciar sesión."
+                },
+                403: {
+                    title: "Acceso denegado",
+                    message: "No tiene permisos para realizar esta acción."
+                },
+                404: {
+                    title: "No encontrado",
+                    message: "El recurso solicitado no existe."
+                },
+                500: {
+                    title: "Error interno",
+                    message: "Ocurrió un error en el servidor."
+                }
+            },
 
             routeColumns:[
                 {key: "airplaneModel", label:"Avión asignado"},
@@ -148,12 +195,11 @@ export default{
             axios.get(`${process.env.VUE_APP_BACKEND_URL}/route/list`, {
                 headers: {Authorization: `Bearer ${token}`}
             }).then((response) => {
-                this.routes = response.data.filter(route => !route.IsDeleted);
+                this.routes = response.data.filter(route => !route.isDeleted);
             }).catch((error) => {
-                if(error.response && (error.response.status === 401 || error.response.status === 403)) {
-                this.errorMsg = "Acceso no autorizado";
-                }
-                console.error("Error cargando rutas:", error);
+                this.handleApiError(error);
+                console.error(error);
+
             });
         },
         confirmDelete(route) {
@@ -161,7 +207,14 @@ export default{
             this.showDeleteModal = true;
         },
         deleteRoute() {
-            if (!this.routeToDelete) return;
+            if (!this.routeToDelete || !this.routeToDelete.id) {
+                this.showDeleteModal = false;
+                this.showError(
+                    "Error",
+                    "No se pudo identificar la ruta que se desea eliminar."
+                );
+                return;
+            }
 
             const token = localStorage.getItem("token");
 
@@ -182,19 +235,34 @@ export default{
                 this.routeToDelete = null;
 
             }).catch((error) => {
-
-                if (error.response &&
-                    (error.response.status === 401 || error.response.status === 403)) {
-
-                    this.errorMsg = "Acceso no autorizado";
-
-                } else {
-
-                    this.errorMsg = "Error al eliminar la ruta.";
-                }
-
-                console.error("Error eliminando ruta:", error);
+                this.handleApiError(error);
+                console.error(error);
             });
+        },
+        showError(title, message) {
+            this.errorTitle = title;
+            this.errorMessage = message;
+            this.showErrorModal = true;
+        },
+        handleApiError(error) {
+
+            if (!error.response) {
+                this.showError(
+                    "Error de conexión",
+                    "No fue posible conectarse con el servidor."
+                );
+                return;
+            }
+
+            const errorInfo = this.errorMessages[error.response.status] ?? {
+                title: "Error",
+                message: "Ocurrió un error inesperado."
+            };
+
+            this.showError(
+                errorInfo.title,
+                error.response.data || errorInfo.message
+            );
         },
     }
 };
