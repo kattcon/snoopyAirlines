@@ -27,8 +27,8 @@ BEGIN
         BEGIN TRANSACTION;
 
         SELECT @flight_guid = flight.guid
-        FROM dbo.flight flight WITH (UPDLOCK, HOLDLOCK)
-        INNER JOIN dbo.flight_internal internal_flight WITH (UPDLOCK, HOLDLOCK)
+        FROM dbo.flight flight
+        INNER JOIN dbo.flight_internal internal_flight
             ON internal_flight.flight_guid = flight.guid
         WHERE internal_flight.route_id = @RouteId
           AND flight.departure_at = @DepartureAt;
@@ -38,7 +38,7 @@ BEGIN
             SELECT
                 @route_departure_time = route.departure_time,
                 @route_arrival_time = route.arrival_time
-            FROM dbo.[route] route WITH (UPDLOCK, HOLDLOCK)
+            FROM dbo.[route] route
             WHERE route.id = @RouteId
               AND route.is_deleted = 0;
 
