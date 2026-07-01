@@ -15,7 +15,7 @@ namespace backend.Tests.Services
         private readonly Mock<IEmailSender> _emailSender = new();
 
         [Fact]
-        public async Task GetByIdAsync_WhenUserExists_ReturnsUserView()
+        public async Task TestGetByIdAsyncWhenUserExistsReturnsUserView()
         {
             // Arrange
             var user = CreateUser();
@@ -37,7 +37,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task UpdateUserAsync_WhenUserNotFound_ReturnsNull()
+        public async Task TestUpdateUserAsyncWhenUserNotFoundReturnsNull()
         {
             // Arrange
             _userRepository
@@ -59,7 +59,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task ChangePasswordAsync_WhenCurrentPasswordIsWrong_ReturnsFalse()
+        public async Task TestChangePasswordAsyncWhenCurrentPasswordIsWrongReturnsFalse()
         {
             // Arrange
             var passwordSalt = BCrypt.Net.BCrypt.GenerateSalt();

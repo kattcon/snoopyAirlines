@@ -17,7 +17,7 @@ namespace backend.Tests.Controllers
         private readonly Mock<IEmailSender> _emailSender = new();
 
         [Fact]
-        public async Task Delete_WhenActorClaimMissing_ReturnsUnauthorized()
+        public async Task TestDeleteWhenActorClaimMissingReturnsUnauthorized()
         {
             // Arrange
             var controller = CreateControllerWithActorClaim(actorUserId: null);
@@ -33,7 +33,7 @@ namespace backend.Tests.Controllers
         }
 
         [Fact]
-        public async Task Delete_WhenDeleteSucceeds_ReturnsNoContent()
+        public async Task TestDeleteWhenDeleteSucceedsReturnsNoContent()
         {
             // Arrange
             var controller = CreateControllerWithActorClaim(actorUserId: 7);
@@ -53,7 +53,7 @@ namespace backend.Tests.Controllers
         }
 
         [Fact]
-        public async Task Delete_WhenSelfDeleteAttempt_ReturnsConflict()
+        public async Task TestDeleteWhenSelfDeleteAttemptReturnsConflict()
         {
             // Arrange
             var controller = CreateControllerWithActorClaim(actorUserId: 9);
@@ -70,7 +70,7 @@ namespace backend.Tests.Controllers
         }
 
         [Fact]
-        public async Task Delete_WhenInitialAdminDeleteAttempt_ReturnsConflict()
+        public async Task TestDeleteWhenInitialAdminDeleteAttemptReturnsConflict()
         {
             // Arrange
             var controller = CreateControllerWithActorClaim(actorUserId: 7);

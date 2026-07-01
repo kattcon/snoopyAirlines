@@ -60,7 +60,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteAirport_AirportNotFound_ThrowsKeyNotFoundException()
+        public async Task TestDeleteAirportAirportNotFoundThrowsKeyNotFoundException()
         {
             // Arrange
             var mockRepo = new Mock<IAirportRepository>();
@@ -75,7 +75,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteAirport_AirportHasPurchases_CallsSoftDelete()
+        public async Task TestDeleteAirportAirportHasPurchasesCallsSoftDelete()
         {
             // Arrange
             var airport = new Airport { Id = 1, Name = "Aeropuerto Internacional", Code = "SJO", CityId = 1 };
@@ -97,7 +97,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task DeleteAirport_AirportHasNoPurchases_CallsHardDelete()
+        public async Task TestDeleteAirportAirportHasNoPurchasesCallsHardDelete()
         {
             // Arrange
             var airport = new Airport { Id = 1, Name = "Aeropuerto Internacional", Code = "SJO", CityId = 1 };
