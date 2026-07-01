@@ -83,7 +83,6 @@
 
               <div class="flight-center">
                 <div>{{ formatDuration(leg.durationMinutes) }}</div>
-                <small>Directo</small>
               </div>
 
               <div class="airport airport-right">
@@ -139,10 +138,22 @@
               Cancelar reservación
             </button>
           </div>
+          
+          <div class="action-card">
+            <h3>Imprimir itinerario</h3>
+            <p v-if="bookingStatus === 'cancelled'"
+                style="color:#d62828;font-weight:600;margin:0;">
+              Esta reservación ya fue cancelada.
+            </p>
 
-          <button class="pdf-button" @click="printItinerary">
-            Imprimir itinerario (PDF)
-          </button>
+            <button 
+              v-else
+              class="pdf-button"
+              @click="printItinerary">
+              Descargar itinerario (PDF)
+            </button>
+          </div>
+          
 
           <div class="passenger-card">
             <div class="passenger-title">
