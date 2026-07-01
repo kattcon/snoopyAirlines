@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,167 @@ namespace SnoopyAirlines.Tests
     public class ExternalFlightSearchServiceTests
     {
         [Fact]
-        public async Task SearchConnectionsAsync_AcceptsNonGuidPartnerFlightUuid()
+        public async Task SearchConnectionsAsync_WhenQueryIsInvalid_ReturnsEmptyAndSkipsRepositories()
+        {
+            var partnerAirlineRepository = new Mock<IPartnerAirlineRepository>();
+            var flightRepository = new Mock<IFlightRepository>();
+            var httpClientFactory = new Mock<IHttpClientFactory>();
+            var service = new ExternalFlightSearchService(
+                flightRepository.Object,
+                partnerAirlineRepository.Object,
+                httpClientFactory.Object,
+                Mock.Of<ILogger<ExternalFlightSearchService>>());
+
+            var results = await service.SearchConnectionsAsync(
+                new ExternalFlightSearchQuery
+                {
+                    Destination = " ",
+                    QuantityOfPassengers = 1,
+                    MaxTimeWindow = TimeSpan.FromHours(4),
+                    Legs =
+                    [
+                        new ExternalFlightSearchQueryLeg(
+                            "MIA",
+                            new DateTime(2026, 6, 15, 10, 0, 0))
+                    ]
+                },
+                CancellationToken.None);
+
+            Assert.Empty(results);
+            partnerAirlineRepository.Verify(
+                repository => repository.GetAllAsync(It.IsAny<CancellationToken>()),
+                Times.Never);
+            flightRepository.Verify(
+                repository => repository.MaterializeExternalFlightAsync(
+                    It.IsAny<ExternalFlight>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            httpClientFactory.Verify(
+                factory => factory.CreateClient(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchConnectionsAsync_WhenPartnerAirlineExists_SendsExpectedPartnerSearchQuery()
+        {
+            var earliestDeparture = new DateTime(2026, 6, 15, 8, 0, 0);
+            var latestLegDeparture = new DateTime(2026, 6, 15, 12, 0, 0);
+            var partnerAirline = new PartnerAirline
+            {
+                Id = 7,
+                Name = "Partner",
+                Host = "https://partner.example",
+                ApiKey = "api-key"
+            };
+            var partnerAirlineRepository = new Mock<IPartnerAirlineRepository>();
+            var flightRepository = new Mock<IFlightRepository>();
+            var httpClientFactory = new Mock<IHttpClientFactory>();
+            Uri? capturedRequestUri = null;
+
+            partnerAirlineRepository
+                .Setup(repository => repository.GetAllAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([partnerAirline]);
+            httpClientFactory
+                .Setup(factory => factory.CreateClient(It.IsAny<string>()))
+                .Returns(new HttpClient(new StubHttpMessageHandler(
+                    """
+                    {
+                      "flights": []
+                    }
+                    """,
+                    onRequest: request => capturedRequestUri = request.RequestUri)));
+            var service = new ExternalFlightSearchService(
+                flightRepository.Object,
+                partnerAirlineRepository.Object,
+                httpClientFactory.Object,
+                Mock.Of<ILogger<ExternalFlightSearchService>>());
+
+            var results = await service.SearchConnectionsAsync(
+                new ExternalFlightSearchQuery
+                {
+                    Destination = "LAX",
+                    QuantityOfPassengers = 3,
+                    MaxTimeWindow = TimeSpan.FromHours(4),
+                    Legs =
+                    [
+                        new ExternalFlightSearchQueryLeg("MIA", latestLegDeparture),
+                        new ExternalFlightSearchQueryLeg("BOG", earliestDeparture)
+                    ]
+                },
+                CancellationToken.None);
+
+            Assert.Empty(results);
+            Assert.NotNull(capturedRequestUri);
+            Assert.Equal("/api/external", capturedRequestUri!.AbsolutePath);
+            Assert.Contains("destination=LAX", capturedRequestUri.Query);
+            Assert.Contains(
+                $"earliestDeparture={EncodeDateTime(earliestDeparture)}",
+                capturedRequestUri.Query);
+            Assert.Contains(
+                $"latestDeparture={EncodeDateTime(latestLegDeparture.Add(TimeSpan.FromHours(4)))}",
+                capturedRequestUri.Query);
+            Assert.Contains("quantityOfPassengers=3", capturedRequestUri.Query);
+            Assert.Contains("apiKey=api-key", capturedRequestUri.Query);
+            flightRepository.Verify(
+                repository => repository.MaterializeExternalFlightAsync(
+                    It.IsAny<ExternalFlight>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchConnectionsAsync_WhenPartnerSearchFails_ReturnsEmpty()
+        {
+            var partnerAirline = new PartnerAirline
+            {
+                Id = 7,
+                Name = "Partner",
+                Host = "https://partner.example",
+                ApiKey = "api-key"
+            };
+            var partnerAirlineRepository = new Mock<IPartnerAirlineRepository>();
+            var flightRepository = new Mock<IFlightRepository>();
+            var httpClientFactory = new Mock<IHttpClientFactory>();
+
+            partnerAirlineRepository
+                .Setup(repository => repository.GetAllAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([partnerAirline]);
+            httpClientFactory
+                .Setup(factory => factory.CreateClient(It.IsAny<string>()))
+                .Returns(new HttpClient(new StubHttpMessageHandler(
+                    "{}",
+                    HttpStatusCode.InternalServerError)));
+            var service = new ExternalFlightSearchService(
+                flightRepository.Object,
+                partnerAirlineRepository.Object,
+                httpClientFactory.Object,
+                Mock.Of<ILogger<ExternalFlightSearchService>>());
+
+            var results = await service.SearchConnectionsAsync(
+                new ExternalFlightSearchQuery
+                {
+                    Destination = "LAX",
+                    QuantityOfPassengers = 1,
+                    MaxTimeWindow = TimeSpan.FromHours(4),
+                    Legs =
+                    [
+                        new ExternalFlightSearchQueryLeg(
+                            "MIA",
+                            new DateTime(2026, 6, 15, 10, 0, 0))
+                    ]
+                },
+                CancellationToken.None);
+
+            Assert.Empty(results);
+            flightRepository.Verify(
+                repository => repository.MaterializeExternalFlightAsync(
+                    It.IsAny<ExternalFlight>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchConnectionsAsync_WhenPartnerFlightUuidIsNotGuid_AcceptsUuid()
         {
             var generatedFlightGuid = Guid.Parse("22222222-2222-2222-2222-222222222222");
             var partnerAirline = new PartnerAirline
@@ -101,20 +262,34 @@ namespace SnoopyAirlines.Tests
             Assert.Equal(Guid.Empty, capturedGuidBeforeMaterialization);
         }
 
+        private static string EncodeDateTime(DateTime dateTime)
+        {
+            return Uri.EscapeDataString(dateTime.ToString("O", CultureInfo.InvariantCulture));
+        }
+
         private sealed class StubHttpMessageHandler : HttpMessageHandler
         {
             private readonly string _json;
+            private readonly HttpStatusCode _statusCode;
+            private readonly Action<HttpRequestMessage>? _onRequest;
 
-            public StubHttpMessageHandler(string json)
+            public StubHttpMessageHandler(
+                string json,
+                HttpStatusCode statusCode = HttpStatusCode.OK,
+                Action<HttpRequestMessage>? onRequest = null)
             {
                 _json = json;
+                _statusCode = statusCode;
+                _onRequest = onRequest;
             }
 
             protected override Task<HttpResponseMessage> SendAsync(
                 HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                _onRequest?.Invoke(request);
+
+                return Task.FromResult(new HttpResponseMessage(_statusCode)
                 {
                     Content = new StringContent(_json, Encoding.UTF8, "application/json")
                 });
