@@ -195,10 +195,9 @@ export default {
       return this.localPassengers.reduce((sum, p) => sum + this.extrabagsFor(p), 0);
     },
     totalToPay() {
+        
         const totalAmount = this.localPassengers.reduce((sum, p) => {
-            const newCost = this.totalCostForPassenger(p);
-            const originalCost = this.originalCostForPassenger(p);
-            return sum + (newCost - originalCost); 
+        return sum + this.extraCostForPassenger(p);
         }, 0);
         return Math.max(0, totalAmount);
     },
@@ -269,23 +268,14 @@ export default {
         if (bags < 1) return 0;
         return unitPrice * Math.pow((1 + multiplier), bags - 1);
     },
-    totalCostForPassenger(passenger){
-        return this.routes.reduce((sum, route) => {
-            return sum + this.checkedLuggageCostForPassenger(
-                passenger.currentBags,
-                route.pricePerBag,
-                route.multiplier
-            );
-        }, 0);
-    },
-    originalCostForPassenger(passenger) {
-        return this.routes.reduce((sum, route) => {
-            return sum + this.checkedLuggageCostForPassenger(
-                passenger.originalBags,
-                route.pricePerBag,
-                route.multiplier
-            );
-        }, 0);
+    extraCostForPassenger(passenger) {
+        let total = 0;
+        for (let bagNumber = passenger.originalBags + 1; bagNumber <= passenger.currentBags; bagNumber++) {
+            this.routes.forEach(route => {
+                total += this.checkedLuggageCostForPassenger(bagNumber, route.pricePerBag, route.multiplier);
+            });
+        }
+        return total;
     },
     extrabagsFor(passenger) {
       return Math.max(0, passenger.currentBags - passenger.originalBags);
