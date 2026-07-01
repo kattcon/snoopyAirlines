@@ -96,9 +96,8 @@ namespace UIAutomationTests
         [TearDown]
         public void TearDown()
         {
-            _driver?.Quit();
-            _driver?.Dispose();
-            _driver = null;
+            _driver.Quit();
+            _driver.Dispose();
         }
     }
 }
