@@ -269,8 +269,9 @@ export default {
         }
     },
     checkedLuggageCostForPassenger(bags, unitPrice, multiplier) {
-        if (bags <= 0) return 0;
-        return unitPrice * Math.pow((1 + multiplier), bags);
+        if (bags < 0) return 0;
+        if (bags === 0) bags = 1; 
+        return unitPrice * Math.pow((1 + multiplier), bags - 1);
     },
     totalCostForPassenger(passenger){
         return this.routes.reduce((sum, route) => {
