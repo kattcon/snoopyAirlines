@@ -270,7 +270,6 @@
 <script>
 import axios from 'axios';
 
-const BACKEND_API_BASE = 'http://localhost:5235';
 export default {
   name: 'LandingPage',
   data() {
@@ -338,7 +337,7 @@ export default {
      */
     async loadAirports() {
       try {
-const response = await fetch(`${BACKEND_API_BASE}/airport`);
+        const response = await fetch(`${process.env.VUE_APP_BACKEND_URL}/airport`);
         if (!response.ok) {
           console.error('Error al cargar aeropuertos:', response.statusText);
           return;
@@ -375,7 +374,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
         latestDeparture:   `${date}T23:59`,
         quantityOfPassengers: passengers,
         includeStopovers: this.search.includeStopovers ? 'true' : 'false',
-        apiKey: BACKEND_API_BASE,
+        apiKey: process.env.VUE_APP_BACKEND_URL,
       });
     },
 
@@ -640,7 +639,7 @@ const response = await fetch(`${BACKEND_API_BASE}/airport`);
      */
     fetchFlights(origin, destination, date, passengers) {
       const params = this.buildExternalParams(origin, destination, date, passengers);
-      return fetch(`${BACKEND_API_BASE}/Flight/search?${params}`)
+      return fetch(`${process.env.VUE_APP_BACKEND_URL}/Flight/search?${params}`)
         .then(res => {
           if (!res.ok) throw new Error(`Error buscando vuelos ${origin} → ${destination}`);
           return res.json();
