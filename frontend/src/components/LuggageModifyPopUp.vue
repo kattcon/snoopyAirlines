@@ -178,7 +178,6 @@ export default {
       localPassengers:[],
       routes:[],
       currency: 'USD',
-      availableCapacity:0,
       showDecreaseWarning: false,
       showPaymentForm: false,
         paymentDetails: {
@@ -250,12 +249,10 @@ export default {
             this.routes = response.data.luggageInfo.map(route=> ({
                 pricePerBag: parseFloat(route.priceCheckedBaggage),
                 multiplier: parseFloat(route.checkedBaggagePriceMultiplier),
-                weightLimit: parseInt(route.weightLimitCheckedBaggage)
+                weightLimit: parseInt(route.weightLimitCheckedBaggage),
+                airplaneMaxWeight: parseFloat(route.airplaneMaxWeight),
+                bookedLuggageWeight: parseFloat(route.bookedLuggageWeight)
             }))
-
-            this.availableCapacity = Math.min(...response.data.luggageInfo.map(route =>
-                Math.floor(parseInt(route.weightLimitCheckedBaggage) / 23)
-            ))
         }catch (error){
             if(error.response) {
               if (error.response.status === 400) this.loadError = 'Código de confirmación inválido'
@@ -294,7 +291,32 @@ export default {
       return Math.max(0, passenger.currentBags - passenger.originalBags);
     },
     canIncrement(passenger) {
-      return (passenger.currentBags) <= this.availableCapacity;
+      return this.hasAirplaneCapacityFor(passenger, passenger.currentBags + 1);
+    },
+    totalCheckedBags(key) {
+      return this.localPassengers.reduce((sum, passenger) => sum + Number(passenger[key] || 0), 0);
+    },
+    hasAirplaneCapacityFor(passengerToUpdate, nextBagCount) {
+      const originalCheckedBags = this.totalCheckedBags('originalBags');
+      const nextCheckedBags = this.localPassengers.reduce((sum, passenger) => {
+        const bags = passenger.id === passengerToUpdate.id ? nextBagCount : passenger.currentBags;
+        return sum + Number(bags || 0);
+      }, 0);
+
+      return this.routes.every((route) => {
+        const bagWeight = Number(route.weightLimit);
+        const maxWeight = Number(route.airplaneMaxWeight);
+        const bookedWeight = Number(route.bookedLuggageWeight);
+
+        if (!Number.isFinite(bagWeight) || !Number.isFinite(maxWeight) || !Number.isFinite(bookedWeight)) {
+          return true;
+        }
+
+        const otherBookingsWeight = Math.max(0, bookedWeight - originalCheckedBags * bagWeight);
+        const projectedWeight = otherBookingsWeight + nextCheckedBags * bagWeight;
+
+        return projectedWeight <= maxWeight;
+      });
     },
     increaseBags(passenger) {
       if (!this.canIncrement(passenger)) {
@@ -341,7 +363,7 @@ export default {
           currency : this.currency
                 });
       } catch(error) {
-        this.errorMessage = 'Error al procesar el pago. Por favor intenta de nuevo';
+        this.errorMessage = error.response?.data?.message || 'Error al procesar el pago. Por favor intenta de nuevo';
         console.error('[LuggageModifyPopUp] handlePay:', error);
       } finally {
 

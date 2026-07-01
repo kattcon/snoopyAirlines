@@ -95,6 +95,9 @@ namespace snoopy_airlines_backend.Services
             } catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50002)
             {
                 throw new InvalidOperationException("Uno o mas pasajeros no pertenecen a esta reservación");
+            } catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50003)
+            {
+                throw new ArgumentException(ex.Message);
             }
         }
     }
