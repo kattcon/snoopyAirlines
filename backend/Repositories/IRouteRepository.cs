@@ -1,3 +1,4 @@
+using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Domain;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
@@ -10,5 +11,9 @@ namespace SnoopyAirlines.Repositories
         Task<DomainRoute?> GetByIdAsync(int routeId, CancellationToken cancellationToken);
         Task<IReadOnlyCollection<DomainRoute>> SearchAsync(int? departureAirportId, int? arrivalAirportId, DateOnly? departureDate, CancellationToken cancellationToken);
         Task SaveAsync(DomainRoute route, CancellationToken cancellationToken);
+
+        Task<IEnumerable<RouteListItem>> GetAllWithDetailsAsync(CancellationToken cancellationToken);
+        Task<bool> DeleteAsync(int routeId, CancellationToken cancellationToken);
+
     }
 }

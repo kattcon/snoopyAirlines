@@ -25,6 +25,7 @@ import OrderConfirmation from './views/OrderConfirmation.vue';
 import EditUser from './views/EditUser.vue';
 import ClientFlightReport from './components/ClientFlightReport.vue';
 import ConfirmCancellation from './components/ConfirmCancellation.vue';
+import RoutesList from "./views/RoutesList.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -53,6 +54,7 @@ const router = createRouter({
               { path: 'edit-airport/:id', component: EditAirport },
               { path: 'edit-aircraft/:id', component: EditAircraft },
               { path: 'edit-user/:id', component: EditUser },
+              { path: 'list-routes', component: RoutesList },
             ], name: "Admin", component: InternalLandingPage},
     ],
 });

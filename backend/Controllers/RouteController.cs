@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using snoopy_airlines_backend.Domain;
 using SnoopyAirlines.Services;
 using DomainRoute = SnoopyAirlines.Domain.Route;
 
@@ -70,6 +71,69 @@ namespace SnoopyAirlines.Controllers
             catch (SqlException exception)
             {
                 return BadRequest(new { Message = exception.Message });
+            }
+        }
+
+        [HttpGet("list")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<RouteListItem>>> GetList(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var routes = await _routeService.GetRouteListAsync(cancellationToken);
+
+                return Ok(routes);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    "Ocurrió un error al obtener la lista de rutas.");
+            }
+        }
+
+        [HttpDelete("{routeId:int}")]
+        public async Task<IActionResult> Delete(int routeId, CancellationToken cancellationToken)
+        {
+            if (routeId < 0)
+            {
+                return BadRequest("El id de la ruta no puede ser menor que cero.");
+            }
+
+            try
+            {
+                var deleted = await _routeService.DeleteRouteAsync(routeId, cancellationToken);
+
+                if (!deleted)
+                {
+                    return NotFound("La ruta no existe.");
+                }
+
+                return NoContent();
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    "Ocurrió un error al eliminar la ruta.");
             }
         }
     }
