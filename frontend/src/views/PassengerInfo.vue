@@ -94,7 +94,6 @@
                             type="number"
                             v-model.number="passenger.CarryOnLuggage"
                             min="0"
-                            max="routeLimits.maxCarryOn"
                             :class="{'input-error': errors[index]?.CarryOnLuggage || luggageErrors[index]?.carryOn}"
                             @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
                             placeholder="0"
@@ -108,7 +107,6 @@
                             type="number"
                             v-model.number="passenger.checkedLuggage"
                             min="0"
-                            max="routeLimits.maxChecked"
                             :class="{'input-error': errors[index]?.checkedLuggage || luggageErrors[index]?.checked}"
                             @keydown="(e) => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()"
                             placeholder="0"
@@ -167,8 +165,7 @@ export default {
         
         return {
             routeLimits: {
-                maxCarryOn: Infinity,
-                maxChecked: Infinity
+                routes: []
             },
             showBanner:true,
             openPassenger:0,
@@ -200,13 +197,14 @@ export default {
             return Array.from({length:100}, (_,i) => current - i);
         },
         luggageErrors() {
+            const capacityError = this.luggageCapacityError();
             return this.passengers.map(p => ({
-                carryOn: p.CarryOnLuggage > this.routeLimits.maxCarryOn
-                    ? `Máximo ${this.routeLimits.maxCarryOn} maleta(s) de mano permitidas`
+                carryOn: Number(p.CarryOnLuggage) < 0
+                    ? "Debe ser mayor o igual a 0"
                     : null,
-                checked: p.checkedLuggage > this.routeLimits.maxChecked
-                    ? `Máximo ${this.routeLimits.maxChecked} maleta(s) documentadas permitidas`
-                    : null,
+                checked: Number(p.checkedLuggage) < 0
+                    ? "Debe ser mayor o igual a 0"
+                    : capacityError,
             }));
         }
     },
@@ -302,6 +300,41 @@ export default {
                 "Error al guardar los datos de los pasajeros"
             );
         },
+        luggageCapacityError() {
+            if (this.routeLimits.routes.length === 0) {
+                return null;
+            }
+
+            const totalCarryOn = this.passengers.reduce(
+                (sum, passenger) => sum + Number(passenger.CarryOnLuggage || 0),
+                0
+            );
+            const totalChecked = this.passengers.reduce(
+                (sum, passenger) => sum + Number(passenger.checkedLuggage || 0),
+                0
+            );
+
+            const exceedsAirplaneLimit = this.routeLimits.routes.some(route => {
+                const carryOnWeight = Number(route.weightLimitCarryOnBaggage);
+                const checkedWeight = Number(route.weightLimitCheckedBaggage);
+                const airplaneMaxWeight = Number(route.airplaneMaxWeight);
+
+                if (
+                    !Number.isFinite(carryOnWeight) ||
+                    !Number.isFinite(checkedWeight) ||
+                    !Number.isFinite(airplaneMaxWeight)
+                ) {
+                    return false;
+                }
+
+                const luggageWeight = (totalCarryOn * carryOnWeight) + (totalChecked * checkedWeight);
+                return luggageWeight > airplaneMaxWeight;
+            });
+
+            return exceedsAirplaneLimit
+                ? "El peso total del equipaje supera el peso maximo de la aeronave"
+                : null;
+        },
         bookingRoutes() {
             const rawRoutes = Array.isArray(this.$route.query.routes)
                 ? this.$route.query.routes[0]
@@ -343,18 +376,36 @@ export default {
                 const routes = this.bookingRoutes();
                 if (routes.length === 0) return;
 
-                const responses = await Promise.all(
+                const routeResponses = await Promise.all(
                     routes.map(route =>
                         axios.get(`${process.env.VUE_APP_BACKEND_URL}/route/${route.routeId}`)
                     )
                 );
 
-                this.routeLimits.maxCarryOn = Math.min(
-                    ...responses.map(r => Math.floor(r.data.weightLimitCarryOnBaggage / 7))
+                const airplaneIds = [
+                    ...new Set(
+                        routeResponses
+                            .map(response => Number(response.data.airplaneId))
+                            .filter(Number.isFinite)
+                    )
+                ];
+                const airplaneResponses = await Promise.all(
+                    airplaneIds.map(airplaneId =>
+                        axios.get(`${process.env.VUE_APP_BACKEND_URL}/airplane/id/${airplaneId}`)
+                    )
                 );
-                this.routeLimits.maxChecked = Math.min(
-                    ...responses.map(r => Math.floor(r.data.weightLimitCheckedBaggage / 23))
+                const airplaneMaxWeights = new Map(
+                    airplaneResponses.map(response => [
+                        Number(response.data.id),
+                        Number(response.data.maxWeight)
+                    ])
                 );
+
+                this.routeLimits.routes = routeResponses.map(response => ({
+                    weightLimitCarryOnBaggage: Number(response.data.weightLimitCarryOnBaggage),
+                    weightLimitCheckedBaggage: Number(response.data.weightLimitCheckedBaggage),
+                    airplaneMaxWeight: airplaneMaxWeights.get(Number(response.data.airplaneId))
+                }));
             } catch (error) {
                 console.error('Error cargando límites de equipaje:', error);
             }
