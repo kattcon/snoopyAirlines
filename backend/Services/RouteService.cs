@@ -48,5 +48,12 @@ namespace SnoopyAirlines.Services
         {
             return _routeRepository.GetAllWithDetailsAsync(cancellationToken);
         }
+
+        public Task<bool> DeleteRouteAsync(int routeId, CancellationToken cancellationToken) 
+        {
+            return _routeRepository.DeleteAsync(routeId, cancellationToken);
+
+        }
+
     }
 }

@@ -82,5 +82,11 @@ namespace SnoopyAirlines.Controllers
             return Ok(routes);
         }
 
+        [HttpDelete("{routeId:int}")]
+        public async Task<IActionResult> Delete(int routeId, CancellationToken cancellationToken)
+        {
+            var deleted = await _routeService.DeleteRouteAsync(routeId, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
     }
 }

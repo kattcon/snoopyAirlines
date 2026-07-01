@@ -349,6 +349,33 @@ namespace SnoopyAirlines.Repositories
             return routes;
         }
 
+        public async Task<bool> DeleteAsync(int routeId, CancellationToken cancellationToken)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var exists = await connection.ExecuteScalarAsync<int>(
+                new CommandDefinition(
+                    "SELECT COUNT(1) FROM [route] WHERE id = @RouteId;",
+                    new { RouteId = routeId },
+                    cancellationToken: cancellationToken));
+
+            if (exists == 0)
+            {
+                return false;
+            }
+
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    "sp_delete_route",
+                    new { RouteId = routeId },
+                    commandType: System.Data.CommandType.StoredProcedure,
+                    cancellationToken: cancellationToken));
+
+            return true;
+        }
+
+
         private static DomainRoute ToRoute(RouteRecord route)
         {
             return new DomainRoute

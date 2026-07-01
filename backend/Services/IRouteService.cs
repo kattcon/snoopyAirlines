@@ -23,5 +23,7 @@ namespace SnoopyAirlines.Services
         Task SaveRouteAsync(DomainRoute route, CancellationToken cancellationToken);
 
         Task<IEnumerable<RouteListItem>> GetRouteListAsync(CancellationToken cancellationToken);
+        Task<bool> DeleteRouteAsync(int routeId, CancellationToken cancellationToken);
+
     }
 }
