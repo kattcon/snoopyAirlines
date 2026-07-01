@@ -185,24 +185,9 @@ namespace SnoopyAirlines.Repositories
                 CheckedRevenue AS (
                     SELECT
                         yb.BookingGuid,
-                        COALESCE(SUM(
-                            COALESCE(r.price_checked_baggage, external_flight.checked_price, 0) * (
-                                CAST(p.CheckedLuggage AS DECIMAL(18,4))
-                                + ISNULL(r.checked_baggage_price_multiplier, 0) * (
-                                    CAST(p.CheckedLuggage AS DECIMAL(18,4))
-                                    * (CAST(p.CheckedLuggage AS DECIMAL(18,4)) - 1)
-                                    / 2.0
-                                )
-                            )
-                        ), 0) AS CheckedRevenue
+                        COALESCE(SUM(ISNULL(p.checkedLuggagePaid, 0)), 0) AS CheckedRevenue
                     FROM FilteredBookings yb
-                    JOIN dbo.itinerary i ON i.booking_guid = yb.BookingGuid
-                    JOIN dbo.flight f ON f.guid = i.flight_guid
-                    LEFT JOIN dbo.flight_internal internal_flight ON internal_flight.flight_guid = f.guid
-                    LEFT JOIN dbo.[route] r ON r.id = internal_flight.route_id
-                    LEFT JOIN dbo.flight_external external_flight ON external_flight.flight_guid = f.guid
                     JOIN dbo.Passenger p ON p.PurchaseOrderId = yb.PurchaseOrderId
-                    WHERE p.CheckedLuggage > 0
                     GROUP BY yb.BookingGuid
                 ),
                 BookingRevenue AS (
