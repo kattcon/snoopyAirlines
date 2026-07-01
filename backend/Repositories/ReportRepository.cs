@@ -18,31 +18,67 @@ namespace SnoopyAirlines.Repositories
         {
             const string originsSql = """
                 SELECT DISTINCT
-                    origin.id AS Id,
-                    origin.code AS Code,
-                    origin.name AS Name
-                FROM dbo.[route] r
-                JOIN dbo.airport origin ON origin.id = r.departure_airport_id
-                ORDER BY origin.code;
+                    options.Id,
+                    options.Code,
+                    options.Name
+                FROM (
+                    SELECT
+                        origin.id AS Id,
+                        origin.code AS Code,
+                        origin.name AS Name
+                    FROM dbo.[route] r
+                    JOIN dbo.airport origin ON origin.id = r.departure_airport_id
+
+                    UNION
+
+                    SELECT
+                        origin.id AS Id,
+                        origin.code AS Code,
+                        origin.name AS Name
+                    FROM dbo.flight_external external_flight
+                    JOIN dbo.airport origin ON origin.code = external_flight.departure_airport_code
+                ) options
+                ORDER BY options.Code;
                 """;
 
             const string destinationsSql = """
                 SELECT DISTINCT
-                    destination.id AS Id,
-                    destination.code AS Code,
-                    destination.name AS Name
-                FROM dbo.[route] r
-                JOIN dbo.airport destination ON destination.id = r.arrival_airport_id
-                ORDER BY destination.code;
+                    options.Id,
+                    options.Code,
+                    options.Name
+                FROM (
+                    SELECT
+                        destination.id AS Id,
+                        destination.code AS Code,
+                        destination.name AS Name
+                    FROM dbo.[route] r
+                    JOIN dbo.airport destination ON destination.id = r.arrival_airport_id
+
+                    UNION
+
+                    SELECT
+                        destination.id AS Id,
+                        destination.code AS Code,
+                        destination.name AS Name
+                    FROM dbo.flight_external external_flight
+                    JOIN dbo.airport destination ON destination.code = external_flight.arrival_airport_code
+                ) options
+                ORDER BY options.Code;
                 """;
 
             const string airlinesSql = """
-                SELECT DISTINCT
-                    airplane.id AS Id,
-                    airplane.model AS Model
-                FROM dbo.[route] r
-                JOIN dbo.airplane airplane ON airplane.id = r.airplane_id
-                ORDER BY airplane.model;
+                SELECT
+                    options.Id,
+                    options.Name
+                FROM (
+                    SELECT 0 AS Id, 'SnoopyAirlines' AS Name
+                    UNION
+                    SELECT DISTINCT
+                        partner_airline.id AS Id,
+                        partner_airline.name AS Name
+                    FROM dbo.partner_airline partner_airline
+                ) options
+                ORDER BY options.Name;
                 """;
 
             await using var connection = new SqlConnection(_connectionString);
@@ -66,7 +102,7 @@ namespace SnoopyAirlines.Repositories
             int? year,
             int? originAirportId,
             int? destinationAirportId,
-            int? airplaneId,
+            int? partnerAirlineId,
             CancellationToken cancellationToken)
         {
             var startOfYear = year.HasValue ? new DateTime(year.Value, 1, 1) : (DateTime?)null;
@@ -88,11 +124,27 @@ namespace SnoopyAirlines.Repositories
                             SELECT 1
                             FROM dbo.itinerary i
                             JOIN dbo.flight f ON f.guid = i.flight_guid
-                            JOIN dbo.[route] r ON r.id = f.route_id
+                                                        LEFT JOIN dbo.flight_internal internal_flight ON internal_flight.flight_guid = f.guid
+                                                        LEFT JOIN dbo.[route] r ON r.id = internal_flight.route_id
+                                                        LEFT JOIN dbo.flight_external external_flight ON external_flight.flight_guid = f.guid
+                                                        LEFT JOIN dbo.airport origin_filter ON origin_filter.id = @OriginAirportId
+                                                        LEFT JOIN dbo.airport destination_filter ON destination_filter.id = @DestinationAirportId
                             WHERE i.booking_guid = b.guid
-                              AND (@OriginAirportId IS NULL OR r.departure_airport_id = @OriginAirportId)
-                              AND (@DestinationAirportId IS NULL OR r.arrival_airport_id = @DestinationAirportId)
-                              AND (@AirplaneId IS NULL OR r.airplane_id = @AirplaneId)
+                                                            AND (
+                                                                        @OriginAirportId IS NULL
+                                                                        OR r.departure_airport_id = @OriginAirportId
+                                                                        OR external_flight.departure_airport_code = origin_filter.code
+                                                                    )
+                                                            AND (
+                                                                        @DestinationAirportId IS NULL
+                                                                        OR r.arrival_airport_id = @DestinationAirportId
+                                                                        OR external_flight.arrival_airport_code = destination_filter.code
+                                                                    )
+                                                            AND (
+                                                                @PartnerAirlineId IS NULL
+                                                                OR (@PartnerAirlineId = 0 AND internal_flight.flight_guid IS NOT NULL)
+                                                                OR (@PartnerAirlineId > 0 AND external_flight.partner_airline_id = @PartnerAirlineId)
+                                                                )
                         )
                 ),
                 PassengerStats AS (
@@ -115,24 +167,26 @@ namespace SnoopyAirlines.Repositories
                         COUNT(*) AS LegCount,
                         COALESCE(SUM(
                             CASE po.SeatClass
-                                WHEN 'economy' THEN r.price_economy_class
-                                WHEN 'firstClass' THEN r.price_first_class
+                                WHEN 'economy' THEN COALESCE(r.price_economy_class, external_flight.tourist_price, 0)
+                                WHEN 'firstClass' THEN COALESCE(r.price_first_class, external_flight.first_class_price, 0)
                                 ELSE 0
                             END
                         ), 0) AS TicketUnitPriceTotal,
-                        COALESCE(SUM(r.price_carry_on_baggage), 0) AS CarryOnUnitPriceTotal
+                        COALESCE(SUM(COALESCE(r.price_carry_on_baggage, external_flight.carry_on_price, 0)), 0) AS CarryOnUnitPriceTotal
                     FROM FilteredBookings yb
                     JOIN dbo.PurchaseOrder po ON po.Id = yb.PurchaseOrderId
                     JOIN dbo.itinerary i ON i.booking_guid = yb.BookingGuid
                     JOIN dbo.flight f ON f.guid = i.flight_guid
-                    JOIN dbo.[route] r ON r.id = f.route_id
+                    LEFT JOIN dbo.flight_internal internal_flight ON internal_flight.flight_guid = f.guid
+                    LEFT JOIN dbo.[route] r ON r.id = internal_flight.route_id
+                    LEFT JOIN dbo.flight_external external_flight ON external_flight.flight_guid = f.guid
                     GROUP BY yb.BookingGuid
                 ),
                 CheckedRevenue AS (
                     SELECT
                         yb.BookingGuid,
                         COALESCE(SUM(
-                            r.price_checked_baggage * (
+                            COALESCE(r.price_checked_baggage, external_flight.checked_price, 0) * (
                                 CAST(p.CheckedLuggage AS DECIMAL(18,4))
                                 + ISNULL(r.checked_baggage_price_multiplier, 0) * (
                                     CAST(p.CheckedLuggage AS DECIMAL(18,4))
@@ -144,7 +198,9 @@ namespace SnoopyAirlines.Repositories
                     FROM FilteredBookings yb
                     JOIN dbo.itinerary i ON i.booking_guid = yb.BookingGuid
                     JOIN dbo.flight f ON f.guid = i.flight_guid
-                    JOIN dbo.[route] r ON r.id = f.route_id
+                    LEFT JOIN dbo.flight_internal internal_flight ON internal_flight.flight_guid = f.guid
+                    LEFT JOIN dbo.[route] r ON r.id = internal_flight.route_id
+                    LEFT JOIN dbo.flight_external external_flight ON external_flight.flight_guid = f.guid
                     JOIN dbo.Passenger p ON p.PurchaseOrderId = yb.PurchaseOrderId
                     WHERE p.CheckedLuggage > 0
                     GROUP BY yb.BookingGuid
@@ -214,7 +270,7 @@ namespace SnoopyAirlines.Repositories
                         StartOfNextYear = startOfNextYear,
                         OriginAirportId = originAirportId,
                         DestinationAirportId = destinationAirportId,
-                        AirplaneId = airplaneId,
+                        PartnerAirlineId = partnerAirlineId,
                     },
                     cancellationToken: cancellationToken));
 

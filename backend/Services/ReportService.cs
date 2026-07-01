@@ -24,7 +24,7 @@ namespace SnoopyAirlines.Services
             int? year,
             int? originAirportId,
             int? destinationAirportId,
-            int? airplaneId,
+            int? partnerAirlineId,
             CancellationToken cancellationToken)
         {
             if (year.HasValue && (year.Value < 1 || year.Value > 9999))
@@ -34,13 +34,13 @@ namespace SnoopyAirlines.Services
 
             ValidatePositiveIdIfProvided(originAirportId, nameof(originAirportId));
             ValidatePositiveIdIfProvided(destinationAirportId, nameof(destinationAirportId));
-            ValidatePositiveIdIfProvided(airplaneId, nameof(airplaneId));
+            ValidateNonNegativeIdIfProvided(partnerAirlineId, nameof(partnerAirlineId));
 
             var rows = await _reportRepository.GetMonthlyRevenueBreakdownAsync(
                 year,
                 originAirportId,
                 destinationAirportId,
-                airplaneId,
+                partnerAirlineId,
                 cancellationToken);
 
             var normalizedRows = rows
@@ -89,6 +89,14 @@ namespace SnoopyAirlines.Services
             if (id.HasValue && id.Value <= 0)
             {
                 throw new ArgumentOutOfRangeException(parameterName, $"{parameterName} must be greater than 0.");
+            }
+        }
+
+        private static void ValidateNonNegativeIdIfProvided(int? id, string parameterName)
+        {
+            if (id.HasValue && id.Value < 0)
+            {
+                throw new ArgumentOutOfRangeException(parameterName, $"{parameterName} must be greater than or equal to 0.");
             }
         }
     }

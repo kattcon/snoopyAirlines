@@ -17,6 +17,6 @@ namespace SnoopyAirlines.Domain
     public class MonthlyRevenueAirlineFilterOption
     {
         public int Id { get; set; }
-        public string Model { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
     }
 }

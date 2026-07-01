@@ -29,7 +29,7 @@ namespace SnoopyAirlines.Controllers
             [FromQuery] int? year,
             [FromQuery] int? originAirportId,
             [FromQuery] int? destinationAirportId,
-            [FromQuery] int? airplaneId,
+            [FromQuery] int? partnerAirlineId,
             CancellationToken cancellationToken)
         {
             if (year.HasValue && (year.Value < 1 || year.Value > 9999))
@@ -47,16 +47,16 @@ namespace SnoopyAirlines.Controllers
                 return BadRequest(new { Message = "destinationAirportId must be greater than 0." });
             }
 
-            if (airplaneId.HasValue && airplaneId.Value <= 0)
+            if (partnerAirlineId.HasValue && partnerAirlineId.Value < 0)
             {
-                return BadRequest(new { Message = "airplaneId must be greater than 0." });
+                return BadRequest(new { Message = "partnerAirlineId must be greater than or equal to 0." });
             }
 
             var report = await _reportService.GetMonthlyRevenueReportAsync(
                 year,
                 originAirportId,
                 destinationAirportId,
-                airplaneId,
+                partnerAirlineId,
                 cancellationToken);
 
             return Ok(report);

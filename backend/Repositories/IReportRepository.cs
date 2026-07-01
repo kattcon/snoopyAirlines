@@ -10,7 +10,7 @@ namespace SnoopyAirlines.Repositories
             int? year,
             int? originAirportId,
             int? destinationAirportId,
-            int? airplaneId,
+            int? partnerAirlineId,
             CancellationToken cancellationToken);
 
         Task<IReadOnlyCollection<AirlineDetailedReportRow>> GetAirlineDetailedReportAsync(

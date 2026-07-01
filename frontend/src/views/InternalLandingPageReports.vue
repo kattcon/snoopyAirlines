@@ -80,14 +80,14 @@
 
                         <label class="year-selector-group">
                             <span class="year-selector-label">Aerolínea</span>
-                            <select v-model="selectedAirplaneId" class="year-selector" @change="loadMonthlyRevenueReport">
+                            <select v-model="selectedPartnerAirlineId" class="year-selector" @change="loadMonthlyRevenueReport">
                                 <option value="">Todas</option>
                                 <option
-                                    v-for="airplane in revenueAirlineOptions"
-                                    :key="`airline-${airplane.id}`"
-                                    :value="String(airplane.id)"
+                                    v-for="airline in revenueAirlineOptions"
+                                    :key="`airline-${airline.id}`"
+                                    :value="String(airline.id)"
                                 >
-                                    {{ airplane.model }}
+                                    {{ airline.name }}
                                 </option>
                             </select>
                         </label>
@@ -214,7 +214,7 @@
                 selectedRevenueYear: '',
                 selectedOriginAirportId: '',
                 selectedDestinationAirportId: '',
-                selectedAirplaneId: '',
+                selectedPartnerAirlineId: '',
                 revenueOriginAirportOptions: [],
                 revenueDestinationAirportOptions: [],
                 revenueAirlineOptions: [],
@@ -323,8 +323,8 @@
                     requestParams.destinationAirportId = Number(this.selectedDestinationAirportId);
                 }
 
-                if (this.selectedAirplaneId !== '') {
-                    requestParams.airplaneId = Number(this.selectedAirplaneId);
+                if (this.selectedPartnerAirlineId !== '') {
+                    requestParams.partnerAirlineId = Number(this.selectedPartnerAirlineId);
                 }
 
                 this.monthlyRevenueLoading = true;
@@ -358,7 +358,12 @@
             },
 
             async loadRevenueFilterOptions() {
-                if (this.revenueFilterOptionsLoaded) {
+                const hasCachedOptions =
+                    this.revenueOriginAirportOptions.length > 0
+                    || this.revenueDestinationAirportOptions.length > 0
+                    || this.revenueAirlineOptions.length > 0;
+
+                if (this.revenueFilterOptionsLoaded && hasCachedOptions) {
                     return;
                 }
 
@@ -381,8 +386,8 @@
                         .sort((left, right) => String(left.code ?? '').localeCompare(String(right.code ?? '')));
 
                     this.revenueAirlineOptions = (response.data?.airlines ?? [])
-                        .filter((airplane) => airplane?.id)
-                        .sort((left, right) => String(left.model ?? '').localeCompare(String(right.model ?? '')));
+                        .filter((airline) => Number.isInteger(airline?.id) && airline.id >= 0)
+                        .sort((left, right) => String(left.name ?? '').localeCompare(String(right.name ?? '')));
 
                     this.revenueFilterOptionsLoaded = true;
                 } catch (error) {
