@@ -12,7 +12,7 @@ namespace backend.Tests.Services
             Array.Empty<AirlineDetailedReportRow>();
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_NullFilters_PassesNullsToRepository()
+        public async Task TestGetAirlineDetailedReportNullFiltersPassesNullsToRepository()
         {
             // Arrange
             var mockRepo = new Mock<IReportRepository>();
@@ -32,7 +32,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_EmptyStringFilters_PassesNullsToRepository()
+        public async Task TestGetAirlineDetailedReportEmptyStringFiltersPassesNullsToRepository()
         {
             // Arrange
             var mockRepo = new Mock<IReportRepository>();
@@ -52,7 +52,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_WhitespaceFilters_PassesNullsToRepository()
+        public async Task TestGetAirlineDetailedReportWhitespaceFiltersPassesNullsToRepository()
         {
             // Arrange
             var mockRepo = new Mock<IReportRepository>();
@@ -72,7 +72,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_LowercaseOrigin_PassesUppercaseToRepository()
+        public async Task TestGetAirlineDetailedReportLowercaseOriginPassesUppercaseToRepository()
         {
             // Arrange
             var mockRepo = new Mock<IReportRepository>();
@@ -92,7 +92,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_OriginWithWhitespace_PassesTrimmedUppercaseToRepository()
+        public async Task TestGetAirlineDetailedReportOriginWithWhitespacePassesTrimmedUppercaseToRepository()
         {
             // Arrange
             var mockRepo = new Mock<IReportRepository>();
@@ -112,7 +112,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_ValidSeatClass_PassesTrimmedToRepository()
+        public async Task TestGetAirlineDetailedReportValidSeatClassPassesTrimmedToRepository()
         {
             // Arrange
             var mockRepo = new Mock<IReportRepository>();
@@ -132,7 +132,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_ReturnsRowsFromRepository()
+        public async Task TestGetAirlineDetailedReportReturnsRowsFromRepository()
         {
             // Arrange
             var expectedRows = new List<AirlineDetailedReportRow>
@@ -171,7 +171,7 @@ namespace backend.Tests.Services
         }
 
         [Fact]
-        public async Task TestGetAirlineDetailedReport_WithDateFilters_PassesDateFiltersToRepository()
+        public async Task TestGetAirlineDetailedReportWithDateFiltersPassesDateFiltersToRepository()
         {
             // Arrange
             var dateFrom = new DateOnly(2026, 6, 1);
