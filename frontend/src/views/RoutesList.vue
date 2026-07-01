@@ -41,6 +41,47 @@
                 </div>
         </div>
     </div>
+
+    <div
+        v-if="showDeleteModal"
+        class="modal-overlay"
+        @click.self="showDeleteModal = false"
+    >
+        <div class="delete-modal">
+            <h2>Eliminar ruta</h2>
+
+            <p>
+                ¿Está seguro de que desea eliminar la ruta?
+            </p>
+
+            <p class="route-name" v-if="routeToDelete">
+                <strong>
+                    {{ routeToDelete.departureAirport }}
+                    →
+                    {{ routeToDelete.arrivalAirport }}
+                </strong>
+            </p>
+
+            <div class="modal-buttons">
+                <button
+                    class="cancelButton"
+                    @click="showDeleteModal = false"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    class="dangerButton"
+                    @click="deleteRoute"
+                >
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
 </template>
 <script>
 import axios from "axios";
@@ -55,6 +96,10 @@ export default{
             routes:[],
             searchTerm:"",
             errorMsg:"",
+
+            showDeleteModal: false,
+            routeToDelete: null,
+
             routeColumns:[
                 {key: "airplaneModel", label:"Avión asignado"},
                 {key: "departureAirport", label:"Aeropuerto de salida"},
@@ -109,21 +154,45 @@ export default{
             });
         },
         confirmDelete(route) {
-            if (!confirm(`¿Estás seguro de que deseas eliminar la ruta "${route.departureAirport} → ${route.arrivalAirport}"?`)) return;
+            this.routeToDelete = route;
+            this.showDeleteModal = true;
+        },
+        deleteRoute() {
+            if (!this.routeToDelete) return;
+
             const token = localStorage.getItem("token");
-            axios.delete(`${process.env.VUE_APP_BACKEND_URL}/route/${route.id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            }).then(() => {
-                this.routes = this.routes.filter(r => r.id !== route.id);
+
+            axios.delete(
+                `${process.env.VUE_APP_BACKEND_URL}/route/${this.routeToDelete.id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            ).then(() => {
+
+                this.routes = this.routes.filter(
+                    r => r.id !== this.routeToDelete.id
+                );
+
+                this.showDeleteModal = false;
+                this.routeToDelete = null;
+
             }).catch((error) => {
-                if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+
+                if (error.response &&
+                    (error.response.status === 401 || error.response.status === 403)) {
+
                     this.errorMsg = "Acceso no autorizado";
+
                 } else {
+
                     this.errorMsg = "Error al eliminar la ruta.";
                 }
+
                 console.error("Error eliminando ruta:", error);
             });
-        }
+        },
     }
 };
 </script>
@@ -255,4 +324,53 @@ export default{
   margin-top: 12px;
   text-align: center;
 }
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.delete-modal {
+    width: 420px;
+    max-width: 90%;
+    background: white;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(0,0,0,.2);
+}
+
+.modal h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.route-name {
+    margin: 20px 0;
+    color: #444;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.cancelButton {
+    background: #e5e5e5;
+    color: #333;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cancelButton:hover {
+    background: #d6d6d6;
+}
+
 </style>
