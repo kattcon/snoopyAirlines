@@ -163,11 +163,21 @@ export default {
       ]);
     },
     checkedLuggageTotalAmount() {
+      const purchaseOrderAmount = this.purchaseOrderAmount([
+        "checkedLuggageTotalAmount",
+        "CheckedLuggageTotalAmount"
+      ]);
+
+      return Number.isFinite(purchaseOrderAmount)
+        ? purchaseOrderAmount
+        : this.calculatedCheckedLuggageTotalAmount;
+    },
+    calculatedCheckedLuggageTotalAmount() {
       if (this.routeDetails.length === 0) return null;
 
       const total = this.routeDetails.reduce((routeSum, routeDetail) => {
-      const routeCost = this.checkedLuggageTotalForRoute(routeDetail.route);
-      return routeCost === null ? null : routeSum + routeCost;
+        const routeCost = this.checkedLuggageTotalForRoute(routeDetail.route);
+        return routeCost === null ? null : routeSum + routeCost;
       }, 0);
 
       return Number.isFinite(total) ? total : null;
@@ -203,6 +213,16 @@ export default {
       return Number.isFinite(total) ? total : null;
     },
     carryOnLuggageTotalAmount() {
+      const purchaseOrderAmount = this.purchaseOrderAmount([
+        "carryOnLuggageTotalAmount",
+        "CarryOnLuggageTotalAmount"
+      ]);
+
+      return Number.isFinite(purchaseOrderAmount)
+        ? purchaseOrderAmount
+        : this.calculatedCarryOnLuggageTotalAmount;
+    },
+    calculatedCarryOnLuggageTotalAmount() {
       if (
         !Number.isFinite(this.carryOnLuggageCount) ||
         !Number.isFinite(this.carryOnLuggageUnitPrice)
@@ -229,6 +249,16 @@ export default {
       return Number.isFinite(total) ? total : null;
     },
     flightSubtotal() {
+      const purchaseOrderAmount = this.purchaseOrderAmount([
+        "ticketTotalAmount",
+        "TicketTotalAmount"
+      ]);
+
+      return Number.isFinite(purchaseOrderAmount)
+        ? purchaseOrderAmount
+        : this.calculatedFlightSubtotal;
+    },
+    calculatedFlightSubtotal() {
       if (!Number.isFinite(this.unitFlightPrice)) return null;
       return this.unitFlightPrice * this.passengers.length;
     },
@@ -236,6 +266,11 @@ export default {
       const bookedTotal = Number(this.fieldValue(this.booking, "totalAmount", "TotalAmount"));
       if (Number.isFinite(bookedTotal)) {
         return this.formatCurrency(bookedTotal);
+      }
+
+      const purchaseOrderTotal = this.purchaseOrderAmount(["totalAmount", "TotalAmount"]);
+      if (Number.isFinite(purchaseOrderTotal)) {
+        return this.formatCurrency(purchaseOrderTotal);
       }
 
       if (
@@ -381,6 +416,10 @@ export default {
       const key = keys.find((field) => source?.[field] !== undefined && source?.[field] !== null);
       return key ? source[key] : undefined;
     },
+    purchaseOrderAmount(keys) {
+      const amount = Number(this.firstFieldValue(this.purchaseOrder, keys));
+      return Number.isFinite(amount) ? amount : null;
+    },
     luggageValue(passenger, keys, placeholderKey) {
       const value = this.firstFieldValue(passenger, keys);
 
@@ -447,7 +486,12 @@ export default {
       const bags = Math.floor(checkedCount);
       if (bags <= 0) return 0;
 
-      return unitPrice * bags + unitPrice * multiplier * (bags * (bags - 1) / 2);
+      let total = 0;
+      for (let bagNumber = 1; bagNumber <= bags; bagNumber++) {
+        total += unitPrice * Math.pow(1 + multiplier, bagNumber - 1);
+      }
+
+      return total;
     },
     async loadRouteDetails(routes) {
       if (!Array.isArray(routes) || routes.length === 0) {

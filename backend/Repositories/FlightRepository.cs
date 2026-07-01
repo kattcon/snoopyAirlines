@@ -266,19 +266,18 @@ namespace SnoopyAirlines.Repositories
                 new CommandDefinition(
                     """
                     SELECT
-                        p.FirstName,
-                        p.LastName,
-                        p.Gender,
-                        p.Nationality,
-                        p.Birthday,
-                        p.BirthMonth,
-                        p.BirthYear,
-                        p.CarryOnLuggage,
-                        p.CheckedLuggage
-                    FROM dbo.Passenger p
-                    JOIN dbo.booking b ON p.PurchaseOrderId = b.purchase_order_id
-                    WHERE b.confirmation_code = UPPER(LTRIM(RTRIM(@ConfirmationNumber)))
-                    ORDER BY p.Id;
+                        FirstName,
+                        LastName,
+                        Gender,
+                        Nationality,
+                        BirthDay,
+                        BirthMonth,
+                        BirthYear,
+                        CarryOnLuggage,
+                        CheckedLuggage,
+                        CheckedLuggageTotalCost
+                    FROM dbo.GetFlightReportPassengersByConfirmation(@ConfirmationNumber)
+                    ORDER BY Id;
                     """,
                     new { ConfirmationNumber = confirmationNumber },
                     cancellationToken: cancellationToken));

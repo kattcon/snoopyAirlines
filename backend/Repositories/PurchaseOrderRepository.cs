@@ -104,7 +104,7 @@ namespace snoopy_airlines_backend.Repositories
                 }
 
                 await transaction.CommitAsync(cancellationToken);
-                return order;
+                return await GetPurchaseOrderByIdAsync(order.Id, cancellationToken) ?? order;
             }
             catch
             {
@@ -151,10 +151,15 @@ namespace snoopy_airlines_backend.Repositories
             using var results = await connection.QueryMultipleAsync(
                 new CommandDefinition("""
                 SELECT
-                    id AS Id,
-                    seatClass AS SeatClass
-                FROM PurchaseOrder
-                ORDER BY id;
+                    purchase_order.id AS Id,
+                    purchase_order.seatClass AS SeatClass,
+                    amount_breakdown.TicketTotalAmount,
+                    amount_breakdown.CarryOnLuggageTotalAmount,
+                    amount_breakdown.CheckedLuggageTotalAmount,
+                    amount_breakdown.TotalAmount
+                FROM PurchaseOrder purchase_order
+                OUTER APPLY dbo.GetPurchaseOrderAmountBreakdown(purchase_order.Id) amount_breakdown
+                ORDER BY purchase_order.id;
 
                 SELECT
                     PurchaseOrderId AS PurchaseOrderId,
@@ -189,10 +194,15 @@ namespace snoopy_airlines_backend.Repositories
         {
             const string sql = """
                 SELECT
-                    id AS Id,
-                    seatClass AS SeatClass
-                FROM PurchaseOrder
-                WHERE id = @Id;
+                    purchase_order.id AS Id,
+                    purchase_order.seatClass AS SeatClass,
+                    amount_breakdown.TicketTotalAmount,
+                    amount_breakdown.CarryOnLuggageTotalAmount,
+                    amount_breakdown.CheckedLuggageTotalAmount,
+                    amount_breakdown.TotalAmount
+                FROM PurchaseOrder purchase_order
+                OUTER APPLY dbo.GetPurchaseOrderAmountBreakdown(purchase_order.Id) amount_breakdown
+                WHERE purchase_order.id = @Id;
 
                 SELECT
                     PurchaseOrderId AS PurchaseOrderId,
@@ -263,7 +273,11 @@ namespace snoopy_airlines_backend.Repositories
             return new PurchaseOrder
             {
                 Id = order.Id,
-                SeatClass = order.SeatClass
+                SeatClass = order.SeatClass,
+                TicketTotalAmount = order.TicketTotalAmount,
+                CarryOnLuggageTotalAmount = order.CarryOnLuggageTotalAmount,
+                CheckedLuggageTotalAmount = order.CheckedLuggageTotalAmount,
+                TotalAmount = order.TotalAmount
             };
         }
 
@@ -283,6 +297,10 @@ namespace snoopy_airlines_backend.Repositories
         {
             public int Id { get; set; }
             public string SeatClass { get; set; } = string.Empty;
+            public decimal TicketTotalAmount { get; set; }
+            public decimal CarryOnLuggageTotalAmount { get; set; }
+            public decimal CheckedLuggageTotalAmount { get; set; }
+            public decimal TotalAmount { get; set; }
         }
 
         private class PurchaseOrderRouteRecord
