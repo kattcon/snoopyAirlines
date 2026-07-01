@@ -1,5 +1,6 @@
 using Moq;
 using SnoopyAirlines.Domain;
+using SnoopyAirlines.Domain.View;
 using SnoopyAirlines.Repositories;
 using SnoopyAirlines.Services;
 using SnoopyAirlines.Services.PartnerAirlines;
@@ -55,8 +56,8 @@ namespace SnoopyAirlines.Tests
             var results = await _flightService.Search(query, CancellationToken.None);
 
             Assert.NotEmpty(results);
-            Assert.All(results, flight => Assert.False(flight.HasStopover));
-            Assert.True(results.All(f => f.DepartureAirport.Code == "SJO" && f.ArrivalAirport.Code == "MIA"));
+            Assert.All(results, flight => Assert.False(HasStopover(flight)));
+            Assert.True(results.All(f => DepartureAirportCode(f) == "SJO" && ArrivalAirportCode(f) == "MIA"));
         }
 
         [Fact]
@@ -82,9 +83,9 @@ namespace SnoopyAirlines.Tests
             var results = await _flightService.Search(query, CancellationToken.None);
 
             Assert.DoesNotContain(results, flight =>
-                flight.HasStopover
-                && flight.StopoverAirport?.Code == "MIA"
-                && flight.StopoverDuration == "00:30");
+                HasStopover(flight)
+                && StopoverAirportCode(flight) == "MIA"
+                && StopoverDuration(flight) == "00:30");
         }
 
         [Fact]
@@ -110,9 +111,9 @@ namespace SnoopyAirlines.Tests
             var results = await _flightService.Search(query, CancellationToken.None);
 
             Assert.DoesNotContain(results, flight =>
-                flight.HasStopover
-                && flight.StopoverAirport?.Code == "BOG"
-                && flight.StopoverDuration == "12:30");
+                HasStopover(flight)
+                && StopoverAirportCode(flight) == "BOG"
+                && StopoverDuration(flight) == "12:30");
         }
 
         [Fact]
@@ -139,15 +140,15 @@ namespace SnoopyAirlines.Tests
             var results = await _flightService.Search(query, CancellationToken.None);
 
             var nextDayConnection = results.SingleOrDefault(f =>
-                f.HasStopover
-                && f.DepartureAirport.Code == "SJO"
-                && f.ArrivalAirport.Code == "JFK"
-                && f.StopoverAirport?.Code == "MIA");
+                HasStopover(f)
+                && DepartureAirportCode(f) == "SJO"
+                && ArrivalAirportCode(f) == "JFK"
+                && StopoverAirportCode(f) == "MIA");
 
             Assert.NotNull(nextDayConnection);
-            Assert.Equal("02:30", nextDayConnection!.StopoverDuration);
-            Assert.Equal(new DateTime(2026, 6, 15, 22, 30, 0), nextDayConnection.DepartureTime);
-            Assert.Equal(new DateTime(2026, 6, 16, 6, 30, 0), nextDayConnection.ArrivalTime);
+            Assert.Equal("02:30", StopoverDuration(nextDayConnection!));
+            Assert.Equal(new DateTime(2026, 6, 15, 22, 30, 0), nextDayConnection!.Flights.First().DepartureTime);
+            Assert.Equal(new DateTime(2026, 6, 16, 6, 30, 0), nextDayConnection.Flights.Last().ArrivalTime);
         }
 
         [Fact]
@@ -177,7 +178,7 @@ namespace SnoopyAirlines.Tests
             var results = await _flightService.Search(query, CancellationToken.None);
 
             var flight = Assert.Single(results);
-            Assert.Equal(matchingRoute.Id, flight.RouteId);
+            Assert.Equal(matchingRoute.Id, flight.Flights.Single().RouteId);
             Assert.NotNull(capturedQuery);
             var arrivalWindow = Assert.Single(capturedQuery.ArrivalWindows);
             Assert.True(arrivalWindow.SameDayDepartureFrequency.Monday);
@@ -212,11 +213,43 @@ namespace SnoopyAirlines.Tests
             var results = await _flightService.Search(query, CancellationToken.None);
 
             var flight = Assert.Single(results);
-            Assert.Equal(new DateTime(2026, 6, 16, 1, 15, 0), flight.ArrivalTime);
+            Assert.Equal(new DateTime(2026, 6, 16, 1, 15, 0), flight.Flights.Last().ArrivalTime);
             Assert.NotNull(capturedQuery);
             var arrivalWindow = Assert.Single(capturedQuery.ArrivalWindows);
             Assert.True(arrivalWindow.SameDayDepartureFrequency.Tuesday);
             Assert.True(arrivalWindow.PreviousDayDepartureFrequency.Monday);
+        }
+
+        private static bool HasStopover(FlightResponse flight)
+        {
+            return flight.Flights.Count > 1;
+        }
+
+        private static string DepartureAirportCode(FlightResponse flight)
+        {
+            return flight.Flights.First().DepartureAirport.Code;
+        }
+
+        private static string ArrivalAirportCode(FlightResponse flight)
+        {
+            return flight.Flights.Last().ArrivalAirport.Code;
+        }
+
+        private static string? StopoverAirportCode(FlightResponse flight)
+        {
+            return HasStopover(flight) ? flight.Flights.First().ArrivalAirport.Code : null;
+        }
+
+        private static string? StopoverDuration(FlightResponse flight)
+        {
+            if (!HasStopover(flight))
+            {
+                return null;
+            }
+
+            var orderedLegs = flight.Flights.OrderBy(leg => leg.SequenceNumber).ToArray();
+            var stopover = orderedLegs[1].DepartureTime - orderedLegs[0].ArrivalTime;
+            return stopover.ToString(@"hh\:mm");
         }
 
         private void SetupRoutes(

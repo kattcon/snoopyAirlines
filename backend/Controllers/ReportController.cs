@@ -6,7 +6,7 @@ using SnoopyAirlines.Services;
 namespace SnoopyAirlines.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("reports")]
     public class ReportController : ControllerBase
     {
         private readonly IReportService _reportService;
@@ -14,6 +14,52 @@ namespace SnoopyAirlines.Controllers
         public ReportController(IReportService reportService)
         {
             _reportService = reportService;
+        }
+
+        [HttpGet("monthly-revenue/filters")]
+        public async Task<ActionResult<MonthlyRevenueFilterOptions>> GetMonthlyRevenueFiltersAsync(
+            CancellationToken cancellationToken)
+        {
+            var filters = await _reportService.GetMonthlyRevenueFilterOptionsAsync(cancellationToken);
+            return Ok(filters);
+        }
+
+        [HttpGet("monthly-revenue")]
+        public async Task<ActionResult<MonthlyRevenueReport>> GetMonthlyRevenueAsync(
+            [FromQuery] int? year,
+            [FromQuery] int? originAirportId,
+            [FromQuery] int? destinationAirportId,
+            [FromQuery] int? partnerAirlineId,
+            CancellationToken cancellationToken)
+        {
+            if (year.HasValue && (year.Value < 1 || year.Value > 9999))
+            {
+                return BadRequest(new { Message = "year must be between 1 and 9999." });
+            }
+
+            if (originAirportId.HasValue && originAirportId.Value <= 0)
+            {
+                return BadRequest(new { Message = "originAirportId must be greater than 0." });
+            }
+
+            if (destinationAirportId.HasValue && destinationAirportId.Value <= 0)
+            {
+                return BadRequest(new { Message = "destinationAirportId must be greater than 0." });
+            }
+
+            if (partnerAirlineId.HasValue && partnerAirlineId.Value < 0)
+            {
+                return BadRequest(new { Message = "partnerAirlineId must be greater than or equal to 0." });
+            }
+
+            var report = await _reportService.GetMonthlyRevenueReportAsync(
+                year,
+                originAirportId,
+                destinationAirportId,
+                partnerAirlineId,
+                cancellationToken);
+
+            return Ok(report);
         }
 
         [HttpGet("airline-detailed")]

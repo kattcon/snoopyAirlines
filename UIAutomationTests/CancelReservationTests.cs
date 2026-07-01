@@ -6,7 +6,7 @@ namespace UIAutomationTests
 {
     public class CancelReservationTests
     {
-        IWebDriver _driver;
+        private IWebDriver? _driver;
 
         // TODO: Reemplazar con un codigo de confirmación y apellidos reales
         // de una reservación ACTIVA (no cancelada)
@@ -22,8 +22,14 @@ namespace UIAutomationTests
         [Test]
         public void Search_Reservation_And_Cancel_Test()
         {
+            if (!string.Equals(Environment.GetEnvironmentVariable("RUN_UI_AUTOMATION_TESTS"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.Ignore("UI automation tests are disabled by default. Set RUN_UI_AUTOMATION_TESTS=true and ensure frontend is running.");
+            }
+
             // Arrange
             var URL = "http://localhost:8080/";
+            Assert.That(_driver, Is.Not.Null);
             var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
             var js = (IJavaScriptExecutor)_driver;
 

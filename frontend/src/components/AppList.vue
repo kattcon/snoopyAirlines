@@ -24,6 +24,20 @@
         <td :colspan="columns.length" class="no-results">{{ emptyMessage }}</td>
       </tr>
     </tbody>
+    <tfoot v-if="footerRow">
+      <tr>
+        <th v-for="column in columns" :key="column.key">
+          <slot
+            :name="`footer-${column.key}`"
+            :item="footerRow"
+            :column="column"
+            :value="cellValue(footerRow, column)"
+          >
+            {{ cellValue(footerRow, column) }}
+          </slot>
+        </th>
+      </tr>
+    </tfoot>
   </table>
 </template>
 
@@ -46,6 +60,10 @@ export default {
     emptyMessage: {
       type: String,
       default: "No hay datos disponibles."
+    },
+    footerRow: {
+      type: Object,
+      default: null
     }
   },
   methods: {
