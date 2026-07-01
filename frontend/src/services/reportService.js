@@ -13,7 +13,7 @@ export function getAirlineDetailedReport(filters) {
     if (filters.airline) params.airline = filters.airline;
 
     return axios
-        .get(`${backendUrl}/Report/airline-detailed`, {
+        .get(`${backendUrl}/reports/airline-detailed`, {
             params,
             headers: { Authorization: `Bearer ${token}` },
         })
