@@ -445,7 +445,11 @@ RETURN (
         r.checked_baggage_price_multiplier  AS CheckedBaggagePriceMultiplier,
         r.weight_limit_checked_baggage      AS WeightLimitCheckedBaggage,
         CAST(ap.max_weight AS DECIMAL(18, 2)) AS AirplaneMaxWeight,
-        CAST(COALESCE(booked_luggage.BookedLuggageWeight, 0) AS DECIMAL(18, 2)) AS BookedLuggageWeight
+        CAST(
+            COALESCE(booked_luggage.TotalCarryOnCount, 0) * r.weight_limit_carry_on_baggage
+            + COALESCE(booked_luggage.TotalCheckedCount, 0) * r.weight_limit_checked_baggage
+            AS DECIMAL(18, 2)
+        ) AS BookedLuggageWeight
     FROM dbo.booking b
     JOIN dbo.PurchaseOrder po   ON po.Id          = b.purchase_order_id
     JOIN dbo.itinerary i        ON i.booking_guid = b.guid
@@ -457,10 +461,8 @@ RETURN (
         AND ap.is_deleted = 0
     CROSS APPLY (
         SELECT
-            SUM(
-                CAST(p2.CarryOnLuggage AS DECIMAL(18, 2)) * r.weight_limit_carry_on_baggage
-                + CAST(p2.CheckedLuggage AS DECIMAL(18, 2)) * r.weight_limit_checked_baggage
-            ) AS BookedLuggageWeight
+            COALESCE(SUM(CAST(p2.CarryOnLuggage AS DECIMAL(18, 2))), 0) AS TotalCarryOnCount,
+            COALESCE(SUM(CAST(p2.CheckedLuggage AS DECIMAL(18, 2))), 0) AS TotalCheckedCount
         FROM dbo.itinerary i2
         JOIN dbo.booking b2
             ON b2.guid = i2.booking_guid
