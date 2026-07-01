@@ -1,11 +1,17 @@
-﻿using snoopy_airlines_backend.Domain.View;
+﻿using snoopy_airlines_backend.Domain.Intake;
+using snoopy_airlines_backend.Domain.View;
 
 namespace snoopy_airlines_backend.Services
 {
-    public interface IModifyluggageService
+    public interface IModifyLuggageService
     {
-        Task<IReadOnlyCollection<PassengerView>> GetPassengersByConfirmationAsync(
+        Task<ModifyLuggageInfo> GetLuggageInfoAsync(
             string confirmationNumber,
+            CancellationToken cancellationToken
+        );
+
+        Task UpdateLuggageAsync(
+            ModifyLuggageRequest modifyLuggageRequest,
             CancellationToken cancellationToken
         );
     }
