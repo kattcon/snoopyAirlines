@@ -109,43 +109,45 @@ namespace SnoopyAirlines.Repositories
             var startOfNextYear = startOfYear?.AddYears(1);
 
             const string sql = """
-                WITH FilteredBookings AS (
+                WITH MatchingLegs AS (
                     SELECT
                         b.guid AS BookingGuid,
                         b.purchase_order_id AS PurchaseOrderId,
-                        MONTH(b.confirmed_at) AS MonthNumber
+                        f.departure_at AS DepartureAt
                     FROM dbo.booking b
+                    JOIN dbo.itinerary i ON i.booking_guid = b.guid
+                    JOIN dbo.flight f ON f.guid = i.flight_guid
+                    LEFT JOIN dbo.flight_internal internal_flight ON internal_flight.flight_guid = f.guid
+                    LEFT JOIN dbo.[route] r ON r.id = internal_flight.route_id
+                    LEFT JOIN dbo.flight_external external_flight ON external_flight.flight_guid = f.guid
+                    LEFT JOIN dbo.airport origin_filter ON origin_filter.id = @OriginAirportId
+                    LEFT JOIN dbo.airport destination_filter ON destination_filter.id = @DestinationAirportId
                     WHERE b.status = 'confirmed'
                       AND (
-                            @Year IS NULL
-                            OR (b.confirmed_at >= @StartOfYear AND b.confirmed_at < @StartOfNextYear)
+                            @OriginAirportId IS NULL
+                            OR r.departure_airport_id = @OriginAirportId
+                            OR external_flight.departure_airport_code = origin_filter.code
                           )
-                      AND EXISTS (
-                            SELECT 1
-                            FROM dbo.itinerary i
-                            JOIN dbo.flight f ON f.guid = i.flight_guid
-                                                        LEFT JOIN dbo.flight_internal internal_flight ON internal_flight.flight_guid = f.guid
-                                                        LEFT JOIN dbo.[route] r ON r.id = internal_flight.route_id
-                                                        LEFT JOIN dbo.flight_external external_flight ON external_flight.flight_guid = f.guid
-                                                        LEFT JOIN dbo.airport origin_filter ON origin_filter.id = @OriginAirportId
-                                                        LEFT JOIN dbo.airport destination_filter ON destination_filter.id = @DestinationAirportId
-                            WHERE i.booking_guid = b.guid
-                                                            AND (
-                                                                        @OriginAirportId IS NULL
-                                                                        OR r.departure_airport_id = @OriginAirportId
-                                                                        OR external_flight.departure_airport_code = origin_filter.code
-                                                                    )
-                                                            AND (
-                                                                        @DestinationAirportId IS NULL
-                                                                        OR r.arrival_airport_id = @DestinationAirportId
-                                                                        OR external_flight.arrival_airport_code = destination_filter.code
-                                                                    )
-                                                            AND (
-                                                                @PartnerAirlineId IS NULL
-                                                                OR (@PartnerAirlineId = 0 AND internal_flight.flight_guid IS NOT NULL)
-                                                                OR (@PartnerAirlineId > 0 AND external_flight.partner_airline_id = @PartnerAirlineId)
-                                                                )
-                        )
+                      AND (
+                            @DestinationAirportId IS NULL
+                            OR r.arrival_airport_id = @DestinationAirportId
+                            OR external_flight.arrival_airport_code = destination_filter.code
+                          )
+                      AND (
+                            @PartnerAirlineId IS NULL
+                            OR (@PartnerAirlineId = 0 AND internal_flight.flight_guid IS NOT NULL)
+                            OR (@PartnerAirlineId > 0 AND external_flight.partner_airline_id = @PartnerAirlineId)
+                          )
+                ),
+                FilteredBookings AS (
+                    SELECT
+                        ml.BookingGuid,
+                        ml.PurchaseOrderId,
+                        MONTH(MIN(ml.DepartureAt)) AS MonthNumber
+                    FROM MatchingLegs ml
+                    GROUP BY ml.BookingGuid, ml.PurchaseOrderId
+                    HAVING @Year IS NULL
+                        OR (MIN(ml.DepartureAt) >= @StartOfYear AND MIN(ml.DepartureAt) < @StartOfNextYear)
                 ),
                 PassengerStats AS (
                     SELECT
